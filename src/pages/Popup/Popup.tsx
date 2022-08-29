@@ -1,5 +1,8 @@
 import React, { useState, Dispatch, SetStateAction, useEffect } from 'react';
-import ICloudClient, { PremiumMailSettings } from '../../iCloudClient';
+import ICloudClient, {
+  PremiumMailSettings,
+  HmeEmail,
+} from '../../iCloudClient';
 import './Popup.css';
 
 enum PopupTransition {
@@ -16,8 +19,10 @@ type Callback = (transition: PopupTransition) => void;
 const SignInForm = (props: { callback: Callback; client: ICloudClient }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const onFormSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    setIsSubmitting(true);
     event.preventDefault();
     await props.client.signIn(email, password);
     await props.client.accountLogin();
@@ -78,7 +83,10 @@ const SignInForm = (props: { callback: Callback; client: ICloudClient }) => {
         </div>
 
         <div className="text-sm">
-          <a href="#" className="font-medium text-sky-400 hover:text-sky-500">
+          <a
+            href="https://iforgot.apple.com/password/verify/appleid"
+            className="font-medium text-sky-400 hover:text-sky-500"
+          >
             Forgot your password?
           </a>
         </div>
@@ -86,9 +94,10 @@ const SignInForm = (props: { callback: Callback; client: ICloudClient }) => {
         <div>
           <button
             type="submit"
+            disabled={isSubmitting}
             className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-sky-400 hover:bg-sky-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500"
           >
-            Sign in
+            {isSubmitting ? 'Loading...' : 'Sign in'}
           </button>
         </div>
       </form>
@@ -98,9 +107,11 @@ const SignInForm = (props: { callback: Callback; client: ICloudClient }) => {
 
 const TwoFaForm = (props: { callback: Callback; client: ICloudClient }) => {
   const [code, setCode] = useState(['', '', '', '', '', '']);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const onFormSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setIsSubmitting(true);
 
     await props.client.verify2faCode(code.join(''));
     await props.client.trustDevice();
@@ -142,9 +153,10 @@ const TwoFaForm = (props: { callback: Callback; client: ICloudClient }) => {
         <div>
           <button
             type="submit"
+            disabled={isSubmitting}
             className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-sky-400 hover:bg-sky-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500"
           >
-            Verify
+            {isSubmitting ? 'Loading...' : 'Verify'}
           </button>
         </div>
       </form>
@@ -153,18 +165,29 @@ const TwoFaForm = (props: { callback: Callback; client: ICloudClient }) => {
 };
 
 const HideMyEmail = (props: { callback: Callback; client: ICloudClient }) => {
-  const [hmeList, setHmeList] = useState<{ [k: string]: string }[]>();
-  const pms = new PremiumMailSettings(props.client);
+  const [hmeList, setHmeList] = useState<HmeEmail[]>();
 
   useEffect(() => {
+    const pms = new PremiumMailSettings(props.client);
+
     const fetchHmeList = async () => {
       setHmeList(await pms.listHme());
     };
 
     fetchHmeList().catch(console.error);
-  }, []);
+  }, [props.client]);
 
-  return <div>{hmeList}</div>;
+  return (
+    <div>
+      <ul className="divide-y divide-gray-200">
+        {hmeList?.map((hme) => (
+          <li key={hme.hme} className="py-4 flex">
+            {hme.hme}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
 };
 
 enum PopupState {

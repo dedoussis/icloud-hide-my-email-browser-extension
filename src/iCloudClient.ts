@@ -157,15 +157,30 @@ class ICloudClient {
   }
 }
 
+export type HmeEmail = {
+  origin: 'ON_DEMAND' | 'SAFARI';
+  anonymousId: string;
+  domain: string;
+  forwardToEmail: string;
+  hme: string;
+  isActive: boolean;
+  label: string;
+  note: string;
+  createTimestamp: number;
+  recipientMailId: string;
+};
+
 export class PremiumMailSettings {
   private readonly baseUrl: string;
   constructor(readonly client: ICloudClient) {
-    this.baseUrl = `{${client.webserviceUrl('premiummailsettings')}/v1`;
+    this.baseUrl = `${client.webserviceUrl('premiummailsettings')}/v1`;
   }
 
-  async listHme(): Promise<{ [k: string]: string }[]> {
-    const resposne = await this.client.requester.get(`${this.baseUrl}/list`);
-    return resposne.data;
+  async listHme(): Promise<HmeEmail[]> {
+    const resposne = await this.client.requester.get(
+      `${this.baseUrl}/hme/list`
+    );
+    return resposne.data.result.hmeEmails;
   }
 }
 

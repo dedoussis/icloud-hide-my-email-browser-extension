@@ -18,7 +18,7 @@
       ]
     },
     "condition": {
-      "urlFilter": "|https://idmsa.apple.com/appleauth/auth/*",
+      "urlFilter": "|https://*.apple.com/*",
       "resourceTypes": ["xmlhttprequest"]
     }
   },
@@ -41,7 +41,7 @@
       ]
     },
     "condition": {
-      "urlFilter": "|https://setup.icloud.com/setup/ws/1/*",
+      "urlFilter": "|https://*.icloud.com/*",
       "resourceTypes": ["xmlhttprequest"]
     }
   }

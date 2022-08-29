@@ -18,10 +18,7 @@
     ]
   },
   "permissions": ["declarativeNetRequest", "declarativeNetRequestFeedback"],
-  "host_permissions": [
-    "https://idmsa.apple.com/appleauth/auth/*",
-    "https://setup.icloud.com/setup/ws/1/*"
-  ],
+  "host_permissions": ["https://*.apple.com/*", "https://*.icloud.com/*"],
   "icons": {
     "128": "icon-128.png"
   }
