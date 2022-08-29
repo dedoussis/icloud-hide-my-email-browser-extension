@@ -8,6 +8,20 @@
     "default_popup": "popup.html",
     "default_icon": "icon-34.png"
   },
+  "declarative_net_request": {
+    "rule_resources": [
+      {
+        "id": "ruleset_1",
+        "enabled": true,
+        "path": "rules.json"
+      }
+    ]
+  },
+  "permissions": ["declarativeNetRequest", "declarativeNetRequestFeedback"],
+  "host_permissions": [
+    "https://idmsa.apple.com/appleauth/auth/*",
+    "https://setup.icloud.com/setup/ws/1/*"
+  ],
   "icons": {
     "128": "icon-128.png"
   }

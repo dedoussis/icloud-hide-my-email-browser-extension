@@ -1,4 +1,5 @@
-import React, { useState, Dispatch, SetStateAction } from 'react';
+import React, { useState, Dispatch, SetStateAction, useEffect } from 'react';
+import ICloudClient, { PremiumMailSettings } from '../../iCloudClient';
 import './Popup.css';
 
 enum PopupTransition {
@@ -12,8 +13,14 @@ enum PopupTransition {
 
 type Callback = (transition: PopupTransition) => void;
 
-const SignInForm = (props: { callback: Callback }) => {
-  const onFormSubmit = () => {
+const SignInForm = (props: { callback: Callback; client: ICloudClient }) => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+
+  const onFormSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    await props.client.signIn(email, password);
+    await props.client.accountLogin();
     props.callback(PopupTransition.SuccessfulSignIn);
   };
 
@@ -48,6 +55,8 @@ const SignInForm = (props: { callback: Callback }) => {
               required
               className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-sky-500 focus:border-sky-500 focus:z-10 sm:text-sm"
               placeholder="Email address"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
             />
           </div>
           <div>
@@ -62,6 +71,8 @@ const SignInForm = (props: { callback: Callback }) => {
               required
               className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-sky-500 focus:border-sky-500 focus:z-10 sm:text-sm"
               placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
             />
           </div>
         </div>
@@ -85,8 +96,16 @@ const SignInForm = (props: { callback: Callback }) => {
   );
 };
 
-const TwoFaForm = (props: { callback: Callback }) => {
-  const onFormSubmit = () => {
+const TwoFaForm = (props: { callback: Callback; client: ICloudClient }) => {
+  const [code, setCode] = useState(['', '', '', '', '', '']);
+
+  const onFormSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    await props.client.verify2faCode(code.join(''));
+    await props.client.trustDevice();
+    await props.client.accountLogin();
+
     props.callback(PopupTransition.SuccessfulVerification);
   };
 
@@ -102,8 +121,9 @@ const TwoFaForm = (props: { callback: Callback }) => {
         onSubmit={onFormSubmit}
       >
         <div className="grid grid-cols-6 gap-2">
-          {[1, 2, 3, 4, 5, 6].map((key) => (
+          {[0, 1, 2, 3, 4, 5].map((key) => (
             <input
+              key={key}
               className="col-auto h-14 text-center text-2xl mt-1 block w-full shadow-bg bg:text-bg border-2 border-sky-200 focus:outline-none focus:ring-sky-400 focus:border-sky-400 rounded-md"
               type="tel"
               name={`pincode-${key}`}
@@ -112,6 +132,10 @@ const TwoFaForm = (props: { callback: Callback }) => {
               tabIndex={1}
               placeholder="·"
               autoComplete="off"
+              value={code[key]}
+              onChange={(e) =>
+                setCode(code.map((v, i) => (i === key ? e.target.value : v)))
+              }
             />
           ))}
         </div>
@@ -128,8 +152,19 @@ const TwoFaForm = (props: { callback: Callback }) => {
   );
 };
 
-const HideMyEmail = (props: { callback: Callback }) => {
-  return <div>User is now signed-in and verified!</div>;
+const HideMyEmail = (props: { callback: Callback; client: ICloudClient }) => {
+  const [hmeList, setHmeList] = useState<{ [k: string]: string }[]>();
+  const pms = new PremiumMailSettings(props.client);
+
+  useEffect(() => {
+    const fetchHmeList = async () => {
+      setHmeList(await pms.listHme());
+    };
+
+    fetchHmeList().catch(console.error);
+  }, []);
+
+  return <div>{hmeList}</div>;
 };
 
 enum PopupState {
@@ -139,7 +174,7 @@ enum PopupState {
 }
 
 const STATE_ELEMENTS: {
-  [key in PopupState]: React.FC<{ callback: Callback }>;
+  [key in PopupState]: React.FC<{ callback: Callback; client: ICloudClient }>;
 } = {
   [PopupState.SignedOut]: SignInForm,
   [PopupState.SignedIn]: TwoFaForm,
@@ -160,6 +195,8 @@ const STATE_MACHINE_TRANSITIONS: {
   },
 };
 
+const iCloudClient = new ICloudClient();
+
 const transitionToNextStateElement = (
   state: PopupState,
   setState: Dispatch<SetStateAction<PopupState>>
@@ -170,7 +207,7 @@ const transitionToNextStateElement = (
     setState(nextState !== undefined ? nextState : state);
   };
   const StateElement = STATE_ELEMENTS[state];
-  return <StateElement callback={callback} />;
+  return <StateElement callback={callback} client={iCloudClient} />;
 };
 
 const Popup = () => {

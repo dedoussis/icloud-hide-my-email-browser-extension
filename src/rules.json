@@ -1,0 +1,48 @@
+[
+  {
+    "id": 1,
+    "priority": 1,
+    "action": {
+      "type": "modifyHeaders",
+      "requestHeaders": [
+        {
+          "header": "Origin",
+          "operation": "set",
+          "value": "https://www.icloud.com"
+        },
+        {
+          "header": "Referer",
+          "operation": "set",
+          "value": "https://www.icloud.com/"
+        }
+      ]
+    },
+    "condition": {
+      "urlFilter": "|https://idmsa.apple.com/appleauth/auth/*",
+      "resourceTypes": ["xmlhttprequest"]
+    }
+  },
+  {
+    "id": 2,
+    "priority": 1,
+    "action": {
+      "type": "modifyHeaders",
+      "requestHeaders": [
+        {
+          "header": "Origin",
+          "operation": "set",
+          "value": "https://www.icloud.com"
+        },
+        {
+          "header": "Referer",
+          "operation": "set",
+          "value": "https://www.icloud.com/"
+        }
+      ]
+    },
+    "condition": {
+      "urlFilter": "|https://setup.icloud.com/setup/ws/1/*",
+      "resourceTypes": ["xmlhttprequest"]
+    }
+  }
+]
