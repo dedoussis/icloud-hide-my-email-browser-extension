@@ -11,6 +11,26 @@ type BaseUrlConfig = {
   setup: string;
 };
 
+export type ICloudClientSessionData = {
+  webservices: {
+    [k: string]: { url: string; status: string };
+  };
+  headers: { [k: string]: string };
+};
+
+export class ICloudClientSession {
+  constructor(
+    readonly data: ICloudClientSessionData = { headers: {}, webservices: {} },
+    private readonly dataSaver: (data: ICloudClientSessionData) => void = (
+      data
+    ) => {}
+  ) {}
+
+  async save(): Promise<void> {
+    await this.dataSaver(this.data);
+  }
+}
+
 class ICloudClient {
   private static readonly DEFAULT_BASE_URL_CONFIG = {
     auth: 'https://idmsa.apple.com/appleauth/auth',
@@ -38,17 +58,12 @@ class ICloudClient {
 
   private readonly clientId: string;
   public readonly requester;
-  private readonly session: { headers: { [k: string]: string } };
-  private webservices: {
-    [k: string]: { url: string; status: string };
-  };
 
   constructor(
+    private readonly session: ICloudClientSession = new ICloudClientSession(),
     readonly baseUrls: BaseUrlConfig = ICloudClient.DEFAULT_BASE_URL_CONFIG
   ) {
     this.clientId = uuidv4();
-    this.session = { headers: {} };
-    this.webservices = {};
 
     this.requester = axios.create();
     this.requester.interceptors.request.use(
@@ -65,7 +80,7 @@ class ICloudClient {
 
   private prepareRequest(config: AxiosRequestConfig) {
     ICloudClient.SESSION_HEADERS.forEach((headerKey: string) => {
-      const sessionVal = this.session.headers[headerKey];
+      const sessionVal = this.session.data.headers[headerKey];
       if (sessionVal !== undefined) {
         (config.headers as AxiosRequestHeaders)[headerKey] = sessionVal;
       }
@@ -77,9 +92,10 @@ class ICloudClient {
     ICloudClient.SESSION_HEADERS.forEach((headerKey: string) => {
       const headerVal = response.headers[headerKey];
       if (headerVal !== undefined) {
-        this.session.headers[headerKey] = headerVal;
+        this.session.data.headers[headerKey] = headerVal;
       }
     });
+    this.session.save();
     return response;
   }
 
@@ -104,7 +120,7 @@ class ICloudClient {
   }
 
   webserviceUrl(serviceName: string): string {
-    return this.webservices[serviceName].url;
+    return this.session.data.webservices[serviceName].url;
   }
 
   async signIn(
@@ -129,15 +145,18 @@ class ICloudClient {
       `${this.baseUrls.setup}/accountLogin`,
       {
         accountCountryCode:
-          this.session.headers[ICloudClient.ACCOUNT_COUNTRY_HEADER],
-        dsWebAuthToken: this.session.headers[ICloudClient.SESSION_TOKEN_HEADER],
+          this.session.data.headers[ICloudClient.ACCOUNT_COUNTRY_HEADER],
+        dsWebAuthToken:
+          this.session.data.headers[ICloudClient.SESSION_TOKEN_HEADER],
         extended_login: true,
-        trustToken: this.session.headers[ICloudClient.TWOSV_TRUST_TOKEN_HEADER],
+        trustToken:
+          this.session.data.headers[ICloudClient.TWOSV_TRUST_TOKEN_HEADER],
       },
       { headers: this.authHeaders() }
     );
 
-    this.webservices = response.data['webservices'];
+    this.session.data.webservices = response.data['webservices'];
+    await this.session.save();
   }
 
   async verify2faCode(code: string): Promise<void> {

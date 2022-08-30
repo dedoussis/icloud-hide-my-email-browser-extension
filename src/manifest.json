@@ -17,7 +17,11 @@
       }
     ]
   },
-  "permissions": ["declarativeNetRequest", "declarativeNetRequestFeedback"],
+  "permissions": [
+    "declarativeNetRequest",
+    "declarativeNetRequestFeedback",
+    "storage"
+  ],
   "host_permissions": ["https://*.apple.com/*", "https://*.icloud.com/*"],
   "icons": {
     "128": "icon-128.png"

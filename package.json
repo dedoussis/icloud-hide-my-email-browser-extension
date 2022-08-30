@@ -16,7 +16,9 @@
   "dependencies": {
     "@hot-loader/react-dom": "^17.0.2",
     "axios": "^0.27.2",
+    "lodash.isequal": "^4.5.0",
     "react": "^17.0.2",
+    "react-auth-code-input": "^3.2.1",
     "react-dom": "^17.0.2",
     "react-hot-loader": "^4.13.0",
     "uuid": "^8.3.2"
@@ -27,6 +29,7 @@
     "@babel/preset-env": "^7.16.11",
     "@babel/preset-react": "^7.16.7",
     "@types/chrome": "^0.0.177",
+    "@types/lodash.isequal": "^4.5.6",
     "@types/react": "^17.0.39",
     "@types/react-dom": "^17.0.11",
     "@types/uuid": "^8.3.4",
