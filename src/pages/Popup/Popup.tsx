@@ -67,8 +67,6 @@ const LoadingButton = (
 type Callback = (transition: PopupTransition) => void;
 
 const SignInForm = (props: { callback: Callback; client: ICloudClient }) => {
-  console.log("SIGNIN RENDER")
-
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -82,7 +80,7 @@ const SignInForm = (props: { callback: Callback; client: ICloudClient }) => {
     if (props.client.requires2fa) {
       props.callback(PopupTransition.SuccessfulSignIn);
     } else {
-      props.callback(PopupTransition.SuccessfulVerification)
+      props.callback(PopupTransition.SuccessfulVerification);
     }
   };
 
@@ -152,7 +150,6 @@ const SignInForm = (props: { callback: Callback; client: ICloudClient }) => {
 };
 
 const TwoFaForm = (props: { callback: Callback; client: ICloudClient }) => {
-  console.log("2FA RENDER")
   const [code, setCode] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -230,8 +227,9 @@ const ReservationResult = (props: { hme: HmeEmail }) => {
         <strong>{props.hme.hme}</strong> has successfully been reserved!
       </p>
       <div className={`grid grid-cols-${buttons.length} gap-2`}>
-        {buttons.map(({ icon, label, onClick }) => (
+        {buttons.map(({ icon, label, onClick }, index) => (
           <button
+            key={index}
             onClick={onClick}
             type="button"
             className="focus:outline-none text-white bg-green-700 hover:bg-green-800 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 block w-full"
@@ -253,13 +251,12 @@ const SignOutButton = (props: { callback: Callback; client: ICloudClient }) => {
         props.callback(PopupTransition.SuccessfulSignOut);
       }}
     >
-     Sign Out
+      Sign Out
     </button>
   );
 };
 
 const HideMyEmail = (props: { callback: Callback; client: ICloudClient }) => {
-  console.log("HME RENDER")
   const [hmeEmail, setHmeEmail] = useState<string>();
   const [hmeError, setHmeError] = useState<string>();
 
@@ -287,19 +284,19 @@ const HideMyEmail = (props: { callback: Callback; client: ICloudClient }) => {
     fetchHmeList().catch(console.error);
   }, [props.client]);
 
-  // useEffect(() => {
-  //   const fetchHmeEmail = async () => {
-  //     if (props.client.authenticated) {
-  //       setIsEmailRefreshSubmitting(true);
-  //       const pms = new PremiumMailSettings(props.client);
-  //       setHmeEmail(await pms.generateHme());
-  //     }
-  //   };
+  useEffect(() => {
+    const fetchHmeEmail = async () => {
+      if (props.client.authenticated) {
+        setIsEmailRefreshSubmitting(true);
+        const pms = new PremiumMailSettings(props.client);
+        setHmeEmail(await pms.generateHme());
+      }
+    };
 
-  //   fetchHmeEmail()
-  //     .catch((e) => setHmeError(e.toString()))
-  //     .finally(() => setIsEmailRefreshSubmitting(false));
-  // }, [props.client]);
+    fetchHmeEmail()
+      .catch((e) => setHmeError(e.toString()))
+      .finally(() => setIsEmailRefreshSubmitting(false));
+  }, [props.client]);
 
   useEffect(() => {
     const getTabHost = async () => {
@@ -307,7 +304,6 @@ const HideMyEmail = (props: { callback: Callback; client: ICloudClient }) => {
         active: true,
         lastFocusedWindow: true,
       });
-
       const tabUrl = tab.url;
       if (tabUrl !== undefined) {
         const { hostname } = new URL(tabUrl);
@@ -477,18 +473,16 @@ const transitionToNextStateElement = (
 };
 
 const Popup = () => {
-  console.log("POPUP RENDER")
-  
   const [state, setState] = useChromeStorageState(
     ['iCloudHmePopupState'],
     PopupState.SignedOut
   );
-  console.log(state)
+
   const [sessionData, setSessionData] =
     useChromeStorageState<ICloudClientSessionData>(['iCloudHmeClientSession'], {
       headers: {},
       webservices: {},
-      dsInfo: {}
+      dsInfo: {},
     });
 
   const session = new ICloudClientSession(sessionData, setSessionData);

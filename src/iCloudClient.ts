@@ -17,16 +17,20 @@ export type ICloudClientSessionData = {
     [k: string]: { url: string; status: string };
   };
   dsInfo: {
-    hsaChallengeRequired?: boolean,
-    hsaVersion?: number,
-  }
-  headers: { [k: string]: string },
-  hsaTrustedBrowser?: boolean
+    hsaVersion?: number;
+  };
+  headers: { [k: string]: string };
+  hsaChallengeRequired?: boolean;
+  hsaTrustedBrowser?: boolean;
 };
 
 export class ICloudClientSession {
   constructor(
-    public data: ICloudClientSessionData = { headers: {}, webservices: {}, dsInfo: {}},
+    public data: ICloudClientSessionData = {
+      headers: {},
+      webservices: {},
+      dsInfo: {},
+    },
     private readonly dataSaver: (data: ICloudClientSessionData) => void = (
       data
     ) => {}
@@ -133,17 +137,20 @@ class ICloudClient {
   public get authenticated(): boolean {
     return (
       !isEqual(this.session.data.webservices, {}) &&
-      !isEqual(this.session.data.headers, {}) && 
-      !isEqual(this.session.data.dsInfo, {})
+      !isEqual(this.session.data.headers, {})
     );
   }
 
   public get requires2fa(): boolean {
-    return this.session.data.dsInfo.hsaVersion === 2 && (this.session.data.dsInfo.hsaChallengeRequired === true || !this.isTrustedSession)
+    return (
+      this.session.data.dsInfo.hsaVersion === 2 &&
+      (this.session.data.hsaChallengeRequired === true ||
+        !this.isTrustedSession)
+    );
   }
 
   public get isTrustedSession(): boolean {
-    return this.session.data.hsaTrustedBrowser === true
+    return this.session.data.hsaTrustedBrowser === true;
   }
 
   webserviceUrl(serviceName: string): string {
@@ -183,7 +190,8 @@ class ICloudClient {
     );
 
     this.session.data.webservices = response.data.webservices;
-    this.session.data.dsInfo.hsaChallengeRequired = response.data.dsInfo.hsaChallengeRequired;
+    this.session.data.hsaChallengeRequired = response.data.hsaChallengeRequired;
+    this.session.data.hsaTrustedBrowser = response.data.hsaTrustedBrowser;
     this.session.data.dsInfo.hsaVersion = response.data.dsInfo.hsaVersion;
     await this.session.save();
   }
