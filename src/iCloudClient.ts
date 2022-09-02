@@ -16,12 +16,17 @@ export type ICloudClientSessionData = {
   webservices: {
     [k: string]: { url: string; status: string };
   };
-  headers: { [k: string]: string };
+  dsInfo: {
+    hsaChallengeRequired?: boolean,
+    hsaVersion?: number,
+  }
+  headers: { [k: string]: string },
+  hsaTrustedBrowser?: boolean
 };
 
 export class ICloudClientSession {
   constructor(
-    public data: ICloudClientSessionData = { headers: {}, webservices: {} },
+    public data: ICloudClientSessionData = { headers: {}, webservices: {}, dsInfo: {}},
     private readonly dataSaver: (data: ICloudClientSessionData) => void = (
       data
     ) => {}
@@ -32,7 +37,7 @@ export class ICloudClientSession {
   }
 
   async cleanUp(): Promise<void> {
-    this.data = { headers: {}, webservices: {} };
+    this.data = { headers: {}, webservices: {}, dsInfo: {} };
     await this.save();
   }
 }
@@ -128,8 +133,17 @@ class ICloudClient {
   public get authenticated(): boolean {
     return (
       !isEqual(this.session.data.webservices, {}) &&
-      !isEqual(this.session.data.headers, {})
+      !isEqual(this.session.data.headers, {}) && 
+      !isEqual(this.session.data.dsInfo, {})
     );
+  }
+
+  public get requires2fa(): boolean {
+    return this.session.data.dsInfo.hsaVersion === 2 && (this.session.data.dsInfo.hsaChallengeRequired === true || !this.isTrustedSession)
+  }
+
+  public get isTrustedSession(): boolean {
+    return this.session.data.hsaTrustedBrowser === true
   }
 
   webserviceUrl(serviceName: string): string {
@@ -168,7 +182,9 @@ class ICloudClient {
       { headers: this.authHeaders() }
     );
 
-    this.session.data.webservices = response.data['webservices'];
+    this.session.data.webservices = response.data.webservices;
+    this.session.data.dsInfo.hsaChallengeRequired = response.data.dsInfo.hsaChallengeRequired;
+    this.session.data.dsInfo.hsaVersion = response.data.dsInfo.hsaVersion;
     await this.session.save();
   }
 
@@ -189,10 +205,13 @@ class ICloudClient {
   }
 
   async logOut(trust: boolean = false): Promise<void> {
-    await this.requester.post(`${this.baseUrls.setup}/logout`, {
-      trustBrowsers: trust,
-      allBrowsers: trust,
-    });
+    if (this.authenticated) {
+      await this.requester.post(`${this.baseUrls.setup}/logout`, {
+        trustBrowsers: trust,
+        allBrowsers: trust,
+      });
+    }
+
     await this.session.cleanUp();
   }
 }

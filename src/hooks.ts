@@ -15,10 +15,13 @@ export function useChromeStorageState<T>(
         }
         return prev[curr];
       }, await chrome.storage.local.get(keys)) as unknown as T;
-
       value !== undefined &&
-        setState((prevState) =>
-          isEqual(prevState, value) ? prevState : value
+        setState((prevState) => {
+            console.log(prevState)
+            console.log(value)
+            console.log(isEqual(prevState, value))
+            return isEqual(prevState, value) ? prevState : value
+        }
         );
     }
 
