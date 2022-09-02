@@ -16,12 +16,21 @@ export type ICloudClientSessionData = {
   webservices: {
     [k: string]: { url: string; status: string };
   };
+  dsInfo: {
+    hsaVersion?: number;
+  };
   headers: { [k: string]: string };
+  hsaChallengeRequired?: boolean;
+  hsaTrustedBrowser?: boolean;
 };
 
 export class ICloudClientSession {
   constructor(
-    public data: ICloudClientSessionData = { headers: {}, webservices: {} },
+    public data: ICloudClientSessionData = {
+      headers: {},
+      webservices: {},
+      dsInfo: {},
+    },
     private readonly dataSaver: (data: ICloudClientSessionData) => void = (
       data
     ) => {}
@@ -32,7 +41,7 @@ export class ICloudClientSession {
   }
 
   async cleanUp(): Promise<void> {
-    this.data = { headers: {}, webservices: {} };
+    this.data = { headers: {}, webservices: {}, dsInfo: {} };
     await this.save();
   }
 }
@@ -132,6 +141,18 @@ class ICloudClient {
     );
   }
 
+  public get requires2fa(): boolean {
+    return (
+      this.session.data.dsInfo.hsaVersion === 2 &&
+      (this.session.data.hsaChallengeRequired === true ||
+        !this.isTrustedSession)
+    );
+  }
+
+  public get isTrustedSession(): boolean {
+    return this.session.data.hsaTrustedBrowser === true;
+  }
+
   webserviceUrl(serviceName: string): string {
     return this.session.data.webservices[serviceName].url;
   }
@@ -168,7 +189,10 @@ class ICloudClient {
       { headers: this.authHeaders() }
     );
 
-    this.session.data.webservices = response.data['webservices'];
+    this.session.data.webservices = response.data.webservices;
+    this.session.data.hsaChallengeRequired = response.data.hsaChallengeRequired;
+    this.session.data.hsaTrustedBrowser = response.data.hsaTrustedBrowser;
+    this.session.data.dsInfo.hsaVersion = response.data.dsInfo.hsaVersion;
     await this.session.save();
   }
 
@@ -189,10 +213,13 @@ class ICloudClient {
   }
 
   async logOut(trust: boolean = false): Promise<void> {
-    await this.requester.post(`${this.baseUrls.setup}/logout`, {
-      trustBrowsers: trust,
-      allBrowsers: trust,
-    });
+    if (this.authenticated) {
+      await this.requester.post(`${this.baseUrls.setup}/logout`, {
+        trustBrowsers: trust,
+        allBrowsers: trust,
+      });
+    }
+
     await this.session.cleanUp();
   }
 }

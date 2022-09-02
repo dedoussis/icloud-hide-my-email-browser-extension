@@ -77,24 +77,20 @@ const SignInForm = (props: { callback: Callback; client: ICloudClient }) => {
 
     await props.client.signIn(email, password);
     await props.client.accountLogin();
-
-    props.callback(PopupTransition.SuccessfulSignIn);
+    if (props.client.requires2fa) {
+      props.callback(PopupTransition.SuccessfulSignIn);
+    } else {
+      props.callback(PopupTransition.SuccessfulVerification);
+    }
   };
 
   return (
     <div>
-      <div>
-        <img
-          className="mx-auto h-24 w-auto"
-          src="https://www.freeiconspng.com/uploads/icloud-icon-4.png"
-          alt="Icons Download Png Icloud"
-        />
-        <h2 className="mt-6 text-center text-3xl tracking-tight font-bold text-gray-900">
-          Sign in to iCloud
-        </h2>
-      </div>
+      <h2 className="mt-6 text-center text-3xl tracking-tight font-bold text-gray-900">
+        Sign in to iCloud
+      </h2>
       <form
-        className="mt-8 space-y-6"
+        className="mt-8 space-y-6 text-base"
         action="#"
         method="POST"
         onSubmit={onFormSubmit}
@@ -136,7 +132,7 @@ const SignInForm = (props: { callback: Callback; client: ICloudClient }) => {
           </div>
         </div>
 
-        <div className="text-sm">
+        <div className="text-md">
           <a
             href="https://iforgot.apple.com/password/verify/appleid"
             className="font-medium text-sky-400 hover:text-sky-500"
@@ -146,7 +142,7 @@ const SignInForm = (props: { callback: Callback; client: ICloudClient }) => {
         </div>
 
         <div>
-          <LoadingButton isSubmitting>Sign In</LoadingButton>
+          <LoadingButton isSubmitting={isSubmitting}>Sign In</LoadingButton>
         </div>
       </form>
     </div>
@@ -169,7 +165,7 @@ const TwoFaForm = (props: { callback: Callback; client: ICloudClient }) => {
   };
 
   return (
-    <div>
+    <div className="text-base">
       <h2 className="mt-6 text-center text-3xl tracking-tight font-bold text-gray-900">
         Enter the 2FA code
       </h2>
@@ -188,9 +184,12 @@ const TwoFaForm = (props: { callback: Callback; client: ICloudClient }) => {
           placeholder="."
         />
         <div>
-          <LoadingButton isSubmitting>Verify</LoadingButton>
+          <LoadingButton isSubmitting={isSubmitting}>Verify</LoadingButton>
         </div>
       </form>
+      <div className="text-center mt-3">
+        <SignOutButton {...props} />
+      </div>
     </div>
   );
 };
@@ -228,8 +227,9 @@ const ReservationResult = (props: { hme: HmeEmail }) => {
         <strong>{props.hme.hme}</strong> has successfully been reserved!
       </p>
       <div className={`grid grid-cols-${buttons.length} gap-2`}>
-        {buttons.map(({ icon, label, onClick }) => (
+        {buttons.map(({ icon, label, onClick }, index) => (
           <button
+            key={index}
             onClick={onClick}
             type="button"
             className="focus:outline-none text-white bg-green-700 hover:bg-green-800 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 block w-full"
@@ -304,7 +304,6 @@ const HideMyEmail = (props: { callback: Callback; client: ICloudClient }) => {
         active: true,
         lastFocusedWindow: true,
       });
-
       const tabUrl = tab.url;
       if (tabUrl !== undefined) {
         const { hostname } = new URL(tabUrl);
@@ -316,7 +315,7 @@ const HideMyEmail = (props: { callback: Callback; client: ICloudClient }) => {
     getTabHost().catch(console.error);
   }, []);
 
-  const onEmailRefreshSubmit = async () => {
+  const onEmailRefreshClick = async () => {
     setIsEmailRefreshSubmitting(true);
     setReservedHme(undefined);
     setHmeError(undefined);
@@ -366,7 +365,7 @@ const HideMyEmail = (props: { callback: Callback; client: ICloudClient }) => {
           <LoadingButton
             className="mr-1"
             isSubmitting={isEmailRefreshSubmitting}
-            onClick={onEmailRefreshSubmit}
+            onClick={onEmailRefreshClick}
           >
             <FontAwesomeIcon
               className="text-sky-400 hover:text-sky-500"
@@ -423,7 +422,7 @@ const HideMyEmail = (props: { callback: Callback; client: ICloudClient }) => {
           </a>
         </div>
         <div className="text-right">
-          <SignOutButton client={props.client} callback={props.callback} />
+          <SignOutButton {...props} />
         </div>
       </div>
     </div>
@@ -452,6 +451,7 @@ const STATE_MACHINE_TRANSITIONS: {
   },
   [PopupState.SignedIn]: {
     [PopupTransition.SuccessfulVerification]: PopupState.Verified,
+    [PopupTransition.SuccessfulSignOut]: PopupState.SignedOut,
   },
   [PopupState.Verified]: {
     [PopupTransition.SuccessfulSignOut]: PopupState.SignedOut,
@@ -482,6 +482,7 @@ const Popup = () => {
     useChromeStorageState<ICloudClientSessionData>(['iCloudHmeClientSession'], {
       headers: {},
       webservices: {},
+      dsInfo: {},
     });
 
   const session = new ICloudClientSession(sessionData, setSessionData);
