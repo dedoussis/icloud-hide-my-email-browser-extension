@@ -28,38 +28,47 @@ const LoadingButton = (
   props: {
     children?: React.ReactNode;
     isSubmitting: boolean;
+    spinnerClassName?: string;
+    displayChildrenWhileSubmitting?: boolean;
   } & React.HTMLProps<HTMLButtonElement>
 ) => {
   const defaultClassName =
-    'group relative w-full flex justify-center py-2 px-4 border border-transparent rounded-md text-white bg-sky-400 hover:bg-sky-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500';
+    'w-full justify-center text-white bg-sky-400 hover:bg-sky-500 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg px-5 py-2.5 text-center mr-2 inline-flex items-center';
+
+  const defaultSpinnerClassName = 'inline mr-3 w-4 h-4 text-white animate-spin';
+  const displayChildrenWhileSubmitting =
+    props.displayChildrenWhileSubmitting === undefined
+      ? true
+      : props.displayChildrenWhileSubmitting;
   return (
     <button
+      disabled={props.isSubmitting}
+      type="submit"
       className={props.className || defaultClassName}
       onClick={props.onClick}
-      type="submit"
-      disabled={props.isSubmitting}
     >
-      {props.isSubmitting ? (
+      {props.isSubmitting && (
         <svg
-          className="animate-spin -ml-1 h-5 w-5 text-gray"
-          viewBox="0 0 24 24"
+          aria-hidden="true"
+          role="status"
+          className={props.spinnerClassName || defaultSpinnerClassName}
+          viewBox="0 0 100 101"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
         >
-          <circle
-            className="opacity-0"
-            cx="12"
-            cy="12"
-            r="10"
-            strokeWidth="4"
+          <path
+            d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z"
+            fill="#E5E7EB"
           />
           <path
-            className="opacity-75"
+            d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z"
             fill="currentColor"
-            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
           />
         </svg>
-      ) : (
-        props.children
       )}
+      {props.isSubmitting
+        ? displayChildrenWhileSubmitting && props.children
+        : props.children}
     </button>
   );
 };
@@ -70,27 +79,35 @@ const SignInForm = (props: { callback: Callback; client: ICloudClient }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string>();
 
   const onFormSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsSubmitting(true);
+    setError(undefined);
 
-    await props.client.signIn(email, password);
-    await props.client.accountLogin();
-    if (props.client.requires2fa) {
-      props.callback(PopupTransition.SuccessfulSignIn);
-    } else {
-      props.callback(PopupTransition.SuccessfulVerification);
+    try {
+      await props.client.signIn(email, password);
+      await props.client.accountLogin();
+      setIsSubmitting(false);
+      if (props.client.requires2fa) {
+        props.callback(PopupTransition.SuccessfulSignIn);
+      } else {
+        props.callback(PopupTransition.SuccessfulVerification);
+      }
+    } catch (e) {
+      setIsSubmitting(false);
+      setError('Failed to sign in. Please try again.');
     }
   };
 
   return (
-    <div>
+    <div className="space-y-4">
       <h2 className="mt-6 text-center text-3xl tracking-tight font-bold text-gray-900">
         Sign in to iCloud
       </h2>
       <form
-        className="mt-8 space-y-6 text-base"
+        className="space-y-6 text-base"
         action="#"
         method="POST"
         onSubmit={onFormSubmit}
@@ -145,6 +162,7 @@ const SignInForm = (props: { callback: Callback; client: ICloudClient }) => {
           <LoadingButton isSubmitting={isSubmitting}>Sign In</LoadingButton>
         </div>
       </form>
+      {error && <ErrorMessage>{error}</ErrorMessage>}
     </div>
   );
 };
@@ -152,20 +170,35 @@ const SignInForm = (props: { callback: Callback; client: ICloudClient }) => {
 const TwoFaForm = (props: { callback: Callback; client: ICloudClient }) => {
   const [code, setCode] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string>();
 
   const onFormSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsSubmitting(true);
+    setError(undefined);
+    if (code.length === 6) {
+      try {
+        await props.client.verify2faCode(code);
+        await props.client.trustDevice();
+        await props.client.accountLogin();
 
-    await props.client.verify2faCode(code);
-    await props.client.trustDevice();
-    await props.client.accountLogin();
+        setIsSubmitting(false);
 
-    props.callback(PopupTransition.SuccessfulVerification);
+        props.callback(PopupTransition.SuccessfulVerification);
+      } catch (e) {
+        setIsSubmitting(false);
+        setError(
+          '2FA failed. Please try entering the code again or sign-out and sign back in.'
+        );
+      }
+    } else {
+      setIsSubmitting(false);
+      setError('Please fill in all of the 6 digits of the code.');
+    }
   };
 
   return (
-    <div className="text-base">
+    <div className="text-base space-y-4">
       <h2 className="mt-6 text-center text-3xl tracking-tight font-bold text-gray-900">
         Enter the 2FA code
       </h2>
@@ -190,6 +223,7 @@ const TwoFaForm = (props: { callback: Callback; client: ICloudClient }) => {
       <div className="text-center mt-3">
         <SignOutButton {...props} />
       </div>
+      {error && <ErrorMessage>{error}</ErrorMessage>}
     </div>
   );
 };
@@ -364,7 +398,9 @@ const HideMyEmail = (props: { callback: Callback; client: ICloudClient }) => {
         <span className="text-2xl">
           <LoadingButton
             className="mr-1"
+            spinnerClassName="inline mr-1 w-5 h-5 text-black animate-spin"
             isSubmitting={isEmailRefreshSubmitting}
+            displayChildrenWhileSubmitting={false}
             onClick={onEmailRefreshClick}
           >
             <FontAwesomeIcon
