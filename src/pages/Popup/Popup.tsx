@@ -8,6 +8,12 @@ import ICloudClient, {
 import './Popup.css';
 import AuthCode from 'react-auth-code-input';
 import { useChromeStorageState } from '../../hooks';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import {
+  faRefresh,
+  faClipboard,
+  faCheck,
+} from '@fortawesome/free-solid-svg-icons';
 
 enum PopupTransition {
   SuccessfulSignIn,
@@ -18,16 +24,24 @@ enum PopupTransition {
   FailedSignOut,
 }
 
-const LoadingButton = (props: { label: string; isSubmitting: boolean }) => {
+const LoadingButton = (
+  props: {
+    children?: React.ReactNode;
+    isSubmitting: boolean;
+  } & React.HTMLProps<HTMLButtonElement>
+) => {
+  const defaultClassName =
+    'group relative w-full flex justify-center py-2 px-4 border border-transparent rounded-md text-white bg-sky-400 hover:bg-sky-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500';
   return (
     <button
+      className={props.className || defaultClassName}
+      onClick={props.onClick}
       type="submit"
       disabled={props.isSubmitting}
-      className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-sky-400 hover:bg-sky-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500"
     >
       {props.isSubmitting ? (
         <svg
-          className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+          className="animate-spin -ml-1 h-5 w-5 text-gray"
           viewBox="0 0 24 24"
         >
           <circle
@@ -44,7 +58,7 @@ const LoadingButton = (props: { label: string; isSubmitting: boolean }) => {
           />
         </svg>
       ) : (
-        props.label
+        props.children
       )}
     </button>
   );
@@ -132,7 +146,7 @@ const SignInForm = (props: { callback: Callback; client: ICloudClient }) => {
         </div>
 
         <div>
-          <LoadingButton label="Sign in" isSubmitting={isSubmitting} />
+          <LoadingButton isSubmitting>Sign In</LoadingButton>
         </div>
       </form>
     </div>
@@ -174,35 +188,244 @@ const TwoFaForm = (props: { callback: Callback; client: ICloudClient }) => {
           placeholder="."
         />
         <div>
-          <LoadingButton label="Verify" isSubmitting={isSubmitting} />
+          <LoadingButton isSubmitting>Verify</LoadingButton>
         </div>
       </form>
     </div>
   );
 };
 
+const ErrorMessage = (props: { children?: React.ReactNode }) => {
+  return (
+    <div
+      className="p-2 text-sm text-red-700 bg-red-100 rounded-lg"
+      role="alert"
+    >
+      {props.children}
+    </div>
+  );
+};
+
+const ReservationResult = (props: { hme: HmeEmail }) => {
+  const onCopyToClipboardClick = async () => {
+    await navigator.clipboard.writeText(props.hme.hme);
+  };
+
+  const buttons = [
+    {
+      icon: faClipboard,
+      label: 'Copy to clipboard',
+      onClick: onCopyToClipboardClick,
+    },
+    { icon: faCheck, label: 'Autofill' },
+  ];
+  return (
+    <div
+      className="space-y-2 p-2 text-sm text-green-700 bg-green-100 rounded-lg"
+      role="alert"
+    >
+      <p>
+        <strong>{props.hme.hme}</strong> has successfully been reserved!
+      </p>
+      <div className={`grid grid-cols-${buttons.length} gap-2`}>
+        {buttons.map(({ icon, label, onClick }) => (
+          <button
+            onClick={onClick}
+            type="button"
+            className="focus:outline-none text-white bg-green-700 hover:bg-green-800 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 block w-full"
+          >
+            <FontAwesomeIcon icon={icon} /> {label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const SignOutButton = (props: { callback: Callback; client: ICloudClient }) => {
+  return (
+    <button
+      className="text-sky-400 hover:text-sky-500"
+      onClick={async () => {
+        await props.client.logOut();
+        props.callback(PopupTransition.SuccessfulSignOut);
+      }}
+    >
+      Sign Out
+    </button>
+  );
+};
+
 const HideMyEmail = (props: { callback: Callback; client: ICloudClient }) => {
-  const [hmeList, setHmeList] = useState<HmeEmail[]>();
+  const [hmeEmail, setHmeEmail] = useState<string>();
+  const [hmeError, setHmeError] = useState<string>();
+
+  const [reservedHme, setReservedHme] = useState<HmeEmail>();
+  const [reserveError, setReserveError] = useState<string>();
+
+  const [isEmailRefreshSubmitting, setIsEmailRefreshSubmitting] =
+    useState(false);
+  const [isUseSubmitting, setIsUseSubmitting] = useState(false);
+  const [tabHost, setTabHost] = useState('');
+  const [fwdToEmail, setFwdToEmail] = useState<string>();
+
+  const [note, setNote] = useState<string>();
+  const [label, setLabel] = useState<string>();
 
   useEffect(() => {
-
     const fetchHmeList = async () => {
-      const pms = new PremiumMailSettings(props.client);
-      setHmeList(await pms.listHme());
+      if (props.client.authenticated) {
+        const pms = new PremiumMailSettings(props.client);
+        const result = await pms.listHme();
+        setFwdToEmail(result.selectedForwardTo);
+      }
     };
 
     fetchHmeList().catch(console.error);
   }, [props.client]);
 
+  useEffect(() => {
+    const fetchHmeEmail = async () => {
+      if (props.client.authenticated) {
+        setIsEmailRefreshSubmitting(true);
+        const pms = new PremiumMailSettings(props.client);
+        setHmeEmail(await pms.generateHme());
+      }
+    };
+
+    fetchHmeEmail()
+      .catch((e) => setHmeError(e.toString()))
+      .finally(() => setIsEmailRefreshSubmitting(false));
+  }, [props.client]);
+
+  useEffect(() => {
+    const getTabHost = async () => {
+      const [tab] = await chrome.tabs.query({
+        active: true,
+        lastFocusedWindow: true,
+      });
+
+      const tabUrl = tab.url;
+      if (tabUrl !== undefined) {
+        const { hostname } = new URL(tabUrl);
+        setTabHost(hostname);
+        setLabel(hostname);
+      }
+    };
+
+    getTabHost().catch(console.error);
+  }, []);
+
+  const onEmailRefreshSubmit = async () => {
+    setIsEmailRefreshSubmitting(true);
+    setReservedHme(undefined);
+    setHmeError(undefined);
+    setReserveError(undefined);
+
+    const pms = new PremiumMailSettings(props.client);
+    try {
+      setHmeEmail(await pms.generateHme());
+    } catch (e) {
+      setHmeError(e.toString());
+    }
+    setIsEmailRefreshSubmitting(false);
+  };
+
+  const onUseSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setIsUseSubmitting(true);
+    setReservedHme(undefined);
+    setReserveError(undefined);
+
+    if (hmeEmail !== undefined) {
+      const pms = new PremiumMailSettings(props.client);
+      try {
+        setReservedHme(
+          await pms.reserveHme(hmeEmail, label || tabHost, note || undefined)
+        );
+      } catch (e) {
+        setReserveError(e.toString());
+      }
+      setLabel(undefined);
+      setNote(undefined);
+    }
+    setIsUseSubmitting(false);
+  };
+
   return (
-    <div>
-      <ul className="divide-y divide-gray-200">
-        {hmeList?.map((hme) => (
-          <li key={hme.hme} className="py-4 flex">
-            {hme.hme}
-          </li>
-        ))}
-      </ul>
+    <div className="text-base">
+      <div className="mb-3 text-center">
+        <h2 className="text-3xl font-bold text-gray-900">Hide My Email</h2>
+        <h3 className="font-medium text-gray-400">
+          Create an address for '{tabHost}'
+        </h3>
+      </div>
+      <hr />
+      <div className="my-3 space-y-2 text-center">
+        <span className="text-2xl">
+          <LoadingButton
+            className="mr-1"
+            isSubmitting={isEmailRefreshSubmitting}
+            onClick={onEmailRefreshSubmit}
+          >
+            <FontAwesomeIcon
+              className="text-sky-400 hover:text-sky-500"
+              icon={faRefresh}
+            />
+          </LoadingButton>
+          {hmeEmail}
+        </span>
+        {fwdToEmail !== undefined && (
+          <p className="text-gray-400">Forward to: {fwdToEmail}</p>
+        )}
+        {hmeError && <ErrorMessage>{hmeError}</ErrorMessage>}
+      </div>
+      <hr />
+      <form className="space-y-3 my-3" onSubmit={onUseSubmit}>
+        <div>
+          <label htmlFor="label" className="block font-medium">
+            Label
+          </label>
+          <input
+            id="label"
+            placeholder={tabHost}
+            required
+            value={label || ''}
+            onChange={(e) => setLabel(e.target.value)}
+            className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-sky-500 focus:border-sky-500 focus:z-10 sm:text-sm"
+          />
+        </div>
+        <div>
+          <label htmlFor="note" className="block font-medium">
+            Note
+          </label>
+          <textarea
+            id="note"
+            rows={1}
+            className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-sky-500 focus:border-sky-500 focus:z-10 sm:text-sm"
+            placeholder="Make a note (optional)"
+            value={note || ''}
+            onChange={(e) => setNote(e.target.value)}
+          ></textarea>
+        </div>
+        <LoadingButton isSubmitting={isUseSubmitting}>Use</LoadingButton>
+        {reservedHme && <ReservationResult hme={reservedHme} />}
+        {reserveError && <ErrorMessage>{reserveError}</ErrorMessage>}
+      </form>
+      <hr />
+      <div className="grid grid-cols-2 mt-3">
+        <div>
+          <a
+            className="text-sky-400 hover:text-sky-500"
+            href="https://www.icloud.com/settings/hidemyemail"
+          >
+            iCloud Settings
+          </a>
+        </div>
+        <div className="text-right">
+          <SignOutButton client={props.client} callback={props.callback} />
+        </div>
+      </div>
     </div>
   );
 };
@@ -264,7 +487,7 @@ const Popup = () => {
   const session = new ICloudClientSession(sessionData, setSessionData);
   const client = new ICloudClient(session);
   return (
-    <div className="min-h-full flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-full flex items-center justify-center py-4 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         {transitionToNextStateElement(state, setState, client)}
       </div>

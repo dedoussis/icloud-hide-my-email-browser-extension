@@ -20,7 +20,8 @@
   "permissions": [
     "declarativeNetRequest",
     "declarativeNetRequestFeedback",
-    "storage"
+    "storage",
+    "tabs"
   ],
   "host_permissions": ["https://*.apple.com/*", "https://*.icloud.com/*"],
   "icons": {

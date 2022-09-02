@@ -4,6 +4,7 @@ import axios, {
   AxiosResponse,
 } from 'axios';
 import { v4 as uuidv4 } from 'uuid';
+import isEqual from 'lodash.isequal';
 
 type BaseUrlConfig = {
   auth: string;
@@ -20,7 +21,7 @@ export type ICloudClientSessionData = {
 
 export class ICloudClientSession {
   constructor(
-    readonly data: ICloudClientSessionData = { headers: {}, webservices: {} },
+    public data: ICloudClientSessionData = { headers: {}, webservices: {} },
     private readonly dataSaver: (data: ICloudClientSessionData) => void = (
       data
     ) => {}
@@ -28,6 +29,11 @@ export class ICloudClientSession {
 
   async save(): Promise<void> {
     await this.dataSaver(this.data);
+  }
+
+  async cleanUp(): Promise<void> {
+    this.data = { headers: {}, webservices: {} };
+    await this.save();
   }
 }
 
@@ -119,6 +125,13 @@ class ICloudClient {
     };
   }
 
+  public get authenticated(): boolean {
+    return (
+      !isEqual(this.session.data.webservices, {}) &&
+      !isEqual(this.session.data.headers, {})
+    );
+  }
+
   webserviceUrl(serviceName: string): string {
     return this.session.data.webservices[serviceName].url;
   }
@@ -132,8 +145,8 @@ class ICloudClient {
       `${this.baseUrls.auth}/signin`,
       {
         accountName: appleId,
-        password: password,
-        rememberMe: rememberMe,
+        password,
+        rememberMe,
         trustTokens: [],
       },
       { headers: this.authHeaders() }
@@ -174,6 +187,14 @@ class ICloudClient {
       headers: this.authHeaders(),
     });
   }
+
+  async logOut(trust: boolean = false): Promise<void> {
+    await this.requester.post(`${this.baseUrls.setup}/logout`, {
+      trustBrowsers: trust,
+      allBrowsers: trust,
+    });
+    await this.session.cleanUp();
+  }
 }
 
 export type HmeEmail = {
@@ -189,17 +210,61 @@ export type HmeEmail = {
   recipientMailId: string;
 };
 
+export type ListHmeResult = {
+  hmeEmails: HmeEmail[];
+  selectedForwardTo: string;
+  forwardToEmails: string[];
+};
+
+export class GenerateHmeException extends Error {}
+export class ReserveHmeException extends Error {}
+
 export class PremiumMailSettings {
   private readonly baseUrl: string;
   constructor(readonly client: ICloudClient) {
     this.baseUrl = `${client.webserviceUrl('premiummailsettings')}/v1`;
   }
 
-  async listHme(): Promise<HmeEmail[]> {
-    const resposne = await this.client.requester.get(
+  async listHme(): Promise<ListHmeResult> {
+    const response = await this.client.requester.get(
       `${this.baseUrl}/hme/list`
     );
-    return resposne.data.result.hmeEmails;
+    return response.data.result;
+  }
+
+  async generateHme(): Promise<string> {
+    const response = await this.client.requester.post(
+      `${this.baseUrl}/hme/generate`
+    );
+
+    if (!response.data.success) {
+      throw new GenerateHmeException(response.data.error.errorMessage);
+    }
+
+    return response.data.result.hme;
+  }
+
+  async reserveHme(
+    hme: string,
+    label: string,
+    note:
+      | string
+      | undefined = 'Generated through the iCloud Hide My Email chrome extension'
+  ): Promise<HmeEmail> {
+    const response = await this.client.requester.post(
+      `${this.baseUrl}/hme/reserve`,
+      {
+        hme,
+        label,
+        note,
+      }
+    );
+
+    if (!response.data.success) {
+      throw new ReserveHmeException(response.data.error.errorMessage);
+    }
+
+    return response.data.result.hme;
   }
 }
 

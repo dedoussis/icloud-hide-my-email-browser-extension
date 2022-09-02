@@ -15,6 +15,7 @@ export function useChromeStorageState<T>(
         }
         return prev[curr];
       }, await chrome.storage.local.get(keys)) as unknown as T;
+
       value !== undefined &&
         setState((prevState) =>
           isEqual(prevState, value) ? prevState : value
@@ -24,7 +25,7 @@ export function useChromeStorageState<T>(
     getChromeStorageState().catch(console.error);
   }, [keys]);
 
-  const setChromeStorageState = (value: T) => {
+  const setChromeStorageState = async (value: T) => {
     setState(value);
     const chromeStorageObj: { [key: string]: any } = {};
     let curr = chromeStorageObj;
@@ -33,7 +34,7 @@ export function useChromeStorageState<T>(
       curr = curr[key];
     });
     curr[keys.at(-1) as string] = value;
-    chrome.storage.local.set(chromeStorageObj);
+    await chrome.storage.local.set(chromeStorageObj);
   };
 
   return [state, setChromeStorageState];
