@@ -1,4 +1,10 @@
-import React, { useState, Dispatch, useEffect } from 'react';
+import React, {
+  useState,
+  Dispatch,
+  useEffect,
+  ButtonHTMLAttributes,
+  DetailedHTMLProps,
+} from 'react';
 import ICloudClient, {
   PremiumMailSettings,
   HmeEmail,
@@ -13,6 +19,13 @@ import {
   faRefresh,
   faClipboard,
   faCheck,
+  faSpinner,
+  faList,
+  faSignOut,
+  IconDefinition,
+  faPlus,
+  faTrashAlt,
+  faBan,
 } from '@fortawesome/free-solid-svg-icons';
 
 enum PopupTransition {
@@ -22,53 +35,27 @@ enum PopupTransition {
   FailedVerification,
   SuccessfulSignOut,
   FailedSignOut,
+  List,
+  Generate,
 }
 
 const LoadingButton = (
   props: {
     children?: React.ReactNode;
-    isSubmitting: boolean;
-    spinnerClassName?: string;
-    displayChildrenWhileSubmitting?: boolean;
-  } & React.HTMLProps<HTMLButtonElement>
+  } & DetailedHTMLProps<
+    ButtonHTMLAttributes<HTMLButtonElement>,
+    HTMLButtonElement
+  >
 ) => {
   const defaultClassName =
     'w-full justify-center text-white bg-sky-400 hover:bg-sky-500 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg px-5 py-2.5 text-center mr-2 inline-flex items-center';
 
-  const defaultSpinnerClassName = 'inline mr-3 w-4 h-4 text-white animate-spin';
-  const displayChildrenWhileSubmitting =
-    props.displayChildrenWhileSubmitting === undefined
-      ? true
-      : props.displayChildrenWhileSubmitting;
   return (
-    <button
-      disabled={props.isSubmitting}
-      type="submit"
-      className={props.className || defaultClassName}
-      onClick={props.onClick}
-    >
-      {props.isSubmitting && (
-        <svg
-          aria-hidden="true"
-          role="status"
-          className={props.spinnerClassName || defaultSpinnerClassName}
-          viewBox="0 0 100 101"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path
-            d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z"
-            fill="#E5E7EB"
-          />
-          <path
-            d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z"
-            fill="currentColor"
-          />
-        </svg>
+    <button type="submit" className={defaultClassName} {...props}>
+      {props.disabled && (
+        <FontAwesomeIcon icon={faSpinner} spin={true} className="mr-1" />
       )}
-      {props.isSubmitting
-        ? displayChildrenWhileSubmitting && props.children
-        : props.children}
+      {props.children}
     </button>
   );
 };
@@ -159,7 +146,7 @@ const SignInForm = (props: { callback: Callback; client: ICloudClient }) => {
         </div>
 
         <div>
-          <LoadingButton isSubmitting={isSubmitting}>Sign In</LoadingButton>
+          <LoadingButton disabled={isSubmitting}>Sign In</LoadingButton>
         </div>
       </form>
       {error && <ErrorMessage>{error}</ErrorMessage>}
@@ -217,7 +204,7 @@ const TwoFaForm = (props: { callback: Callback; client: ICloudClient }) => {
           placeholder="."
         />
         <div>
-          <LoadingButton isSubmitting={isSubmitting}>Verify</LoadingButton>
+          <LoadingButton disabled={isSubmitting}>Verify</LoadingButton>
         </div>
       </form>
       <div className="text-center mt-3">
@@ -244,14 +231,13 @@ const ReservationResult = (props: { hme: HmeEmail }) => {
     await navigator.clipboard.writeText(props.hme.hme);
   };
 
-  const buttons = [
-    {
-      icon: faClipboard,
-      label: 'Copy to clipboard',
-      onClick: onCopyToClipboardClick,
-    },
-    { icon: faCheck, label: 'Autofill' },
-  ];
+  const onAutofillClick = () => {
+    console.log('Autofilling...');
+  };
+
+  const btnClassName =
+    'focus:outline-none text-white bg-green-700 hover:bg-green-800 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 block w-full';
+
   return (
     <div
       className="space-y-2 p-2 text-sm text-green-700 bg-green-100 rounded-lg"
@@ -260,37 +246,57 @@ const ReservationResult = (props: { hme: HmeEmail }) => {
       <p>
         <strong>{props.hme.hme}</strong> has successfully been reserved!
       </p>
-      <div className={`grid grid-cols-${buttons.length} gap-2`}>
-        {buttons.map(({ icon, label, onClick }, index) => (
-          <button
-            key={index}
-            onClick={onClick}
-            type="button"
-            className="focus:outline-none text-white bg-green-700 hover:bg-green-800 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 block w-full"
-          >
-            <FontAwesomeIcon icon={icon} /> {label}
-          </button>
-        ))}
+      <div className={`grid grid-cols-2 gap-2`}>
+        <button
+          type="button"
+          className={btnClassName}
+          onClick={onCopyToClipboardClick}
+        >
+          <FontAwesomeIcon icon={faClipboard} className="mr-1" />
+          Copy to clipboard
+        </button>
+        <button
+          type="button"
+          className={btnClassName}
+          onClick={onAutofillClick}
+        >
+          <FontAwesomeIcon icon={faCheck} className="mr-1" />
+          Autofill
+        </button>
       </div>
     </div>
   );
 };
 
+const FooterButton = (
+  props: { label: string; icon: IconDefinition } & DetailedHTMLProps<
+    ButtonHTMLAttributes<HTMLButtonElement>,
+    HTMLButtonElement
+  >
+) => {
+  return (
+    <button className="text-sky-400 hover:text-sky-500" {...props}>
+      <FontAwesomeIcon icon={props.icon} className="mr-1" />
+      {props.label}
+    </button>
+  );
+};
+
 const SignOutButton = (props: { callback: Callback; client: ICloudClient }) => {
   return (
-    <button
+    <FooterButton
       className="text-sky-400 hover:text-sky-500"
       onClick={async () => {
         await props.client.logOut();
         props.callback(PopupTransition.SuccessfulSignOut);
       }}
-    >
-      Sign Out
-    </button>
+      label="Sign out"
+      icon={faSignOut}
+    />
   );
 };
 
-const HideMyEmail = (props: { callback: Callback; client: ICloudClient }) => {
+const HmeGenerator = (props: { callback: Callback; client: ICloudClient }) => {
   const [hmeEmail, setHmeEmail] = useState<string>();
   const [hmeError, setHmeError] = useState<string>();
 
@@ -385,29 +391,27 @@ const HideMyEmail = (props: { callback: Callback; client: ICloudClient }) => {
     setIsUseSubmitting(false);
   };
 
+  const useInputClassName =
+    'appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-sky-500 focus:border-sky-500 focus:z-10 sm:text-sm';
+
   return (
-    <div className="text-base">
-      <div className="mb-3 text-center">
+    <div className="text-base space-y-3">
+      <div className="text-center">
         <h2 className="text-3xl font-bold text-gray-900">Hide My Email</h2>
         <h3 className="font-medium text-gray-400">
           Create an address for '{tabHost}'
         </h3>
       </div>
       <hr />
-      <div className="my-3 space-y-2 text-center">
+      <div className="text-center">
         <span className="text-2xl">
-          <LoadingButton
-            className="mr-1"
-            spinnerClassName="inline mr-1 w-5 h-5 text-black animate-spin"
-            isSubmitting={isEmailRefreshSubmitting}
-            displayChildrenWhileSubmitting={false}
-            onClick={onEmailRefreshClick}
-          >
+          <button className="mr-1" onClick={onEmailRefreshClick}>
             <FontAwesomeIcon
               className="text-sky-400 hover:text-sky-500"
               icon={faRefresh}
+              spin={isEmailRefreshSubmitting}
             />
-          </LoadingButton>
+          </button>
           {hmeEmail}
         </span>
         {fwdToEmail !== undefined && (
@@ -416,7 +420,7 @@ const HideMyEmail = (props: { callback: Callback; client: ICloudClient }) => {
         {hmeError && <ErrorMessage>{hmeError}</ErrorMessage>}
       </div>
       <hr />
-      <form className="space-y-3 my-3" onSubmit={onUseSubmit}>
+      <form className="space-y-3" onSubmit={onUseSubmit}>
         <div>
           <label htmlFor="label" className="block font-medium">
             Label
@@ -427,7 +431,7 @@ const HideMyEmail = (props: { callback: Callback; client: ICloudClient }) => {
             required
             value={label || ''}
             onChange={(e) => setLabel(e.target.value)}
-            className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-sky-500 focus:border-sky-500 focus:z-10 sm:text-sm"
+            className={useInputClassName}
           />
         </div>
         <div>
@@ -437,25 +441,281 @@ const HideMyEmail = (props: { callback: Callback; client: ICloudClient }) => {
           <textarea
             id="note"
             rows={1}
-            className="appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-sky-500 focus:border-sky-500 focus:z-10 sm:text-sm"
+            className={useInputClassName}
             placeholder="Make a note (optional)"
             value={note || ''}
             onChange={(e) => setNote(e.target.value)}
           ></textarea>
         </div>
-        <LoadingButton isSubmitting={isUseSubmitting}>Use</LoadingButton>
+        <LoadingButton disabled={isUseSubmitting}>Use</LoadingButton>
         {reservedHme && <ReservationResult hme={reservedHme} />}
         {reserveError && <ErrorMessage>{reserveError}</ErrorMessage>}
       </form>
       <hr />
-      <div className="grid grid-cols-2 mt-3">
+      <div className="grid grid-cols-2">
         <div>
-          <a
-            className="text-sky-400 hover:text-sky-500"
-            href="https://www.icloud.com/settings/hidemyemail"
+          <FooterButton
+            onClick={() => props.callback(PopupTransition.List)}
+            icon={faList}
+            label="List emails"
+          />
+        </div>
+        <div className="text-right">
+          <SignOutButton {...props} />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const HmeDetails = (props: {
+  hme: HmeEmail;
+  client: ICloudClient;
+  activationCallback: () => void;
+  deletionCallback: () => void;
+}) => {
+  const [isActivateSubmitting, setIsActivateSubmitting] = useState(false);
+  const [isDeleteSubmitting, setIsDeleteSubmitting] = useState(false);
+
+  const [error, setError] = useState<string>();
+
+  const onActivationClick = async () => {
+    setIsActivateSubmitting(true);
+    const pms = new PremiumMailSettings(props.client);
+    try {
+      if (props.hme.isActive) {
+        await pms.deactivateHme(props.hme.anonymousId);
+      } else {
+        await pms.reactivateHme(props.hme.anonymousId);
+      }
+      setIsActivateSubmitting(false);
+      props.activationCallback();
+    } catch (e) {
+      setIsActivateSubmitting(false);
+      setError(e.toString());
+    }
+  };
+
+  const onDeletionClick = async () => {
+    setIsDeleteSubmitting(true);
+    const pms = new PremiumMailSettings(props.client);
+    try {
+      await pms.deleteHme(props.hme.anonymousId);
+      setIsDeleteSubmitting(false);
+      props.deletionCallback();
+    } catch (e) {
+      setIsDeleteSubmitting(false);
+      setError(e.toString());
+    }
+  };
+
+  const btnClassName =
+    'w-full justify-center text-white focus:ring-4 focus:outline-none font-medium rounded-lg px-2 py-3 text-center inline-flex items-center';
+  const labelClassName = 'font-bold';
+  const valueClassName = 'text-gray-500 truncate';
+
+  return (
+    <div className="space-y-2">
+      <div>
+        <p className={labelClassName}>Email</p>
+        <p title={props.hme.hme} className={valueClassName}>
+          {props.hme.isActive || (
+            <FontAwesomeIcon
+              title="Deactivated"
+              icon={faBan}
+              className="text-red-500 mr-1"
+            />
+          )}
+          {props.hme.hme}
+        </p>
+      </div>
+      <div>
+        <p className={labelClassName}>Label</p>
+        <p title={props.hme.label} className={valueClassName}>
+          {props.hme.label}
+        </p>
+      </div>
+      <div>
+        <p className={labelClassName}>Forward To</p>
+        <p title={props.hme.forwardToEmail} className={valueClassName}>
+          {props.hme.forwardToEmail}
+        </p>
+      </div>
+      <div>
+        <p className={labelClassName}>Created at</p>
+        <p className={valueClassName}>
+          {new Date(props.hme.createTimestamp).toLocaleString()}
+        </p>
+      </div>
+      {props.hme.note && (
+        <div>
+          <p className={labelClassName}>Note</p>
+          <p title={props.hme.note} className={valueClassName}>
+            {props.hme.note}
+          </p>
+        </div>
+      )}
+      {error && <ErrorMessage>{error}</ErrorMessage>}
+      <div className="grid grid-cols-3 gap-2">
+        <button
+          title="Copy"
+          className={`${btnClassName} bg-sky-400 hover:bg-sky-500 focus:ring-blue-300`}
+        >
+          <FontAwesomeIcon icon={faClipboard} />
+        </button>
+        <button
+          title="Autofill"
+          className={`${btnClassName} bg-sky-400 hover:bg-sky-500 focus:ring-blue-300`}
+        >
+          <FontAwesomeIcon icon={faCheck} />
+        </button>
+        <LoadingButton
+          title={props.hme.isActive ? 'Deactivate' : 'Reactivate'}
+          className={`${btnClassName} ${
+            props.hme.isActive
+              ? 'bg-red-500 hover:bg-red-600 focus:ring-red-300'
+              : 'bg-sky-400 hover:bg-sky-500 focus:ring-blue-300'
+          }`}
+          onClick={onActivationClick}
+          disabled={isActivateSubmitting}
+        >
+          <FontAwesomeIcon icon={props.hme.isActive ? faBan : faRefresh} />
+        </LoadingButton>
+        {!props.hme.isActive && (
+          <LoadingButton
+            title="Delete"
+            className={`${btnClassName} bg-red-500 hover:bg-red-600 focus:ring-red-300 col-span-3`}
+            onClick={onDeletionClick}
+            disabled={isDeleteSubmitting}
           >
-            iCloud Settings
-          </a>
+            <FontAwesomeIcon icon={faTrashAlt} className="mr-1" /> Delete
+          </LoadingButton>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const HmeList = (props: { callback: Callback; client: ICloudClient }) => {
+  const [hmeEmails, setHmeEmails] = useState<HmeEmail[]>();
+  const [hmeEmailsError, setHmeEmailsError] = useState<string>();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedHmeIdx, setSelectedHmeIndex] = useState(0);
+
+  useEffect(() => {
+    const fetchHmeList = async () => {
+      if (props.client.authenticated) {
+        setIsSubmitting(true);
+        const pms = new PremiumMailSettings(props.client);
+        const result = await pms.listHme();
+        setHmeEmails(
+          result.hmeEmails.sort((a, b) => b.createTimestamp - a.createTimestamp)
+        );
+      }
+    };
+
+    fetchHmeList()
+      .catch((e) => setHmeEmailsError(e.toString()))
+      .finally(() => setIsSubmitting(false));
+  }, [props.client]);
+
+  const activationCallback = () => {
+    setHmeEmails(
+      hmeEmails?.map((hmeEmail, idx) => {
+        if (idx === selectedHmeIdx) {
+          hmeEmail.isActive = !hmeEmail.isActive;
+        }
+        return hmeEmail;
+      })
+    );
+  };
+
+  const deletionCallback = () => {
+    const currSelectedIdxTmp = selectedHmeIdx;
+    if (hmeEmails && selectedHmeIdx >= hmeEmails.length - 1) {
+      setSelectedHmeIndex(selectedHmeIdx - 1);
+    }
+    setHmeEmails(hmeEmails?.filter((_, idx) => idx !== currSelectedIdxTmp));
+  };
+
+  const btnBaseClassName =
+    'p-2 w-full text-left border-b border-gray-200 cursor-pointer focus:outline-none truncate';
+  const btnClassName = `${btnBaseClassName} hover:bg-gray-100`;
+  const selectedBtnClassName = `${btnBaseClassName} text-white bg-sky-400 font-medium`;
+
+  const hmeListGrid = (
+    <div className="grid grid-cols-2" style={{ height: 394 }}>
+      <div className="overflow-y-auto text-sm rounded-l-md text-gray-900 border border-gray-200">
+        {hmeEmails?.map((hme, idx) => (
+          <button
+            key={idx}
+            aria-current={selectedHmeIdx === idx}
+            type="button"
+            className={
+              idx === selectedHmeIdx ? selectedBtnClassName : btnClassName
+            }
+            onClick={() => setSelectedHmeIndex(idx)}
+          >
+            {hme.isActive ? (
+              hme.label
+            ) : (
+              <div title="Deactivated">
+                <FontAwesomeIcon icon={faBan} className="text-red-500 mr-1" />
+                {hme.label}
+              </div>
+            )}
+          </button>
+        ))}
+      </div>
+      <div className="p-2 overflow-y-auto rounded-r-md text-gray-900 border border-l-0 border-gray-200">
+        {hmeEmails && (
+          <HmeDetails
+            client={props.client}
+            hme={hmeEmails[selectedHmeIdx]}
+            activationCallback={activationCallback}
+            deletionCallback={deletionCallback}
+          />
+        )}
+      </div>
+    </div>
+  );
+
+  const spinner = (
+    <div className="text-center">
+      <FontAwesomeIcon
+        icon={faSpinner}
+        spin={true}
+        className="text-3xl text-sky-400"
+      />
+    </div>
+  );
+
+  const emptyState = (
+    <div className="text-center text-lg text-gray-400">
+      There are no emails to list
+    </div>
+  );
+
+  return (
+    <div className="text-base space-y-3">
+      <div className="text-center">
+        <h2 className="text-3xl font-bold text-gray-900">Hide My Email</h2>
+        <h3 className="font-medium text-gray-400">All HideMyEmail addresses</h3>
+      </div>
+      <hr />
+      {isSubmitting
+        ? spinner
+        : hmeEmails && hmeEmails?.length > 0
+        ? hmeListGrid
+        : emptyState}
+      <hr />
+      <div className="grid grid-cols-2">
+        <div>
+          <FooterButton
+            onClick={() => props.callback(PopupTransition.Generate)}
+            icon={faPlus}
+            label="Generate new email"
+          />
         </div>
         <div className="text-right">
           <SignOutButton {...props} />
@@ -469,6 +729,7 @@ enum PopupState {
   SignedIn,
   Verified,
   SignedOut,
+  VerifiedAndListing,
 }
 
 const STATE_ELEMENTS: {
@@ -476,7 +737,8 @@ const STATE_ELEMENTS: {
 } = {
   [PopupState.SignedOut]: SignInForm,
   [PopupState.SignedIn]: TwoFaForm,
-  [PopupState.Verified]: HideMyEmail,
+  [PopupState.Verified]: HmeGenerator,
+  [PopupState.VerifiedAndListing]: HmeList,
 };
 
 const STATE_MACHINE_TRANSITIONS: {
@@ -491,6 +753,11 @@ const STATE_MACHINE_TRANSITIONS: {
   },
   [PopupState.Verified]: {
     [PopupTransition.SuccessfulSignOut]: PopupState.SignedOut,
+    [PopupTransition.List]: PopupState.VerifiedAndListing,
+  },
+  [PopupState.VerifiedAndListing]: {
+    [PopupTransition.SuccessfulSignOut]: PopupState.SignedOut,
+    [PopupTransition.Generate]: PopupState.Verified,
   },
 };
 
@@ -525,7 +792,7 @@ const Popup = () => {
   const client = new ICloudClient(session);
   return (
     <div className="min-h-full flex items-center justify-center py-4 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
+      <div className="max-w-md w-full">
         {transitionToNextStateElement(state, setState, client)}
       </div>
     </div>

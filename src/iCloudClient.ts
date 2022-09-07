@@ -245,6 +245,10 @@ export type ListHmeResult = {
 
 export class GenerateHmeException extends Error {}
 export class ReserveHmeException extends Error {}
+export class UpdateHmeMetadataException extends Error {}
+export class DeactivateHmeException extends Error {}
+export class ReactivateHmeException extends Error {}
+export class DeleteHmeException extends Error {}
 
 export class PremiumMailSettings {
   private readonly baseUrl: string;
@@ -292,6 +296,64 @@ export class PremiumMailSettings {
     }
 
     return response.data.result.hme;
+  }
+
+  async updateHmeMetadata(
+    anonymousId: string,
+    label: string,
+    note?: string
+  ): Promise<void> {
+    const response = await this.client.requester.post(
+      `${this.baseUrl}/hme/updateMetaData`,
+      {
+        anonymousId,
+        label,
+        note,
+      }
+    );
+
+    if (!response.data.success) {
+      throw new UpdateHmeMetadataException('Failed to update HME metadata');
+    }
+  }
+
+  async deactivateHme(anonymousId: string): Promise<void> {
+    const response = await this.client.requester.post(
+      `${this.baseUrl}/hme/deactivate`,
+      {
+        anonymousId,
+      }
+    );
+
+    if (!response.data.success) {
+      throw new DeactivateHmeException('Failed to deactivate HME');
+    }
+  }
+
+  async reactivateHme(anonymousId: string): Promise<void> {
+    const response = await this.client.requester.post(
+      `${this.baseUrl}/hme/reactivate`,
+      {
+        anonymousId,
+      }
+    );
+
+    if (!response.data.success) {
+      throw new ReactivateHmeException('Failed to reactivate HME');
+    }
+  }
+
+  async deleteHme(anonymousId: string): Promise<void> {
+    const response = await this.client.requester.post(
+      `${this.baseUrl}/hme/delete`,
+      {
+        anonymousId,
+      }
+    );
+
+    if (!response.data.success) {
+      throw new DeleteHmeException('Failed to delete HME');
+    }
   }
 }
 
