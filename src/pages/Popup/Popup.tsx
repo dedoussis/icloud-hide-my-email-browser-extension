@@ -4,6 +4,7 @@ import React, {
   useEffect,
   ButtonHTMLAttributes,
   DetailedHTMLProps,
+  ReactNode,
 } from 'react';
 import ICloudClient, {
   PremiumMailSettings,
@@ -90,12 +91,9 @@ const SignInForm = (props: { callback: Callback; client: ICloudClient }) => {
   };
 
   return (
-    <div className="space-y-4">
-      <h2 className="mt-6 text-center text-3xl tracking-tight font-bold text-gray-900">
-        Sign in to iCloud
-      </h2>
+    <PopupComponent title="Hide My Email" subtitle="Sign in to iCloud">
       <form
-        className="space-y-6 text-base"
+        className="space-y-3 text-base"
         action="#"
         method="POST"
         onSubmit={onFormSubmit}
@@ -150,9 +148,9 @@ const SignInForm = (props: { callback: Callback; client: ICloudClient }) => {
         <div>
           <LoadingButton disabled={isSubmitting}>Sign In</LoadingButton>
         </div>
+        {error && <ErrorMessage>{error}</ErrorMessage>}
       </form>
-      {error && <ErrorMessage>{error}</ErrorMessage>}
-    </div>
+    </PopupComponent>
   );
 };
 
@@ -185,14 +183,10 @@ const TwoFaForm = (props: { callback: Callback; client: ICloudClient }) => {
       setError('Please fill in all of the 6 digits of the code.');
     }
   };
-
   return (
-    <div className="text-base space-y-4">
-      <h2 className="mt-6 text-center text-3xl tracking-tight font-bold text-gray-900">
-        Enter the 2FA code
-      </h2>
+    <PopupComponent title="Hide My Email" subtitle="Enter the 2FA code">
       <form
-        className="mt-8 space-y-6"
+        className="mt-8 space-y-3"
         action="#"
         method="POST"
         onSubmit={onFormSubmit}
@@ -208,12 +202,12 @@ const TwoFaForm = (props: { callback: Callback; client: ICloudClient }) => {
         <div>
           <LoadingButton disabled={isSubmitting}>Verify</LoadingButton>
         </div>
+        {error && <ErrorMessage>{error}</ErrorMessage>}
       </form>
       <div className="text-center mt-3">
         <SignOutButton {...props} />
       </div>
-      {error && <ErrorMessage>{error}</ErrorMessage>}
-    </div>
+    </PopupComponent>
   );
 };
 
@@ -397,14 +391,10 @@ const HmeGenerator = (props: { callback: Callback; client: ICloudClient }) => {
     'appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-sky-500 focus:border-sky-500 focus:z-10 sm:text-sm';
 
   return (
-    <div className="text-base space-y-3">
-      <div className="text-center">
-        <h2 className="text-3xl font-bold text-gray-900">Hide My Email</h2>
-        <h3 className="font-medium text-gray-400">
-          Create an address for '{tabHost}'
-        </h3>
-      </div>
-      <hr />
+    <PopupComponent
+      title="Hide My Email"
+      subtitle={`Create an address for '${tabHost}'`}
+    >
       <div className="text-center">
         <span className="text-2xl">
           <button className="mr-1" onClick={onEmailRefreshClick}>
@@ -421,7 +411,6 @@ const HmeGenerator = (props: { callback: Callback; client: ICloudClient }) => {
         )}
         {hmeError && <ErrorMessage>{hmeError}</ErrorMessage>}
       </div>
-      <hr />
       <form className="space-y-3" onSubmit={onUseSubmit}>
         <div>
           <label htmlFor="label" className="block font-medium">
@@ -453,7 +442,6 @@ const HmeGenerator = (props: { callback: Callback; client: ICloudClient }) => {
         {reservedHme && <ReservationResult hme={reservedHme} />}
         {reserveError && <ErrorMessage>{reserveError}</ErrorMessage>}
       </form>
-      <hr />
       <div className="grid grid-cols-2">
         <div>
           <FooterButton
@@ -466,7 +454,7 @@ const HmeGenerator = (props: { callback: Callback; client: ICloudClient }) => {
           <SignOutButton {...props} />
         </div>
       </div>
-    </div>
+    </PopupComponent>
   );
 };
 
@@ -610,7 +598,7 @@ const HmeDetails = (props: {
 
 const HmeList = (props: { callback: Callback; client: ICloudClient }) => {
   const [hmeEmails, setHmeEmails] = useState<HmeEmail[]>();
-  const [hmeEmailsError, setHmeEmailsError] = useState<string>(); // TODO
+  const [hmeEmailsError, setHmeEmailsError] = useState<string>();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedHmeIdx, setSelectedHmeIndex] = useState(0);
 
@@ -708,19 +696,25 @@ const HmeList = (props: { callback: Callback; client: ICloudClient }) => {
     </div>
   );
 
+  const resolveMainChildComponent = (): ReactNode => {
+    if (isSubmitting) {
+      return spinner;
+    }
+
+    if (hmeEmailsError) {
+      return <ErrorMessage>{hmeEmailsError}</ErrorMessage>;
+    }
+
+    if (!hmeEmails || hmeEmails.length === 0) {
+      return emptyState;
+    }
+
+    return hmeListGrid;
+  };
+
   return (
-    <div className="text-base space-y-3">
-      <div className="text-center">
-        <h2 className="text-3xl font-bold text-gray-900">Hide My Email</h2>
-        <h3 className="font-medium text-gray-400">All HideMyEmail addresses</h3>
-      </div>
-      <hr />
-      {isSubmitting
-        ? spinner
-        : hmeEmails && hmeEmails?.length > 0
-        ? hmeListGrid
-        : emptyState}
-      <hr />
+    <PopupComponent title="Hide My Email" subtitle="All HideMyEmail addresses">
+      {resolveMainChildComponent()}
       <div className="grid grid-cols-2">
         <div>
           <FooterButton
@@ -733,6 +727,34 @@ const HmeList = (props: { callback: Callback; client: ICloudClient }) => {
           <SignOutButton {...props} />
         </div>
       </div>
+    </PopupComponent>
+  );
+};
+
+const PopupComponent = (props: {
+  title: string;
+  subtitle: string;
+  children?: React.ReactNode;
+}) => {
+  const children =
+    props.children instanceof Array ? props.children : [props.children];
+
+  return (
+    <div className="text-base space-y-3">
+      <div className="text-center">
+        <h2 className="text-3xl font-bold text-gray-900">{props.title}</h2>
+        <h3 className="font-medium text-gray-400">{props.subtitle}</h3>
+      </div>
+      {children?.map((child, key) => {
+        return (
+          child && (
+            <React.Fragment key={key}>
+              <hr />
+              {child}
+            </React.Fragment>
+          )
+        );
+      })}
     </div>
   );
 };
@@ -803,7 +825,7 @@ const Popup = () => {
   const session = new ICloudClientSession(sessionData, setSessionData);
   const client = new ICloudClient(session);
   return (
-    <div className="min-h-full flex items-center justify-center py-4 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-full flex items-center justify-center p-4">
       <div className="max-w-md w-full">
         {transitionToNextStateElement(state, setState, client)}
       </div>

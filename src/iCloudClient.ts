@@ -104,7 +104,9 @@ class ICloudClient {
     return config;
   }
 
-  private handleResponse(response: AxiosResponse) {
+  private handleResponse<T, D>(
+    response: AxiosResponse<T, D>
+  ): AxiosResponse<T, D> {
     ICloudClient.SESSION_HEADERS.forEach((headerKey: string) => {
       const headerVal = response.headers[headerKey];
       if (headerVal !== undefined) {

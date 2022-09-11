@@ -116,44 +116,38 @@ const emaiInputElementsWithButtons = Array.from(emailInputElements).map(
 
 const mutationCallback: MutationCallback = (mutations) => {
   mutations.forEach((mutation) => {
-    switch (mutation.type) {
-      case 'childList':
-        const addedDfsStack = Array.from(mutation.addedNodes);
+    const addedDfsStack = Array.from(mutation.addedNodes);
 
-        while (addedDfsStack.length > 0) {
-          const node = addedDfsStack.pop();
-          console.log(node);
-          if (
-            node instanceof HTMLInputElement &&
-            [node.name, node.type, node.id].includes('email')
-          ) {
-            const inputEmailWithButton = makeInputElementWithButton(node);
-            emaiInputElementsWithButtons.push(inputEmailWithButton);
-          }
-          node?.childNodes.forEach((child) => {
-            addedDfsStack.push(child);
-          });
+    while (addedDfsStack.length > 0) {
+      const node = addedDfsStack.pop();
+      console.log(node);
+      if (
+        node instanceof HTMLInputElement &&
+        [node.name, node.type, node.id].includes('email')
+      ) {
+        const inputEmailWithButton = makeInputElementWithButton(node);
+        emaiInputElementsWithButtons.push(inputEmailWithButton);
+      }
+      node?.childNodes.forEach((child) => {
+        addedDfsStack.push(child);
+      });
+    }
+
+    const removedDfsStack = Array.from(mutation.removedNodes);
+
+    while (removedDfsStack.length > 0) {
+      const node = removedDfsStack.pop();
+      if (node instanceof HTMLInputElement) {
+        const foundNode = emaiInputElementsWithButtons.find(
+          (value) => value.inputElement.id === node.id
+        );
+        if (foundNode !== undefined) {
+          removeItem(emaiInputElementsWithButtons, foundNode);
         }
-
-        const removedDfsStack = Array.from(mutation.removedNodes);
-
-        while (removedDfsStack.length > 0) {
-          const node = removedDfsStack.pop();
-          if (node instanceof HTMLInputElement) {
-            const foundNode = emaiInputElementsWithButtons.find(
-              (value) => value.inputElement.id === node.id
-            );
-            if (foundNode !== undefined) {
-              removeItem(emaiInputElementsWithButtons, foundNode);
-            }
-          }
-          node?.childNodes.forEach((child) => {
-            removedDfsStack.push(child);
-          });
-        }
-        break;
-      default:
-        break;
+      }
+      node?.childNodes.forEach((child) => {
+        removedDfsStack.push(child);
+      });
     }
   });
 };
@@ -161,7 +155,7 @@ const mutationCallback: MutationCallback = (mutations) => {
 const observer = new MutationObserver(mutationCallback);
 observer.observe(document.body, {
   childList: true,
-  attributes: true,
+  attributes: false,
   subtree: true,
 });
 
@@ -181,6 +175,7 @@ chrome.runtime.onMessage.addListener(
             inputElement.removeEventListener('focus', inputOnFocusCallback);
             inputElement.removeEventListener('blur', inputOnBlurCallback);
             btnElement.remove();
+            observer.disconnect();
           }
         );
         break;
@@ -226,6 +221,7 @@ chrome.runtime.onMessage.addListener(
                 inputElement.removeEventListener('focus', inputOnFocusCallback);
                 inputElement.removeEventListener('blur', inputOnBlurCallback);
                 btnElement.remove();
+                observer.disconnect();
               }
             );
           } else if (error) {
