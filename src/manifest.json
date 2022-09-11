@@ -8,6 +8,13 @@
     "default_popup": "popup.html",
     "default_icon": "icon-34.png"
   },
+  "content_scripts": [
+    {
+      "matches": ["http://*/*", "https://*/*", "<all_urls>"],
+      "js": ["contentScript.bundle.js"],
+      "css": ["contentScript.css"]
+    }
+  ],
   "declarative_net_request": {
     "rule_resources": [
       {

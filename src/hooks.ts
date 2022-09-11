@@ -1,6 +1,15 @@
 import { Dispatch, useEffect, useState } from 'react';
 import isEqual from 'lodash.isequal';
 
+export async function getChromeStorageValue<T>(keys: string[]): Promise<T> {
+  return keys.reduce((prev, curr) => {
+    if (prev === undefined || curr === undefined) {
+      return undefined;
+    }
+    return prev[curr];
+  }, await chrome.storage.local.get(keys)) as unknown as T;
+}
+
 export function useChromeStorageState<T>(
   keys: string[],
   fallback: T
@@ -9,12 +18,7 @@ export function useChromeStorageState<T>(
 
   useEffect(() => {
     async function getChromeStorageState() {
-      const value = keys.reduce((prev, curr) => {
-        if (prev === undefined || curr === undefined) {
-          return undefined;
-        }
-        return prev[curr];
-      }, await chrome.storage.local.get(keys)) as unknown as T;
+      const value = await getChromeStorageValue<T>(keys);
 
       value !== undefined &&
         setState((prevState) =>

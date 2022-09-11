@@ -27,6 +27,7 @@ import {
   faTrashAlt,
   faBan,
 } from '@fortawesome/free-solid-svg-icons';
+import { MessageType, sendMessageToActiveTab } from '../../messages';
 
 enum PopupTransition {
   SuccessfulSignIn,
@@ -115,6 +116,7 @@ const SignInForm = (props: { callback: Callback; client: ICloudClient }) => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               disabled={isSubmitting}
+              autoFocus
             />
           </div>
           <div>
@@ -231,8 +233,8 @@ const ReservationResult = (props: { hme: HmeEmail }) => {
     await navigator.clipboard.writeText(props.hme.hme);
   };
 
-  const onAutofillClick = () => {
-    console.log('Autofilling...');
+  const onAutofillClick = async () => {
+    await sendMessageToActiveTab(MessageType.Autofill, props.hme.hme);
   };
 
   const btnClassName =
@@ -509,6 +511,14 @@ const HmeDetails = (props: {
     }
   };
 
+  const onCopyClick = async () => {
+    await navigator.clipboard.writeText(props.hme.hme);
+  };
+
+  const onAutofillClick = async () => {
+    await sendMessageToActiveTab(MessageType.Autofill, props.hme.hme);
+  };
+
   const btnClassName =
     'w-full justify-center text-white focus:ring-4 focus:outline-none font-medium rounded-lg px-2 py-3 text-center inline-flex items-center';
   const labelClassName = 'font-bold';
@@ -560,12 +570,14 @@ const HmeDetails = (props: {
         <button
           title="Copy"
           className={`${btnClassName} bg-sky-400 hover:bg-sky-500 focus:ring-blue-300`}
+          onClick={onCopyClick}
         >
           <FontAwesomeIcon icon={faClipboard} />
         </button>
         <button
           title="Autofill"
           className={`${btnClassName} bg-sky-400 hover:bg-sky-500 focus:ring-blue-300`}
+          onClick={onAutofillClick}
         >
           <FontAwesomeIcon icon={faCheck} />
         </button>
@@ -598,7 +610,7 @@ const HmeDetails = (props: {
 
 const HmeList = (props: { callback: Callback; client: ICloudClient }) => {
   const [hmeEmails, setHmeEmails] = useState<HmeEmail[]>();
-  const [hmeEmailsError, setHmeEmailsError] = useState<string>();
+  const [hmeEmailsError, setHmeEmailsError] = useState<string>(); // TODO
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedHmeIdx, setSelectedHmeIndex] = useState(0);
 

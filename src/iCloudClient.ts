@@ -76,11 +76,12 @@ class ICloudClient {
 
   constructor(
     private readonly session: ICloudClientSession = new ICloudClientSession(),
+    private readonly axiosConfig?: AxiosRequestConfig,
     readonly baseUrls: BaseUrlConfig = ICloudClient.DEFAULT_BASE_URL_CONFIG
   ) {
     this.clientId = uuidv4();
 
-    this.requester = axios.create();
+    this.requester = axios.create(this.axiosConfig);
     this.requester.interceptors.request.use(
       this.prepareRequest.bind(this),
       (error) => Promise.reject(error),

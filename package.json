@@ -1,7 +1,7 @@
 {
   "name": "icloud-hide-my-email-chrome-extension",
   "version": "0.0.1",
-  "description": "Unoficial chromium extension to support iCloud's Hide My Email feature.",
+  "description": "Unofficial chromium extension to support iCloud's Hide My Email feature.",
   "license": "MIT",
   "author": "dedoussis",
   "repository": {
@@ -19,6 +19,7 @@
     "@fortawesome/free-solid-svg-icons": "^6.2.0",
     "@fortawesome/react-fontawesome": "^0.2.0",
     "@hot-loader/react-dom": "^17.0.2",
+    "@vespaiach/axios-fetch-adapter": "^0.3.0",
     "axios": "^0.27.2",
     "lodash.isequal": "^4.5.0",
     "react": "^17.0.2",
