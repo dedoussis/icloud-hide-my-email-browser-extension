@@ -120,7 +120,6 @@ const mutationCallback: MutationCallback = (mutations) => {
 
     while (addedDfsStack.length > 0) {
       const node = addedDfsStack.pop();
-      console.log(node);
       if (
         node instanceof HTMLInputElement &&
         [node.name, node.type, node.id].includes('email')
