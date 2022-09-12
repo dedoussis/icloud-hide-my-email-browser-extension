@@ -1,5 +1,7 @@
 # iCloud Hide My Email Chrome Extension
 
+[![Tests Status](https://github.com/dedoussis/icloud-hide-my-email-chrome-extension/workflows/tests/badge.svg)](https://github.com/dedoussis/icloud-hide-my-email-chrome-extension/actions/workflows/tests.yml)
+
 This extension enables the use of [iCloud's Hide My Email](https://support.apple.com/en-us/HT210425) feature on any Chromium based browser such as Google Chrome, Brave, Opera, and Microsoft Edge.
 
 Hide My Email is natively supported in Safari. This extension aims to bring a similar UX to the Chromium ecosystem.
