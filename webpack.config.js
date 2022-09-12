@@ -131,7 +131,17 @@ var options = {
           force: true,
         },
         {
-          from: 'src/assets/img/icon-34.png',
+          from: 'src/assets/img/icon-48.png',
+          to: path.join(__dirname, 'build'),
+          force: true,
+        },
+        {
+          from: 'src/assets/img/icon-32.png',
+          to: path.join(__dirname, 'build'),
+          force: true,
+        },
+        {
+          from: 'src/assets/img/icon-16.png',
           to: path.join(__dirname, 'build'),
           force: true,
         },
