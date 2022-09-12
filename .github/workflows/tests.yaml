@@ -17,5 +17,19 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: 18
+      - name: Get npm cache directory
+        id: npm-cache-dir
+        run: |
+          echo "::set-output name=dir::$(npm config get cache)"
+      - uses: actions/cache@v3
+        id: npm-cache
+        with:
+          path: ${{ steps.npm-cache-dir.outputs.dir }}
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+      - name: Install npm deps
+        if: steps.npm-cache.outputs.cache-hit != 'true'
+        run: npm install
       - name: Prettier formatting
         run: npm run prettier:check
