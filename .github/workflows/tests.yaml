@@ -17,17 +17,13 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: 18
-      - name: Get npm cache directory
-        id: npm-cache-dir
-        run: |
-          echo "::set-output name=dir::$(npm config get cache)"
       - uses: actions/cache@v3
         id: npm-cache
         with:
-          path: ${{ steps.npm-cache-dir.outputs.dir }}
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          path: ~/.npm
+          key: ${{ runner.os }}-node18-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
-            ${{ runner.os }}-node-
+            ${{ runner.os }}-node18-
       - name: Install npm deps
         if: steps.npm-cache.outputs.cache-hit != 'true'
         run: npm ci
