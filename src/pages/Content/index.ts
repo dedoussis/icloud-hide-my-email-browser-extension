@@ -175,7 +175,6 @@ chrome.runtime.onMessage.addListener(
             inputElement.removeEventListener('focus', inputOnFocusCallback);
             inputElement.removeEventListener('blur', inputOnBlurCallback);
             btnElement.remove();
-            observer.disconnect();
           }
         );
         break;
@@ -221,7 +220,6 @@ chrome.runtime.onMessage.addListener(
                 inputElement.removeEventListener('focus', inputOnFocusCallback);
                 inputElement.removeEventListener('blur', inputOnBlurCallback);
                 btnElement.remove();
-                observer.disconnect();
               }
             );
           } else if (error) {

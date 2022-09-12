@@ -6,6 +6,8 @@ This extension enables the use of [iCloud's Hide My Email](https://support.apple
 
 Hide My Email is natively supported in Safari. This extension aims to bring a similar UX to the Chromium ecosystem.
 
+_Disclaimer: This extension is not endorsed by, directly affiliated with, maintained, authorized, or sponsored by Apple._
+
 ![Extension popup demo](./src/assets/img/demo-popup.gif)
 
 ![Extension content demo](./src/assets/img/demo-content.gif)
@@ -16,8 +18,6 @@ Hide My Email is natively supported in Safari. This extension aims to bring a si
 - Ability to manage existing Hide My Email addresses (including deactivation, reactivation, and deletion)
 - Autofilling on any HTML input element that is relevant to email
 - Quick configuration of Hide My Email settings, such as the Forward-To address, through the Options page of the extension.
-
-_Disclaimer: This extension is not endorsed by, directly affiliated with, maintained, authorized, or sponsored by Apple._
 
 ## Develop
 
