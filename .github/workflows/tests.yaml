@@ -30,6 +30,6 @@ jobs:
             ${{ runner.os }}-node-
       - name: Install npm deps
         if: steps.npm-cache.outputs.cache-hit != 'true'
-        run: npm install
+        run: npm ci
       - name: Prettier formatting
         run: npm run prettier:check
