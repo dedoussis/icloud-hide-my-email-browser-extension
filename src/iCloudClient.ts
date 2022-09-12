@@ -252,6 +252,7 @@ export class UpdateHmeMetadataException extends Error {}
 export class DeactivateHmeException extends Error {}
 export class ReactivateHmeException extends Error {}
 export class DeleteHmeException extends Error {}
+export class UpdateFwdToHmeException extends Error {}
 
 export class PremiumMailSettings {
   private readonly baseUrl: string;
@@ -356,6 +357,19 @@ export class PremiumMailSettings {
 
     if (!response.data.success) {
       throw new DeleteHmeException('Failed to delete HME');
+    }
+  }
+
+  async updateForwardToHme(forwardToEmail: string): Promise<void> {
+    const response = await this.client.requester.post(
+      `${this.baseUrl}/hme/updateForwardTo`,
+      { forwardToEmail }
+    );
+
+    if (!response.data.success) {
+      throw new UpdateFwdToHmeException(
+        'Failed to update the Forward To email.'
+      );
     }
   }
 }

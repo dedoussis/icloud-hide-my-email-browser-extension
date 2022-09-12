@@ -20,7 +20,6 @@ import {
   faRefresh,
   faClipboard,
   faCheck,
-  faSpinner,
   faList,
   faSignOut,
   IconDefinition,
@@ -29,6 +28,12 @@ import {
   faBan,
 } from '@fortawesome/free-solid-svg-icons';
 import { MessageType, sendMessageToActiveTab } from '../../messages';
+import {
+  ErrorMessage,
+  LoadingButton,
+  Spinner,
+  TitledComponent,
+} from '../../commonComponents';
 
 enum PopupTransition {
   SuccessfulSignIn,
@@ -40,27 +45,6 @@ enum PopupTransition {
   List,
   Generate,
 }
-
-const LoadingButton = (
-  props: {
-    children?: React.ReactNode;
-  } & DetailedHTMLProps<
-    ButtonHTMLAttributes<HTMLButtonElement>,
-    HTMLButtonElement
-  >
-) => {
-  const defaultClassName =
-    'w-full justify-center text-white bg-sky-400 hover:bg-sky-500 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg px-5 py-2.5 text-center mr-2 inline-flex items-center';
-
-  return (
-    <button type="submit" className={defaultClassName} {...props}>
-      {props.disabled && (
-        <FontAwesomeIcon icon={faSpinner} spin={true} className="mr-1" />
-      )}
-      {props.children}
-    </button>
-  );
-};
 
 type Callback = (transition: PopupTransition) => void;
 
@@ -91,7 +75,7 @@ const SignInForm = (props: { callback: Callback; client: ICloudClient }) => {
   };
 
   return (
-    <PopupComponent title="Hide My Email" subtitle="Sign in to iCloud">
+    <TitledComponent title="Hide My Email" subtitle="Sign in to iCloud">
       <form
         className="space-y-3 text-base"
         action="#"
@@ -150,7 +134,7 @@ const SignInForm = (props: { callback: Callback; client: ICloudClient }) => {
         </div>
         {error && <ErrorMessage>{error}</ErrorMessage>}
       </form>
-    </PopupComponent>
+    </TitledComponent>
   );
 };
 
@@ -184,7 +168,7 @@ const TwoFaForm = (props: { callback: Callback; client: ICloudClient }) => {
     }
   };
   return (
-    <PopupComponent title="Hide My Email" subtitle="Enter the 2FA code">
+    <TitledComponent title="Hide My Email" subtitle="Enter the 2FA code">
       <form
         className="mt-8 space-y-3"
         action="#"
@@ -207,18 +191,7 @@ const TwoFaForm = (props: { callback: Callback; client: ICloudClient }) => {
       <div className="text-center mt-3">
         <SignOutButton {...props} />
       </div>
-    </PopupComponent>
-  );
-};
-
-const ErrorMessage = (props: { children?: React.ReactNode }) => {
-  return (
-    <div
-      className="p-2 text-sm text-red-700 bg-red-100 rounded-lg"
-      role="alert"
-    >
-      {props.children}
-    </div>
+    </TitledComponent>
   );
 };
 
@@ -391,7 +364,7 @@ const HmeGenerator = (props: { callback: Callback; client: ICloudClient }) => {
     'appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-sky-500 focus:border-sky-500 focus:z-10 sm:text-sm';
 
   return (
-    <PopupComponent
+    <TitledComponent
       title="Hide My Email"
       subtitle={`Create an address for '${tabHost}'`}
     >
@@ -454,7 +427,7 @@ const HmeGenerator = (props: { callback: Callback; client: ICloudClient }) => {
           <SignOutButton {...props} />
         </div>
       </div>
-    </PopupComponent>
+    </TitledComponent>
   );
 };
 
@@ -680,16 +653,6 @@ const HmeList = (props: { callback: Callback; client: ICloudClient }) => {
     </div>
   );
 
-  const spinner = (
-    <div className="text-center">
-      <FontAwesomeIcon
-        icon={faSpinner}
-        spin={true}
-        className="text-3xl text-sky-400"
-      />
-    </div>
-  );
-
   const emptyState = (
     <div className="text-center text-lg text-gray-400">
       There are no emails to list
@@ -698,7 +661,7 @@ const HmeList = (props: { callback: Callback; client: ICloudClient }) => {
 
   const resolveMainChildComponent = (): ReactNode => {
     if (isSubmitting) {
-      return spinner;
+      return <Spinner />;
     }
 
     if (hmeEmailsError) {
@@ -713,7 +676,7 @@ const HmeList = (props: { callback: Callback; client: ICloudClient }) => {
   };
 
   return (
-    <PopupComponent title="Hide My Email" subtitle="All HideMyEmail addresses">
+    <TitledComponent title="Hide My Email" subtitle="All HideMyEmail addresses">
       {resolveMainChildComponent()}
       <div className="grid grid-cols-2">
         <div>
@@ -727,35 +690,7 @@ const HmeList = (props: { callback: Callback; client: ICloudClient }) => {
           <SignOutButton {...props} />
         </div>
       </div>
-    </PopupComponent>
-  );
-};
-
-const PopupComponent = (props: {
-  title: string;
-  subtitle: string;
-  children?: React.ReactNode;
-}) => {
-  const children =
-    props.children instanceof Array ? props.children : [props.children];
-
-  return (
-    <div className="text-base space-y-3">
-      <div className="text-center">
-        <h2 className="text-3xl font-bold text-gray-900">{props.title}</h2>
-        <h3 className="font-medium text-gray-400">{props.subtitle}</h3>
-      </div>
-      {children?.map((child, key) => {
-        return (
-          child && (
-            <React.Fragment key={key}>
-              <hr />
-              {child}
-            </React.Fragment>
-          )
-        );
-      })}
-    </div>
+    </TitledComponent>
   );
 };
 
