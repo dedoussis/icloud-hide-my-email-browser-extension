@@ -20,10 +20,10 @@ jobs:
       - uses: actions/cache@v3
         id: npm-cache
         with:
-          path: ~/.npm
-          key: ${{ runner.os }}-node18-${{ hashFiles('**/package-lock.json') }}
+          path: node_modules
+          key: ${{ runner.os }}-nodejs-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
-            ${{ runner.os }}-node18-
+            ${{ runner.os }}-nodejs-
       - name: Install npm deps
         if: steps.npm-cache.outputs.cache-hit != 'true'
         run: npm ci
