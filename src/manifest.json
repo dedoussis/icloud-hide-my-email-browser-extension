@@ -25,13 +25,12 @@
       }
     ]
   },
-  "permissions": [
-    "declarativeNetRequest",
-    "declarativeNetRequestFeedback",
-    "storage",
-    "tabs"
+  "permissions": ["declarativeNetRequest", "storage", "tabs"],
+  "host_permissions": [
+    "https://idmsa.apple.com/appleauth/auth/*",
+    "https://setup.icloud.com/setup/ws/1/*",
+    "https://p26-maildomainws.icloud.com/*"
   ],
-  "host_permissions": ["https://*.apple.com/*", "https://*.icloud.com/*"],
   "icons": {
     "16": "icon-16.png",
     "32": "icon-32.png",
