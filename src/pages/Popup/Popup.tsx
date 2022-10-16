@@ -11,6 +11,7 @@ import ICloudClient, {
   HmeEmail,
   ICloudClientSessionData,
   ICloudClientSession,
+  EMPTY_SESSION_DATA,
 } from '../../iCloudClient';
 import './Popup.css';
 import AuthCode from 'react-auth-code-input';
@@ -34,6 +35,10 @@ import {
   Spinner,
   TitledComponent,
 } from '../../commonComponents';
+import {
+  POPUP_STATE_STORAGE_KEYS,
+  SESSION_DATA_STORAGE_KEYS,
+} from '../../storage';
 
 enum PopupTransition {
   SuccessfulSignIn,
@@ -707,7 +712,7 @@ const HmeList = (props: { callback: Callback; client: ICloudClient }) => {
   );
 };
 
-enum PopupState {
+export enum PopupState {
   SignedIn,
   Verified,
   SignedOut,
@@ -759,19 +764,37 @@ const transitionToNextStateElement = (
 
 const Popup = () => {
   const [state, setState] = useChromeStorageState(
-    ['iCloudHmePopupState'],
+    POPUP_STATE_STORAGE_KEYS,
     PopupState.SignedOut
   );
 
   const [sessionData, setSessionData] =
-    useChromeStorageState<ICloudClientSessionData>(['iCloudHmeClientSession'], {
-      headers: {},
-      webservices: {},
-      dsInfo: {},
-    });
+    useChromeStorageState<ICloudClientSessionData>(
+      SESSION_DATA_STORAGE_KEYS,
+      EMPTY_SESSION_DATA
+    );
+
+  useEffect(() => {
+    const validateSession = async () => {
+      const session = new ICloudClientSession(sessionData, setSessionData);
+      const client = new ICloudClient(session);
+
+      if (client.authenticated) {
+        try {
+          await client.validateToken();
+        } catch {
+          await client.logOut();
+          setState(PopupState.SignedOut);
+        }
+      }
+    };
+
+    validateSession();
+  }, [sessionData, setSessionData, setState]);
 
   const session = new ICloudClientSession(sessionData, setSessionData);
   const client = new ICloudClient(session);
+
   return (
     <div className="min-h-full flex items-center justify-center p-4">
       <div className="max-w-md w-full">
