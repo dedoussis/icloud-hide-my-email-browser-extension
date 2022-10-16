@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import './Options.css';
 import { useChromeStorageState } from '../../hooks';
 import ICloudClient, {
+  EMPTY_SESSION_DATA,
   ICloudClientSession,
   ICloudClientSessionData,
   PremiumMailSettings,
@@ -12,6 +13,7 @@ import {
   ErrorMessage,
   TitledComponent,
 } from '../../commonComponents';
+import { SESSION_DATA_STORAGE_KEYS } from '../../storage';
 
 const SelectFwdToForm = (props: { client: ICloudClient }) => {
   const [selectedFwdToEmail, setSelectedFwdToEmail] = useState<string>();
@@ -137,11 +139,10 @@ const Disclaimer = () => {
 
 const Options = () => {
   const [sessionData, setSessionData] =
-    useChromeStorageState<ICloudClientSessionData>(['iCloudHmeClientSession'], {
-      headers: {},
-      webservices: {},
-      dsInfo: {},
-    });
+    useChromeStorageState<ICloudClientSessionData>(
+      SESSION_DATA_STORAGE_KEYS,
+      EMPTY_SESSION_DATA
+    );
 
   const session = new ICloudClientSession(sessionData, setSessionData);
   const client = new ICloudClient(session);

@@ -1,24 +1,45 @@
 import 'regenerator-runtime/runtime.js';
 import fetchAdapter from '@vespaiach/axios-fetch-adapter';
-import { getChromeStorageValue } from '../../storage';
+import {
+  getChromeStorageValue,
+  POPUP_STATE_STORAGE_KEYS,
+  SESSION_DATA_STORAGE_KEYS,
+  setChromeStorageValue,
+} from '../../storage';
 import ICloudClient, {
+  EMPTY_SESSION_DATA,
   ICloudClientSession,
   ICloudClientSessionData,
   PremiumMailSettings,
 } from '../../iCloudClient';
 import { MessageType, sendMessageToActiveTab } from '../../messages';
+import { PopupState } from '../Popup/Popup';
 
-const getClient = async (): Promise<ICloudClient> => {
-  const sessionData = (await getChromeStorageValue<ICloudClientSessionData>([
-    'iCloudHmeClientSession',
-  ])) || {
-    headers: {},
-    webservices: {},
-    dsInfo: {},
-  };
+const getClient = async (
+  withTokenValidation: boolean = true
+): Promise<ICloudClient> => {
+  const sessionData =
+    (await getChromeStorageValue<ICloudClientSessionData>(
+      SESSION_DATA_STORAGE_KEYS
+    )) || EMPTY_SESSION_DATA;
 
-  const clientSession = new ICloudClientSession(sessionData, (data) => {});
+  const clientSession = new ICloudClientSession(
+    sessionData,
+    async (data) => await setChromeStorageValue(SESSION_DATA_STORAGE_KEYS, data)
+  );
   const client = new ICloudClient(clientSession, { adapter: fetchAdapter });
+
+  if (withTokenValidation && client.authenticated) {
+    try {
+      await client.validateToken();
+    } catch (e) {
+      await client.logOut();
+      await setChromeStorageValue(
+        POPUP_STATE_STORAGE_KEYS,
+        PopupState.SignedOut
+      );
+    }
+  }
   return client;
 };
 
@@ -54,7 +75,7 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
     case MessageType.ReservationRequest:
       {
         const { hme, label, elementId } = message.data;
-        const client = await getClient();
+        const client = await getClient(false);
         if (!client.authenticated) {
           await sendMessageToActiveTab(MessageType.GenerateResponse, {
             error: 'Please sign-in to iCloud.',
@@ -63,8 +84,8 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
           break;
         }
 
-        const pms = new PremiumMailSettings(client);
         try {
+          const pms = new PremiumMailSettings(client);
           await pms.reserveHme(hme, label);
           await sendMessageToActiveTab(MessageType.ReservationResponse, {
             hme,

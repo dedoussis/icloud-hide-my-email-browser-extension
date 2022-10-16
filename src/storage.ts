@@ -1,3 +1,6 @@
+export const POPUP_STATE_STORAGE_KEYS = ['iCloudHmePopupState'];
+export const SESSION_DATA_STORAGE_KEYS = ['iCloudHmeClientSession'];
+
 export async function getChromeStorageValue<T>(
   keys: string[]
 ): Promise<T | undefined> {

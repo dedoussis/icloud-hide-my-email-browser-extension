@@ -24,13 +24,15 @@ export type ICloudClientSessionData = {
   hsaTrustedBrowser?: boolean;
 };
 
+export const EMPTY_SESSION_DATA = {
+  headers: {},
+  webservices: {},
+  dsInfo: {},
+};
+
 export class ICloudClientSession {
   constructor(
-    public data: ICloudClientSessionData = {
-      headers: {},
-      webservices: {},
-      dsInfo: {},
-    },
+    public data: ICloudClientSessionData = EMPTY_SESSION_DATA,
     private readonly dataSaver: (data: ICloudClientSessionData) => void = (
       data
     ) => {}
@@ -41,7 +43,7 @@ export class ICloudClientSession {
   }
 
   async cleanUp(): Promise<void> {
-    this.data = { headers: {}, webservices: {}, dsInfo: {} };
+    this.data = EMPTY_SESSION_DATA;
     await this.save();
   }
 }
@@ -148,8 +150,11 @@ class ICloudClient {
   public get authenticated(): boolean {
     return (
       !isEqual(this.session.data.webservices, {}) &&
-      !isEqual(this.session.data.headers, {}) &&
-      !isEqual(this.session.data.dsInfo, {})
+      !isEqual(this.session.data.dsInfo, {}) &&
+      ICloudClient.SESSION_HEADERS.every(
+        (header) => header in this.session.data.headers
+      ) &&
+      !this.requires2fa
     );
   }
 
