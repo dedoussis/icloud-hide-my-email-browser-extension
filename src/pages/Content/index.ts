@@ -9,6 +9,10 @@ const emailInputElements = document.querySelectorAll<HTMLInputElement>(
 );
 
 const LOADING_COPY = `Hide My Email — Loading...`;
+const STYLE_CLASS_PREFIX = 'd1691f0f-b8f0-495e-9ffb-fe4e6f84b518';
+
+const className = (shortName: string): string =>
+  `${STYLE_CLASS_PREFIX}-${shortName}`;
 
 const ELEMENT_ID_NAMESPACE = uuidv4();
 
@@ -27,13 +31,13 @@ const disableButton = (
 ): void => {
   btn.innerHTML = copy;
   btn.setAttribute('disabled', 'true');
-  btn.classList.remove('hover:bg-sky-500');
-  btn.classList.forEach((className) => {
-    if (className.startsWith('cursor-')) {
-      btn.classList.remove(className);
+  btn.classList.remove(className('hover-button'));
+  btn.classList.forEach((name) => {
+    if (name.startsWith(className('cursor-'))) {
+      btn.classList.remove(name);
     }
   });
-  btn.classList.add(cursorClass);
+  btn.classList.add(className(cursorClass));
 };
 
 const enableButton = (
@@ -43,13 +47,13 @@ const enableButton = (
 ): void => {
   btn.innerHTML = copy;
   btn.removeAttribute('disabled');
-  btn.classList.add('hover:bg-sky-500');
-  btn.classList.forEach((className) => {
-    if (className.startsWith('cursor-')) {
-      btn.classList.remove(className);
+  btn.classList.add(className('hover-button'));
+  btn.classList.forEach((name) => {
+    if (name.startsWith(className('cursor-'))) {
+      btn.classList.remove(name);
     }
   });
-  btn.classList.add(cursorClass);
+  btn.classList.add(className(cursorClass));
 };
 
 const makeInputElementWithButton = (
@@ -59,14 +63,7 @@ const makeInputElementWithButton = (
   const btnElementId = `${ELEMENT_ID_NAMESPACE}-${uuidv4()}`;
   btnElement.setAttribute('id', btnElementId);
   btnElement.setAttribute('type', 'button');
-  btnElement.classList.add('bg-sky-400');
-  btnElement.classList.add('text-white');
-  btnElement.classList.add('w-full');
-  btnElement.classList.add('rounded');
-  btnElement.classList.add('p-2');
-  btnElement.classList.add('my-1');
-  btnElement.classList.add('font-sans');
-  btnElement.classList.add('font-medium');
+  btnElement.classList.add(className('button'));
 
   disableButton(btnElement, 'cursor-not-allowed', LOADING_COPY);
 
