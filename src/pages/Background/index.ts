@@ -32,7 +32,7 @@ const getClient = async (
   if (withTokenValidation && client.authenticated) {
     try {
       await client.validateToken();
-    } catch (e) {
+    } catch {
       await client.logOut();
       await setChromeStorageValue(
         POPUP_STATE_STORAGE_KEYS,
