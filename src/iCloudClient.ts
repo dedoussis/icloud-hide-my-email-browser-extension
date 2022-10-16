@@ -73,6 +73,7 @@ class ICloudClient {
 
   private readonly clientId: string;
   public readonly requester;
+  private readonly nonPersistingRequester;
 
   constructor(
     private readonly session: ICloudClientSession = new ICloudClientSession(),
@@ -82,11 +83,16 @@ class ICloudClient {
     this.clientId = uuidv4();
 
     this.requester = axios.create(this.axiosConfig);
-    this.requester.interceptors.request.use(
-      this.prepareRequest.bind(this),
-      (error) => Promise.reject(error),
-      { synchronous: true }
+    this.nonPersistingRequester = axios.create(this.axiosConfig);
+
+    [this.requester, this.nonPersistingRequester].forEach((instance) =>
+      instance.interceptors.request.use(
+        this.prepareRequest.bind(this),
+        (error) => Promise.reject(error),
+        { synchronous: true }
+      )
     );
+
     this.requester.interceptors.response.use(
       this.handleResponse.bind(this),
       (error) => Promise.reject(error),
@@ -104,16 +110,18 @@ class ICloudClient {
     return config;
   }
 
-  private handleResponse<T, D>(
+  private async handleResponse<T, D>(
     response: AxiosResponse<T, D>
-  ): AxiosResponse<T, D> {
+  ): Promise<AxiosResponse<T, D>> {
     ICloudClient.SESSION_HEADERS.forEach((headerKey: string) => {
       const headerVal = response.headers[headerKey];
       if (headerVal !== undefined) {
         this.session.data.headers[headerKey] = headerVal;
       }
     });
-    this.session.save();
+
+    await this.session.save();
+
     return response;
   }
 
@@ -140,7 +148,8 @@ class ICloudClient {
   public get authenticated(): boolean {
     return (
       !isEqual(this.session.data.webservices, {}) &&
-      !isEqual(this.session.data.headers, {})
+      !isEqual(this.session.data.headers, {}) &&
+      !isEqual(this.session.data.dsInfo, {})
     );
   }
 
@@ -158,6 +167,10 @@ class ICloudClient {
 
   webserviceUrl(serviceName: string): string {
     return this.session.data.webservices[serviceName].url;
+  }
+
+  async validateToken(): Promise<void> {
+    await this.nonPersistingRequester.post(`${this.baseUrls.setup}/validate`);
   }
 
   async signIn(
@@ -217,10 +230,12 @@ class ICloudClient {
 
   async logOut(trust: boolean = false): Promise<void> {
     if (this.authenticated) {
-      await this.requester.post(`${this.baseUrls.setup}/logout`, {
-        trustBrowsers: trust,
-        allBrowsers: trust,
-      });
+      try {
+        await this.requester.post(`${this.baseUrls.setup}/logout`, {
+          trustBrowsers: trust,
+          allBrowsers: trust,
+        });
+      } catch {}
     }
 
     await this.session.cleanUp();
@@ -246,6 +261,8 @@ export type ListHmeResult = {
   forwardToEmails: string[];
 };
 
+export class ClientAuthenticationError extends Error {}
+
 export class GenerateHmeException extends Error {}
 export class ReserveHmeException extends Error {}
 export class UpdateHmeMetadataException extends Error {}
@@ -257,6 +274,11 @@ export class UpdateFwdToHmeException extends Error {}
 export class PremiumMailSettings {
   private readonly baseUrl: string;
   constructor(readonly client: ICloudClient) {
+    if (!client.authenticated) {
+      throw new ClientAuthenticationError(
+        'Client is not authenticated. A sing-in is required.'
+      );
+    }
     this.baseUrl = `${client.webserviceUrl('premiummailsettings')}/v1`;
   }
 

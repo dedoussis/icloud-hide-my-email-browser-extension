@@ -1,14 +1,6 @@
 import { Dispatch, useEffect, useState } from 'react';
 import isEqual from 'lodash.isequal';
-
-export async function getChromeStorageValue<T>(keys: string[]): Promise<T> {
-  return keys.reduce((prev, curr) => {
-    if (prev === undefined || curr === undefined) {
-      return undefined;
-    }
-    return prev[curr];
-  }, await chrome.storage.local.get(keys)) as unknown as T;
-}
+import { getChromeStorageValue, setChromeStorageValue } from './storage';
 
 export function useChromeStorageState<T>(
   keys: string[],
@@ -31,14 +23,7 @@ export function useChromeStorageState<T>(
 
   const setChromeStorageState = async (value: T) => {
     setState(value);
-    const chromeStorageObj: { [key: string]: any } = {};
-    let curr = chromeStorageObj;
-    keys.slice(0, -1).forEach((key) => {
-      curr[key] = {};
-      curr = curr[key];
-    });
-    curr[keys.at(-1) as string] = value;
-    await chrome.storage.local.set(chromeStorageObj);
+    await setChromeStorageValue(keys, value);
   };
 
   return [state, setChromeStorageState];
