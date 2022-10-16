@@ -1,6 +1,6 @@
 import 'regenerator-runtime/runtime.js';
 import fetchAdapter from '@vespaiach/axios-fetch-adapter';
-import { getChromeStorageValue } from '../../hooks';
+import { getChromeStorageValue } from '../../storage';
 import ICloudClient, {
   ICloudClientSession,
   ICloudClientSessionData,

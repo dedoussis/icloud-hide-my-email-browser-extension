@@ -283,28 +283,34 @@ const HmeGenerator = (props: { callback: Callback; client: ICloudClient }) => {
 
   useEffect(() => {
     const fetchHmeList = async () => {
-      if (props.client.authenticated) {
+      setHmeError(undefined);
+      try {
         const pms = new PremiumMailSettings(props.client);
         const result = await pms.listHme();
         setFwdToEmail(result.selectedForwardTo);
+      } catch (e) {
+        setHmeError(e.toString());
       }
     };
 
-    fetchHmeList().catch(console.error);
+    fetchHmeList();
   }, [props.client]);
 
   useEffect(() => {
     const fetchHmeEmail = async () => {
-      if (props.client.authenticated) {
-        setIsEmailRefreshSubmitting(true);
+      setHmeError(undefined);
+      setIsEmailRefreshSubmitting(true);
+      try {
         const pms = new PremiumMailSettings(props.client);
         setHmeEmail(await pms.generateHme());
+      } catch (e) {
+        setHmeError(e.toString());
+      } finally {
+        setIsEmailRefreshSubmitting(false);
       }
     };
 
-    fetchHmeEmail()
-      .catch((e) => setHmeError(e.toString()))
-      .finally(() => setIsEmailRefreshSubmitting(false));
+    fetchHmeEmail();
   }, [props.client]);
 
   useEffect(() => {
@@ -330,8 +336,8 @@ const HmeGenerator = (props: { callback: Callback; client: ICloudClient }) => {
     setHmeError(undefined);
     setReserveError(undefined);
 
-    const pms = new PremiumMailSettings(props.client);
     try {
+      const pms = new PremiumMailSettings(props.client);
       setHmeEmail(await pms.generateHme());
     } catch (e) {
       setHmeError(e.toString());
@@ -346,16 +352,16 @@ const HmeGenerator = (props: { callback: Callback; client: ICloudClient }) => {
     setReserveError(undefined);
 
     if (hmeEmail !== undefined) {
-      const pms = new PremiumMailSettings(props.client);
       try {
+        const pms = new PremiumMailSettings(props.client);
         setReservedHme(
           await pms.reserveHme(hmeEmail, label || tabHost, note || undefined)
         );
+        setLabel(undefined);
+        setNote(undefined);
       } catch (e) {
         setReserveError(e.toString());
       }
-      setLabel(undefined);
-      setNote(undefined);
     }
     setIsUseSubmitting(false);
   };
@@ -368,53 +374,57 @@ const HmeGenerator = (props: { callback: Callback; client: ICloudClient }) => {
       title="Hide My Email"
       subtitle={`Create an address for '${tabHost}'`}
     >
-      <div className="text-center">
-        <span className="text-2xl">
-          <button className="mr-1" onClick={onEmailRefreshClick}>
-            <FontAwesomeIcon
-              className="text-sky-400 hover:text-sky-500"
-              icon={faRefresh}
-              spin={isEmailRefreshSubmitting}
-            />
-          </button>
-          {hmeEmail}
-        </span>
-        {fwdToEmail !== undefined && (
-          <p className="text-gray-400">Forward to: {fwdToEmail}</p>
-        )}
+      <div className="text-center space-y-1">
+        <div>
+          <span className="text-2xl">
+            <button className="mr-2" onClick={onEmailRefreshClick}>
+              <FontAwesomeIcon
+                className="text-sky-400 hover:text-sky-500 align-text-bottom"
+                icon={faRefresh}
+                spin={isEmailRefreshSubmitting}
+              />
+            </button>
+            {hmeEmail}
+          </span>
+          {fwdToEmail !== undefined && (
+            <p className="text-gray-400">Forward to: {fwdToEmail}</p>
+          )}
+        </div>
         {hmeError && <ErrorMessage>{hmeError}</ErrorMessage>}
       </div>
-      <form className="space-y-3" onSubmit={onUseSubmit}>
-        <div>
-          <label htmlFor="label" className="block font-medium">
-            Label
-          </label>
-          <input
-            id="label"
-            placeholder={tabHost}
-            required
-            value={label || ''}
-            onChange={(e) => setLabel(e.target.value)}
-            className={useInputClassName}
-          />
-        </div>
-        <div>
-          <label htmlFor="note" className="block font-medium">
-            Note
-          </label>
-          <textarea
-            id="note"
-            rows={1}
-            className={useInputClassName}
-            placeholder="Make a note (optional)"
-            value={note || ''}
-            onChange={(e) => setNote(e.target.value)}
-          ></textarea>
-        </div>
-        <LoadingButton disabled={isUseSubmitting}>Use</LoadingButton>
-        {reservedHme && <ReservationResult hme={reservedHme} />}
-        {reserveError && <ErrorMessage>{reserveError}</ErrorMessage>}
-      </form>
+      {hmeEmail && (
+        <form className="space-y-3" onSubmit={onUseSubmit}>
+          <div>
+            <label htmlFor="label" className="block font-medium">
+              Label
+            </label>
+            <input
+              id="label"
+              placeholder={tabHost}
+              required
+              value={label || ''}
+              onChange={(e) => setLabel(e.target.value)}
+              className={useInputClassName}
+            />
+          </div>
+          <div>
+            <label htmlFor="note" className="block font-medium">
+              Note
+            </label>
+            <textarea
+              id="note"
+              rows={1}
+              className={useInputClassName}
+              placeholder="Make a note (optional)"
+              value={note || ''}
+              onChange={(e) => setNote(e.target.value)}
+            ></textarea>
+          </div>
+          <LoadingButton disabled={isUseSubmitting}>Use</LoadingButton>
+          {reservedHme && <ReservationResult hme={reservedHme} />}
+          {reserveError && <ErrorMessage>{reserveError}</ErrorMessage>}
+        </form>
+      )}
       <div className="grid grid-cols-2">
         <div>
           <FooterButton
@@ -451,11 +461,11 @@ const HmeDetails = (props: {
       } else {
         await pms.reactivateHme(props.hme.anonymousId);
       }
-      setIsActivateSubmitting(false);
       props.activationCallback();
     } catch (e) {
-      setIsActivateSubmitting(false);
       setError(e.toString());
+    } finally {
+      setIsActivateSubmitting(false);
     }
   };
 
@@ -464,11 +474,11 @@ const HmeDetails = (props: {
     const pms = new PremiumMailSettings(props.client);
     try {
       await pms.deleteHme(props.hme.anonymousId);
-      setIsDeleteSubmitting(false);
       props.deletionCallback();
     } catch (e) {
-      setIsDeleteSubmitting(false);
       setError(e.toString());
+    } finally {
+      setIsDeleteSubmitting(false);
     }
   };
 
@@ -572,24 +582,27 @@ const HmeDetails = (props: {
 const HmeList = (props: { callback: Callback; client: ICloudClient }) => {
   const [hmeEmails, setHmeEmails] = useState<HmeEmail[]>();
   const [hmeEmailsError, setHmeEmailsError] = useState<string>();
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isFetching, setIsFetching] = useState(false);
   const [selectedHmeIdx, setSelectedHmeIndex] = useState(0);
 
   useEffect(() => {
     const fetchHmeList = async () => {
-      if (props.client.authenticated) {
-        setIsSubmitting(true);
+      setHmeEmailsError(undefined);
+      setIsFetching(true);
+      try {
         const pms = new PremiumMailSettings(props.client);
         const result = await pms.listHme();
         setHmeEmails(
           result.hmeEmails.sort((a, b) => b.createTimestamp - a.createTimestamp)
         );
+      } catch (e) {
+        setHmeEmailsError(e.toString());
+      } finally {
+        setIsFetching(false);
       }
     };
 
-    fetchHmeList()
-      .catch((e) => setHmeEmailsError(e.toString()))
-      .finally(() => setIsSubmitting(false));
+    fetchHmeList();
   }, [props.client]);
 
   const activationCallback = () => {
@@ -660,7 +673,7 @@ const HmeList = (props: { callback: Callback; client: ICloudClient }) => {
   );
 
   const resolveMainChildComponent = (): ReactNode => {
-    if (isSubmitting) {
+    if (isFetching) {
       return <Spinner />;
     }
 
