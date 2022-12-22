@@ -8,13 +8,15 @@ const emailInputElements = document.querySelectorAll<HTMLInputElement>(
   'input[type="email"], input[name="email"], input[id="email"]'
 );
 
-const LOADING_COPY = `Hide My Email — Loading...`;
+const LOADING_COPY = 'Hide My Email — Loading...';
+
+// A unique CSS class prefix is used to guarantee that the style injected
+// by the extension does not interfere with the existing style of
+// a web page.
 const STYLE_CLASS_PREFIX = 'd1691f0f-b8f0-495e-9ffb-fe4e6f84b518';
 
 const className = (shortName: string): string =>
   `${STYLE_CLASS_PREFIX}-${shortName}`;
-
-const ELEMENT_ID_NAMESPACE = uuidv4();
 
 type InputElementWithButton = {
   inputElement: HTMLInputElement;
@@ -60,7 +62,7 @@ const makeInputElementWithButton = (
   inputElement: HTMLInputElement
 ): InputElementWithButton => {
   const btnElement = document.createElement('button');
-  const btnElementId = `${ELEMENT_ID_NAMESPACE}-${uuidv4()}`;
+  const btnElementId = uuidv4();
   btnElement.setAttribute('id', btnElementId);
   btnElement.setAttribute('type', 'button');
   btnElement.classList.add(className('button'));
