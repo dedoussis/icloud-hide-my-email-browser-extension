@@ -129,6 +129,8 @@ const SignInForm = (props: { callback: Callback; client: ICloudClient }) => {
           <a
             href="https://iforgot.apple.com/password/verify/appleid"
             className="font-medium text-sky-400 hover:text-sky-500"
+            target="_blank"
+            rel="noreferrer"
           >
             Forgot your password?
           </a>
@@ -611,8 +613,8 @@ const HmeList = (props: { callback: Callback; client: ICloudClient }) => {
   }, [props.client]);
 
   const activationCallback = () => {
-    setHmeEmails(
-      hmeEmails?.map((hmeEmail, idx) => {
+    setHmeEmails((prevHmeEmails) =>
+      prevHmeEmails?.map((hmeEmail, idx) => {
         if (idx === selectedHmeIdx) {
           hmeEmail.isActive = !hmeEmail.isActive;
         }
@@ -623,10 +625,16 @@ const HmeList = (props: { callback: Callback; client: ICloudClient }) => {
 
   const deletionCallback = () => {
     const currSelectedIdxTmp = selectedHmeIdx;
-    if (hmeEmails && selectedHmeIdx >= hmeEmails.length - 1) {
-      setSelectedHmeIndex(selectedHmeIdx - 1);
+    if (
+      hmeEmails &&
+      selectedHmeIdx > 0 &&
+      selectedHmeIdx >= hmeEmails.length - 1
+    ) {
+      setSelectedHmeIndex((prevSelectedHmeIdx) => prevSelectedHmeIdx - 1);
     }
-    setHmeEmails(hmeEmails?.filter((_, idx) => idx !== currSelectedIdxTmp));
+    setHmeEmails((prevHmeEmails) =>
+      prevHmeEmails?.filter((_, idx) => idx !== currSelectedIdxTmp)
+    );
   };
 
   const btnBaseClassName =
