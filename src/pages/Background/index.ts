@@ -31,7 +31,8 @@ const getClient = async (
 
   const clientSession = new ICloudClientSession(
     sessionData,
-    async (data) => await setBrowserStorageValue(SESSION_DATA_STORAGE_KEYS, data)
+    async (data) =>
+      await setBrowserStorageValue(SESSION_DATA_STORAGE_KEYS, data)
   );
   const client = new ICloudClient(clientSession, { adapter: fetchAdapter });
 

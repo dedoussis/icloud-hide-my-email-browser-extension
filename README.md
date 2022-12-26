@@ -4,10 +4,10 @@
 
 [Hide My Email](https://support.apple.com/en-us/HT210425) is a premium feature of iCloud that is natively supported in Safari. This extension aims to bring a similar UX to a wider variety of browsers. In particular, it has been explicitly tested to work on:
 
-* Chrome
-* Firefox
-* Brave
-* Microsoft Edge
+- Chrome
+- Firefox
+- Brave
+- Microsoft Edge
 
 Note that the extension _should_ work on any browser that implements the [extension API](https://developer.chrome.com/docs/extensions/reference/) supported by Chromium-based browsers (regardless of manifest version).
 
@@ -19,10 +19,10 @@ _Disclaimer: This extension is not endorsed by, directly affiliated with, mainta
 
 ## Features
 
-* Simple pop-up UI for generating and reserving new Hide My Email addresses
-* Ability to manage existing Hide My Email addresses (including deactivation, reactivation, and deletion)
-* Autofilling on any HTML input element that is relevant to email
-* Quick configuration of Hide My Email settings, such as the Forward-To address, through the Options page of the extension
+- Simple pop-up UI for generating and reserving new Hide My Email addresses
+- Ability to manage existing Hide My Email addresses (including deactivation, reactivation, and deletion)
+- Autofilling on any HTML input element that is relevant to email
+- Quick configuration of Hide My Email settings, such as the Forward-To address, through the Options page of the extension
 
 ## Develop
 
@@ -80,9 +80,9 @@ $ zip build.zip ./build/*
 
 ### TODOs
 
-* [ ] Ability to search for existing HME addresses
-* [ ] Ability to modify the label and note of existing HME addresses
-* [ ] Options page to validate client token
-* [ ] Expiration of session data stored in Chrome storage
-* [ ] CI/CD
-* [ ] Dependabot
+- [ ] Ability to search for existing HME addresses
+- [ ] Ability to modify the label and note of existing HME addresses
+- [ ] Options page to validate client token
+- [ ] Expiration of session data stored in Chrome storage
+- [ ] CI/CD
+- [ ] Dependabot
