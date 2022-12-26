@@ -311,7 +311,7 @@ export class PremiumMailSettings {
     label: string,
     note:
       | string
-      | undefined = 'Generated through the iCloud Hide My Email chrome extension'
+      | undefined = 'Generated through the iCloud Hide My Email browser extension'
   ): Promise<HmeEmail> {
     const response = await this.client.requester.post(
       `${this.baseUrl}/hme/reserve`,

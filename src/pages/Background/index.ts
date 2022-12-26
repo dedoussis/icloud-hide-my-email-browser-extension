@@ -1,10 +1,10 @@
 import 'regenerator-runtime/runtime.js';
 import fetchAdapter from '@vespaiach/axios-fetch-adapter';
 import {
-  getChromeStorageValue,
+  getBrowserStorageValue,
   POPUP_STATE_STORAGE_KEYS,
   SESSION_DATA_STORAGE_KEYS,
-  setChromeStorageValue,
+  setBrowserStorageValue,
 } from '../../storage';
 import ICloudClient, {
   EMPTY_SESSION_DATA,
@@ -25,13 +25,13 @@ const getClient = async (
   withTokenValidation: boolean = true
 ): Promise<ICloudClient> => {
   const sessionData =
-    (await getChromeStorageValue<ICloudClientSessionData>(
+    (await getBrowserStorageValue<ICloudClientSessionData>(
       SESSION_DATA_STORAGE_KEYS
     )) || EMPTY_SESSION_DATA;
 
   const clientSession = new ICloudClientSession(
     sessionData,
-    async (data) => await setChromeStorageValue(SESSION_DATA_STORAGE_KEYS, data)
+    async (data) => await setBrowserStorageValue(SESSION_DATA_STORAGE_KEYS, data)
   );
   const client = new ICloudClient(clientSession, { adapter: fetchAdapter });
 
@@ -40,7 +40,7 @@ const getClient = async (
       await client.validateToken();
     } catch {
       await client.logOut();
-      await setChromeStorageValue(
+      await setBrowserStorageValue(
         POPUP_STATE_STORAGE_KEYS,
         PopupState.SignedOut
       );

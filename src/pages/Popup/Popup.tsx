@@ -15,7 +15,7 @@ import ICloudClient, {
 } from '../../iCloudClient';
 import './Popup.css';
 import AuthCode from 'react-auth-code-input';
-import { useChromeStorageState } from '../../hooks';
+import { useBrowserStorageState } from '../../hooks';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faRefresh,
@@ -793,13 +793,13 @@ const transitionToNextStateElement = (
 };
 
 const Popup = () => {
-  const [state, setState] = useChromeStorageState(
+  const [state, setState] = useBrowserStorageState(
     POPUP_STATE_STORAGE_KEYS,
     PopupState.SignedOut
   );
 
   const [sessionData, setSessionData] =
-    useChromeStorageState<ICloudClientSessionData>(
+    useBrowserStorageState<ICloudClientSessionData>(
       SESSION_DATA_STORAGE_KEYS,
       EMPTY_SESSION_DATA
     );

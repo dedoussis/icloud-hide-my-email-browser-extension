@@ -1,12 +1,12 @@
 {
-  "name": "icloud-hide-my-email-chrome-extension",
+  "name": "icloud-hide-my-email-browser-extension",
   "version": "1.0.3",
-  "description": "Unofficial chromium extension to support iCloud's Hide My Email feature.",
+  "description": "Browser extension enabling iCloud's Hide My Email feature.",
   "license": "MIT",
   "author": "dedoussis",
   "repository": {
     "type": "git",
-    "url": "https://github.com/dedoussis/icloud-hide-my-email-chrome-extension.git"
+    "url": "https://github.com/dedoussis/icloud-hide-my-email-browser-extension.git"
   },
   "scripts": {
     "build": "node utils/build.js",
