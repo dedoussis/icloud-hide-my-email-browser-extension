@@ -11,6 +11,8 @@ const webpack = require('webpack'),
 
 const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 
+const isDev = process.env.NODE_ENV !== 'production';
+
 const fileExtensions = [
   'jpg',
   'jpeg',
@@ -46,7 +48,7 @@ const makeManifestV2 = (mv3) => {
     browser_action: mv3.action,
     browser_specific_settings: {
       gecko: {
-        id: 'id@temporary-addon',
+        ...(isDev ? { id: 'id@temporary-addon' } : {}),
         strict_min_version: '88.0',
       },
     },
@@ -63,7 +65,7 @@ const makeManifestV2 = (mv3) => {
 };
 
 const options = {
-  mode: process.env.NODE_ENV || 'development',
+  mode: isDev ? 'production' : 'development',
   entry: {
     popup: path.join(__dirname, 'src', 'pages', 'Popup', 'index.tsx'),
     background: path.join(__dirname, 'src', 'pages', 'Background', 'index.ts'),

@@ -78,6 +78,12 @@ Prior to publishing the extension, the unpacked artefact must be compressed:
 $ zip build.zip ./build/*
 ```
 
+or for Firefox:
+
+```
+$ web-ext -s build build
+```
+
 ### TODOs
 
 - [ ] Ability to search for existing HME addresses
