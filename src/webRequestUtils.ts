@@ -7,11 +7,11 @@ export const setupWebRequestListeners = () => {
         details.requestHeaders?.filter(
           (header) => !['referer', 'origin'].includes(header.name.toLowerCase())
         ) || [];
-      modifiedHeaders?.push({
+      modifiedHeaders.push({
         name: 'Referer',
         value: 'https://www.icloud.com/',
       });
-      modifiedHeaders?.push({
+      modifiedHeaders.push({
         name: 'Origin',
         value: 'https://www.icloud.com',
       });

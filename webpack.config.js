@@ -37,10 +37,10 @@ const makeManifestV2 = (mv3) => {
   const commonKeys = Object.keys(mv3).filter(
     (k) => !transformedV3Keys.includes(k)
   );
-  const commonManifestSubset = pick(mv3, commonKeys);
+  const innerJoin = pick(mv3, commonKeys);
 
   return {
-    ...commonManifestSubset,
+    ...innerJoin,
     manifest_version: 2,
     background: { scripts: [mv3.background.service_worker] },
     browser_action: mv3.action,
