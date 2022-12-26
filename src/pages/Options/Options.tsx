@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './Options.css';
-import { useChromeStorageState } from '../../hooks';
+import { useBrowserStorageState } from '../../hooks';
 import ICloudClient, {
   EMPTY_SESSION_DATA,
   ICloudClientSession,
@@ -124,7 +124,7 @@ const Disclaimer = () => {
       </p>
       <p>
         The source code is publicly available at{' '}
-        <Link href="https://github.com/dedoussis/icloud-hide-my-email-chrome-extension">
+        <Link href="https://github.com/dedoussis/icloud-hide-my-email-browser-extension">
           GitHub
         </Link>{' '}
         under the MIT license.
@@ -139,7 +139,7 @@ const Disclaimer = () => {
 
 const Options = () => {
   const [sessionData, setSessionData] =
-    useChromeStorageState<ICloudClientSessionData>(
+    useBrowserStorageState<ICloudClientSessionData>(
       SESSION_DATA_STORAGE_KEYS,
       EMPTY_SESSION_DATA
     );
@@ -148,7 +148,7 @@ const Options = () => {
   const client = new ICloudClient(session);
 
   return (
-    <div className="w-9/12 m-auto mt-3">
+    <div className="w-9/12 m-auto my-3">
       <TitledComponent title="Hide My Email" subtitle="Settings">
         <div>
           <h3 className="font-bold text-lg mb-3">Disclaimer</h3>

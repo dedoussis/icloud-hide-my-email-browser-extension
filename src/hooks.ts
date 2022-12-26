@@ -1,16 +1,16 @@
 import { Dispatch, useEffect, useState } from 'react';
 import isEqual from 'lodash.isequal';
-import { getChromeStorageValue, setChromeStorageValue } from './storage';
+import { getBrowserStorageValue, setBrowserStorageValue } from './storage';
 
-export function useChromeStorageState<T>(
+export function useBrowserStorageState<T>(
   keys: string[],
   fallback: T
 ): [T, Dispatch<T>] {
   const [state, setState] = useState(fallback);
 
   useEffect(() => {
-    async function getChromeStorageState() {
-      const value = await getChromeStorageValue<T>(keys);
+    async function getBrowserStorageState() {
+      const value = await getBrowserStorageValue<T>(keys);
 
       value !== undefined &&
         setState((prevState) =>
@@ -18,13 +18,13 @@ export function useChromeStorageState<T>(
         );
     }
 
-    getChromeStorageState().catch(console.error);
+    getBrowserStorageState().catch(console.error);
   }, [keys]);
 
-  const setChromeStorageState = async (value: T) => {
+  const setBrowserStorageState = async (value: T) => {
     setState(value);
-    await setChromeStorageValue(keys, value);
+    await setBrowserStorageValue(keys, value);
   };
 
-  return [state, setChromeStorageState];
+  return [state, setBrowserStorageState];
 }

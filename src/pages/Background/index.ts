@@ -1,10 +1,10 @@
 import 'regenerator-runtime/runtime.js';
 import fetchAdapter from '@vespaiach/axios-fetch-adapter';
 import {
-  getChromeStorageValue,
+  getBrowserStorageValue,
   POPUP_STATE_STORAGE_KEYS,
   SESSION_DATA_STORAGE_KEYS,
-  setChromeStorageValue,
+  setBrowserStorageValue,
 } from '../../storage';
 import ICloudClient, {
   EMPTY_SESSION_DATA,
@@ -12,20 +12,27 @@ import ICloudClient, {
   ICloudClientSessionData,
   PremiumMailSettings,
 } from '../../iCloudClient';
-import { MessageType, sendMessageToActiveTab } from '../../messages';
+import {
+  Message,
+  MessageType,
+  ReservationRequestData,
+  sendMessageToActiveTab,
+} from '../../messages';
 import { PopupState } from '../Popup/Popup';
+import browser from 'webextension-polyfill';
 
 const getClient = async (
   withTokenValidation: boolean = true
 ): Promise<ICloudClient> => {
   const sessionData =
-    (await getChromeStorageValue<ICloudClientSessionData>(
+    (await getBrowserStorageValue<ICloudClientSessionData>(
       SESSION_DATA_STORAGE_KEYS
     )) || EMPTY_SESSION_DATA;
 
   const clientSession = new ICloudClientSession(
     sessionData,
-    async (data) => await setChromeStorageValue(SESSION_DATA_STORAGE_KEYS, data)
+    async (data) =>
+      await setBrowserStorageValue(SESSION_DATA_STORAGE_KEYS, data)
   );
   const client = new ICloudClient(clientSession, { adapter: fetchAdapter });
 
@@ -34,7 +41,7 @@ const getClient = async (
       await client.validateToken();
     } catch {
       await client.logOut();
-      await setChromeStorageValue(
+      await setBrowserStorageValue(
         POPUP_STATE_STORAGE_KEYS,
         PopupState.SignedOut
       );
@@ -43,7 +50,7 @@ const getClient = async (
   return client;
 };
 
-chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
+browser.runtime.onMessage.addListener(async (message: Message<unknown>, _) => {
   switch (message.type) {
     case MessageType.GenerateRequest:
       {
@@ -74,7 +81,8 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
       break;
     case MessageType.ReservationRequest:
       {
-        const { hme, label, elementId } = message.data;
+        const { hme, label, elementId } =
+          message.data as ReservationRequestData;
         const client = await getClient(false);
         if (!client.authenticated) {
           await sendMessageToActiveTab(MessageType.GenerateResponse, {
