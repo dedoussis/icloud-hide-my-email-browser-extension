@@ -59,7 +59,7 @@ type Callback = (transition: PopupTransition) => void;
 // The iCloud API requires the Origin and Referer HTTP headers of a request
 // to be set to https://www.icloud.com.
 // Since both of these header names are forbidden [0],
-// the extension relies on the declarativeNetRequest API, to inject/modify their
+// the extension relies on the declarativeNetRequest API to inject/modify their
 // values.
 // However, Firefox does not currently support the declarativeNetRequest API [1].
 // In firefox, the extension resorts to the legacy blocking webRequest API of MV2.

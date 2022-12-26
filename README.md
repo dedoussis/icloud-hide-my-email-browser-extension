@@ -80,7 +80,7 @@ $ zip build.zip ./build/*
 
 or for Firefox:
 
-```
+```console
 $ web-ext -s build build
 ```
 
