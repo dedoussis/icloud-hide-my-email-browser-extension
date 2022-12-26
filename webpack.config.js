@@ -1,22 +1,17 @@
-var webpack = require('webpack'),
+const webpack = require('webpack'),
   path = require('path'),
-  fileSystem = require('fs-extra'),
+  pick = require('lodash.pick'),
   env = require('./utils/env'),
   CopyWebpackPlugin = require('copy-webpack-plugin'),
   HtmlWebpackPlugin = require('html-webpack-plugin'),
-  TerserPlugin = require('terser-webpack-plugin');
-var { CleanWebpackPlugin } = require('clean-webpack-plugin');
-const MiniCssExtractPlugin = require('mini-css-extract-plugin');
-const ASSET_PATH = process.env.ASSET_PATH || '/';
+  TerserPlugin = require('terser-webpack-plugin'),
+  MiniCssExtractPlugin = require('mini-css-extract-plugin'),
+  ASSET_PATH = process.env.ASSET_PATH || '/',
+  MANIFEST_VERSION = parseInt(process.env.MANIFEST_VERSION || '3');
 
-var alias = {
-  'react-dom': '@hot-loader/react-dom',
-};
+const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 
-// load the secrets
-var secretsPath = path.join(__dirname, 'secrets.' + env.NODE_ENV + '.js');
-
-var fileExtensions = [
+const fileExtensions = [
   'jpg',
   'jpeg',
   'png',
@@ -29,11 +24,45 @@ var fileExtensions = [
   'woff2',
 ];
 
-if (fileSystem.existsSync(secretsPath)) {
-  alias['secrets'] = secretsPath;
-}
+const makeManifestV2 = (mv3) => {
+  const transformedV3Keys = [
+    'manifest_version',
+    'background',
+    'action',
+    'permissions',
+    'host_permissions',
+    'options_page',
+    'declarative_net_request',
+  ];
+  const commonKeys = Object.keys(mv3).filter(
+    (k) => !transformedV3Keys.includes(k)
+  );
+  const commonManifestSubset = pick(mv3, commonKeys);
 
-var options = {
+  return {
+    ...commonManifestSubset,
+    manifest_version: 2,
+    background: { scripts: [mv3.background.service_worker] },
+    browser_action: mv3.action,
+    browser_specific_settings: {
+      gecko: {
+        id: 'id@temporary-addon',
+        strict_min_version: '88.0',
+      },
+    },
+    options_ui: {
+      page: mv3.options_page,
+    },
+    permissions: [
+      ...mv3.host_permissions,
+      ...mv3.permissions.filter((p) => p !== 'declarativeNetRequest'),
+      'webRequest',
+      'webRequestBlocking',
+    ],
+  };
+};
+
+const options = {
   mode: process.env.NODE_ENV || 'development',
   entry: {
     popup: path.join(__dirname, 'src', 'pages', 'Popup', 'index.tsx'),
@@ -92,7 +121,6 @@ var options = {
     ],
   },
   resolve: {
-    alias: alias,
     extensions: fileExtensions
       .map((extension) => '.' + extension)
       .concat(['.js', '.jsx', '.ts', '.tsx', '.css']),
@@ -111,11 +139,14 @@ var options = {
           force: true,
           transform: function (content, path) {
             // generates the manifest file using the package.json information
+            const mv3 = JSON.parse(content.toString());
+            const manifest = MANIFEST_VERSION === 3 ? mv3 : makeManifestV2(mv3);
+
             return Buffer.from(
               JSON.stringify({
                 description: process.env.npm_package_description,
                 version: process.env.npm_package_version,
-                ...JSON.parse(content.toString()),
+                ...manifest,
               })
             );
           },

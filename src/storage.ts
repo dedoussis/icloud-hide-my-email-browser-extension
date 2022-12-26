@@ -1,3 +1,5 @@
+import browser from 'webextension-polyfill';
+
 export const POPUP_STATE_STORAGE_KEYS = ['iCloudHmePopupState'];
 export const SESSION_DATA_STORAGE_KEYS = ['iCloudHmeClientSession'];
 
@@ -9,7 +11,7 @@ export async function getChromeStorageValue<T>(
       return undefined;
     }
     return prev[curr];
-  }, await chrome.storage.local.get(keys)) as unknown as T | undefined;
+  }, await browser.storage.local.get(keys)) as unknown as T | undefined;
 }
 
 export async function setChromeStorageValue(
@@ -26,5 +28,5 @@ export async function setChromeStorageValue(
     .reverse()
     .reduce((prev, curr) => ({ [curr]: prev }), { [lastKey]: value });
 
-  await chrome.storage.local.set(chromeStorageObj);
+  await browser.storage.local.set(chromeStorageObj);
 }

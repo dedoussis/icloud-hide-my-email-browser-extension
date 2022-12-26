@@ -40,6 +40,9 @@ import {
   SESSION_DATA_STORAGE_KEYS,
 } from '../../storage';
 
+import browser from 'webextension-polyfill';
+import { setupWebRequestListeners } from '../../webRequestUtils';
+
 enum PopupTransition {
   SuccessfulSignIn,
   FailedSignIn,
@@ -52,6 +55,25 @@ enum PopupTransition {
 }
 
 type Callback = (transition: PopupTransition) => void;
+
+// The Apple auth API requires the Origin and Referer HTTP headers of a request
+// to be set to https://www.icloud.com.
+// Since both of these header names are forbidden [0],
+// the extension relies on the declarativeNetRequest API, to inject/modify their
+// values.
+// However, Firefox does not currently support the declarativeNetRequest API [1].
+// In firefox, the extension resorts to the legacy blocking webRequest API of MV2.
+//
+// Note that the webRequest listeners may also be constructed on runtimes
+// that support declarativeNetRequest. This is fine, since these runtimes
+// will just ignore the listeners due to the lack of the respective
+// manifest permissions (webRequest and blockingWebRequest).
+//
+// [0] https://developer.mozilla.org/en-US/docs/Glossary/Forbidden_header_name
+// [1] https://bugzilla.mozilla.org/show_bug.cgi?id=1687755
+if (browser.webRequest !== undefined) {
+  setupWebRequestListeners();
+}
 
 const SignInForm = (props: { callback: Callback; client: ICloudClient }) => {
   const [email, setEmail] = useState('');
@@ -322,7 +344,7 @@ const HmeGenerator = (props: { callback: Callback; client: ICloudClient }) => {
 
   useEffect(() => {
     const getTabHost = async () => {
-      const [tab] = await chrome.tabs.query({
+      const [tab] = await browser.tabs.query({
         active: true,
         lastFocusedWindow: true,
       });

@@ -1,8 +1,15 @@
-import { Message, MessageType } from '../../messages';
+import {
+  GenerationResponseData,
+  Message,
+  MessageType,
+  ReservationRequestData,
+  ReservationResponseData,
+} from '../../messages';
 import { v4 as uuidv4 } from 'uuid';
 import './index.css';
 import '@fortawesome/fontawesome-svg-core';
 import '@fortawesome/free-solid-svg-icons';
+import browser from 'webextension-polyfill';
 
 const emailInputElements = document.querySelectorAll<HTMLInputElement>(
   'input[type="email"], input[name="email"], input[id="email"]'
@@ -73,7 +80,7 @@ const makeInputElementWithButton = (
     disableButton(btnElement, 'cursor-progress', LOADING_COPY);
     inputElement.parentNode?.insertBefore(btnElement, inputElement.nextSibling);
 
-    await chrome.runtime.sendMessage({
+    await browser.runtime.sendMessage({
       type: MessageType.GenerateRequest,
       data: btnElementId,
     });
@@ -92,10 +99,10 @@ const makeInputElementWithButton = (
     ev.preventDefault();
     const hme = btnElement.innerHTML;
     disableButton(btnElement, 'cursor-progress', LOADING_COPY);
-    await chrome.runtime.sendMessage({
+    await browser.runtime.sendMessage({
       type: MessageType.ReservationRequest,
       data: { hme, label: window.location.host, elementId: btnElement.id },
-    });
+    } as Message<ReservationRequestData>);
   };
 
   btnElement.addEventListener('mousedown', btnOnMousedownCallback);
@@ -157,84 +164,74 @@ observer.observe(document.body, {
   subtree: true,
 });
 
-chrome.runtime.onMessage.addListener(
-  (message: Message<unknown>, sender, sendResponse) => {
-    switch (message.type) {
-      case MessageType.Autofill:
-        emaiInputElementsWithButtons.forEach(
-          ({
-            inputElement,
-            inputOnFocusCallback,
-            inputOnBlurCallback,
-            btnElement,
-          }) => {
-            inputElement.value = message.data as string;
-            inputElement.dispatchEvent(new Event('input', { bubbles: true }));
-            inputElement.removeEventListener('focus', inputOnFocusCallback);
-            inputElement.removeEventListener('blur', inputOnBlurCallback);
-            btnElement.remove();
+browser.runtime.onMessage.addListener((message: Message<unknown>, _) => {
+  switch (message.type) {
+    case MessageType.Autofill:
+      emaiInputElementsWithButtons.forEach(
+        ({
+          inputElement,
+          inputOnFocusCallback,
+          inputOnBlurCallback,
+          btnElement,
+        }) => {
+          inputElement.value = message.data as string;
+          inputElement.dispatchEvent(new Event('input', { bubbles: true }));
+          inputElement.removeEventListener('focus', inputOnFocusCallback);
+          inputElement.removeEventListener('blur', inputOnBlurCallback);
+          btnElement.remove();
+        }
+      );
+      break;
+    case MessageType.GenerateResponse:
+      {
+        const { hme, elementId, error } =
+          message.data as GenerationResponseData;
+        const element = document.getElementById(
+          elementId
+        ) as HTMLButtonElement | null;
+        if (element) {
+          if (hme !== undefined) {
+            enableButton(element, 'cursor-pointer', hme);
+          } else if (error !== undefined) {
+            disableButton(element, 'cursor-not-allowed', error);
           }
-        );
-        break;
-      case MessageType.GenerateResponse:
-        {
-          const { hme, elementId, error } = message.data as {
-            hme?: string;
-            elementId: string;
-            error?: string;
-          };
-          const element = document.getElementById(
+        }
+      }
+      break;
+    case MessageType.ReservationResponse:
+      {
+        const { hme, error, elementId } =
+          message.data as ReservationResponseData;
+
+        if (hme !== undefined) {
+          emaiInputElementsWithButtons.forEach(
+            ({
+              inputElement,
+              inputOnFocusCallback,
+              inputOnBlurCallback,
+              btnElement,
+            }) => {
+              inputElement.value = hme;
+              inputElement.dispatchEvent(new Event('input', { bubbles: true }));
+              inputElement.removeEventListener('focus', inputOnFocusCallback);
+              inputElement.removeEventListener('blur', inputOnBlurCallback);
+              btnElement.remove();
+            }
+          );
+        } else if (error) {
+          const btnElement = document.getElementById(
             elementId
           ) as HTMLButtonElement | null;
-          if (element) {
-            if (hme !== undefined) {
-              enableButton(element, 'cursor-pointer', hme);
-            } else if (error !== undefined) {
-              disableButton(element, 'cursor-not-allowed', error);
-            }
+          if (btnElement) {
+            disableButton(btnElement, 'cursor-not-allowed', error);
           }
         }
-        break;
-      case MessageType.ReservationResponse:
-        {
-          const { hme, error, elementId } = message.data as {
-            hme?: string;
-            error?: string;
-            elementId: string;
-          };
-
-          if (hme !== undefined) {
-            emaiInputElementsWithButtons.forEach(
-              ({
-                inputElement,
-                inputOnFocusCallback,
-                inputOnBlurCallback,
-                btnElement,
-              }) => {
-                inputElement.value = hme;
-                inputElement.dispatchEvent(
-                  new Event('input', { bubbles: true })
-                );
-                inputElement.removeEventListener('focus', inputOnFocusCallback);
-                inputElement.removeEventListener('blur', inputOnBlurCallback);
-                btnElement.remove();
-              }
-            );
-          } else if (error) {
-            const btnElement = document.getElementById(
-              elementId
-            ) as HTMLButtonElement | null;
-            if (btnElement) {
-              disableButton(btnElement, 'cursor-not-allowed', error);
-            }
-          }
-        }
-        break;
-      default:
-        break;
-    }
+      }
+      break;
+    default:
+      break;
   }
-);
+});
 
 function removeItem<T>(arr: Array<T>, value: T): Array<T> {
   const index = arr.indexOf(value);

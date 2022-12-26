@@ -1,3 +1,5 @@
+import browser from 'webextension-polyfill';
+
 export enum MessageType {
   Autofill,
   GenerateRequest,
@@ -11,16 +13,30 @@ export type Message<T> = {
   data: T;
 };
 
+export type ReservationRequestData = {
+  hme: string;
+  label: string;
+  elementId: string;
+};
+
+export type GenerationResponseData = {
+  hme?: string;
+  elementId: string;
+  error?: string;
+};
+
+export type ReservationResponseData = GenerationResponseData;
+
 export const sendMessageToActiveTab = async (
   type: MessageType,
   data: unknown
 ): Promise<void> => {
-  const [tab] = await chrome.tabs.query({
+  const [tab] = await browser.tabs.query({
     active: true,
     lastFocusedWindow: true,
   });
   if (tab.id !== undefined) {
-    await chrome.tabs.sendMessage(tab.id, {
+    await browser.tabs.sendMessage(tab.id, {
       type,
       data,
     });

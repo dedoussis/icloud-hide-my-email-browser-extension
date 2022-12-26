@@ -12,8 +12,14 @@ import ICloudClient, {
   ICloudClientSessionData,
   PremiumMailSettings,
 } from '../../iCloudClient';
-import { MessageType, sendMessageToActiveTab } from '../../messages';
+import {
+  Message,
+  MessageType,
+  ReservationRequestData,
+  sendMessageToActiveTab,
+} from '../../messages';
 import { PopupState } from '../Popup/Popup';
+import browser from 'webextension-polyfill';
 
 const getClient = async (
   withTokenValidation: boolean = true
@@ -43,7 +49,7 @@ const getClient = async (
   return client;
 };
 
-chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
+browser.runtime.onMessage.addListener(async (message: Message<unknown>, _) => {
   switch (message.type) {
     case MessageType.GenerateRequest:
       {
@@ -74,7 +80,8 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
       break;
     case MessageType.ReservationRequest:
       {
-        const { hme, label, elementId } = message.data;
+        const { hme, label, elementId } =
+          message.data as ReservationRequestData;
         const client = await getClient(false);
         if (!client.authenticated) {
           await sendMessageToActiveTab(MessageType.GenerateResponse, {
