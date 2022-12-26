@@ -148,7 +148,7 @@ const Options = () => {
   const client = new ICloudClient(session);
 
   return (
-    <div className="w-9/12 m-auto mt-3">
+    <div className="w-9/12 m-auto my-3">
       <TitledComponent title="Hide My Email" subtitle="Settings">
         <div>
           <h3 className="font-bold text-lg mb-3">Disclaimer</h3>

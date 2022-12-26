@@ -146,7 +146,6 @@ const options = {
 
             return Buffer.from(
               JSON.stringify({
-                description: process.env.npm_package_description,
                 version: process.env.npm_package_version,
                 ...manifest,
               })

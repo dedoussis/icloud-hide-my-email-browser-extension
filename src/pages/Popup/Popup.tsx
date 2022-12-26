@@ -56,7 +56,7 @@ enum PopupTransition {
 
 type Callback = (transition: PopupTransition) => void;
 
-// The Apple auth API requires the Origin and Referer HTTP headers of a request
+// The iCloud API requires the Origin and Referer HTTP headers of a request
 // to be set to https://www.icloud.com.
 // Since both of these header names are forbidden [0],
 // the extension relies on the declarativeNetRequest API, to inject/modify their
