@@ -21,9 +21,7 @@ import {
 import { PopupState } from '../Popup/Popup';
 import browser from 'webextension-polyfill';
 
-const getClient = async (
-  withTokenValidation = true
-): Promise<ICloudClient> => {
+const getClient = async (withTokenValidation = true): Promise<ICloudClient> => {
   const sessionData =
     (await getBrowserStorageValue<ICloudClientSessionData>(
       SESSION_DATA_STORAGE_KEYS
