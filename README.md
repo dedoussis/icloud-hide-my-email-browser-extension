@@ -28,61 +28,65 @@ _Disclaimer: This extension is not endorsed by, directly affiliated with, mainta
 
 This extension is entirely writen in TypeScript. The UI pages of the extension (e.g. Pop-Up and Options) are implemented as React apps and styled with TailwindCSS.
 
-Version 18.xx of Node.js was used for development.
-
 The extension was originally developed to solely use [Manifest V3](https://developer.chrome.com/docs/extensions/mv3/intro/mv3-overview/) APIs. However, since most browsers have not caught up with MV3, MV2 compatibility has been introduced.
 
-Note: the following console commands are to be executed from the root directory of this repo.
+### Environment
 
-### Spin up DevServer
-
-```console
-$ npm run start
-```
-
-For Manifest Version 2:
+Development was carried out in the following environment:
 
 ```console
-$ npm run start:mv2
+$ sw_vers
+ProductName:	macOS
+ProductVersion:	12.5
+BuildVersion:	21G72
+
+$ sysctl kern.version
+kern.version: Darwin Kernel Version 21.6.0: Sat Jun 18 17:07:25 PDT 2022; root:xnu-8020.140.41~1/RELEASE_X86_64
+
+$ node --version
+v18.11.0
+
+$ npm --version
+8.19.2
+
+$ pkgutil --pkg-info=com.apple.pkg.CLTools_Executables | grep version  # CommandLineTools needed for node-gyp
+version: 13.4.0.0.1.1651278267
+
+$ python3 --version  # needed for node-gyp
+Python 3.10.5
 ```
 
-### Load on browser
+The above versions should not be regarded as hard version pins. This is just a combination of versions that happened to successfully build the extension on my machine. The following Dockerfile has been used to successfully build the extension and provides a much cleaner runtime contract:
 
-#### Chromium-based
+```Dockerfile
+FROM node:18.12.1-alpine3.17
 
-The generated `build` directory can be loaded as an unpacked extension through the browser's UI. See the relevant [Google Chrome guide](https://developer.chrome.com/docs/extensions/mv3/getstarted/development-basics/#load-unpacked). The same workflow may be used across all Chromium-based browsers.
+RUN apk add --update --no-cache g++ make python3
 
-#### Firefox
+ADD . /opt/extension
 
-```console
-$ web-ext -s build run
+WORKDIR /opt/extension
+
+ENTRYPOINT ["sh"]
 ```
 
-### Package
+### Developer workflow
 
-The following command generates a productionised unpacked artefact (under the `build` directory):
+The following table outlines the sequence of steps that need to be followed in order to ship a change in the extension. The execution of some of these steps varies per browser/manifest version.
 
-```console
-$ npm run build
-```
+Note: the following console commands are to be executed from the root directory of this repo
 
-For Manifest Version 2:
-
-```console
-$ npm run build:mv2
-```
-
-Prior to publishing the extension, the unpacked artefact must be compressed:
-
-```console
-$ zip build.zip ./build/*
-```
-
-or for Firefox:
-
-```console
-$ web-ext -s build build
-```
+<!-- prettier-ignore-start -->
+| # | Description | MV3 (Chromium) | MV2 (Firefox) |
+| - | - | - | - |
+| 0 | Install deps | `npm ci` | `npm ci && npm i -g web-ext` |
+| 1 | Spin up the DevServer. The server generates the `build` dir. | `npm run start` | `npm run start:v2` |
+| 2 | Load the unpacked extension on the browser |  The `build` dir can be loaded as an unpacked extension through the browser's UI. See the relevant [Google Chrome guide](https://developer.chrome.com/docs/extensions/mv3/getstarted/development-basics/#load-unpacked). | `web-ext -s build run` |
+| 3 | Develop against the local browser instance on which the `build` dir is loaded | N/A | N/A |
+| 4 | Build productionised artefact | `npm run build` | `npm run build:mv2` |
+| 5 | Compress productionised artefact | `zip build.zip ./build/*` | `web-ext -s build build` |
+| 6 | Publish | N/A | N/A |
+<!-- prettier-ignore-end -->
 
 ### TODOs
 
