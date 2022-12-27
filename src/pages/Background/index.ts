@@ -22,7 +22,7 @@ import { PopupState } from '../Popup/Popup';
 import browser from 'webextension-polyfill';
 
 const getClient = async (
-  withTokenValidation: boolean = true
+  withTokenValidation = true
 ): Promise<ICloudClient> => {
   const sessionData =
     (await getBrowserStorageValue<ICloudClientSessionData>(
@@ -50,7 +50,7 @@ const getClient = async (
   return client;
 };
 
-browser.runtime.onMessage.addListener(async (message: Message<unknown>, _) => {
+browser.runtime.onMessage.addListener(async (message: Message<unknown>) => {
   switch (message.type) {
     case MessageType.GenerateRequest:
       {

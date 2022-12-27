@@ -125,7 +125,7 @@ const SignInForm = (props: { callback: Callback; client: ICloudClient }) => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               disabled={isSubmitting}
-              autoFocus
+              autoFocus // eslint-disable-line jsx-a11y/no-autofocus
             />
           </div>
           <div>

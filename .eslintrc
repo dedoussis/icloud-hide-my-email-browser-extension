@@ -1,6 +1,34 @@
 {
-  "extends": "react-app",
-  "globals": {
-    "chrome": "readonly"
-  }
+  "root": true,
+  "ignorePatterns": ["build/**"],
+  "extends": ["eslint:recommended"],
+  "env": {
+    "node": true
+  },
+  "parserOptions": {
+    "ecmaVersion": 2020
+  },
+  "settings": {
+    "react": {
+      "version": "detect"
+    }
+  },
+  "overrides": [
+    {
+      "files": ["**/*.ts", "**/*.tsx"],
+      "extends": [
+        "eslint:recommended",
+        "plugin:@typescript-eslint/recommended",
+        "plugin:import/recommended",
+        "plugin:import/typescript",
+        "plugin:react/recommended",
+        "plugin:react-hooks/recommended",
+        "plugin:jsx-a11y/recommended"
+      ],
+      "parser": "@typescript-eslint/parser",
+      "env": {
+        "browser": true
+      }
+    }
+  ]
 }

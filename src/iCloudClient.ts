@@ -34,8 +34,8 @@ export class ICloudClientSession {
   constructor(
     public data: ICloudClientSessionData = EMPTY_SESSION_DATA,
     private readonly dataSaver: (data: ICloudClientSessionData) => void = (
-      data
-    ) => {}
+      _data
+    ) => undefined
   ) {}
 
   async save(): Promise<void> {
@@ -181,7 +181,7 @@ class ICloudClient {
   async signIn(
     appleId: string,
     password: string,
-    rememberMe: boolean = true
+    rememberMe = true
   ): Promise<void> {
     await this.requester.post(
       `${this.baseUrls.auth}/signin`,
@@ -233,14 +233,16 @@ class ICloudClient {
     });
   }
 
-  async logOut(trust: boolean = false): Promise<void> {
+  async logOut(trust = false): Promise<void> {
     if (this.authenticated) {
       try {
         await this.requester.post(`${this.baseUrls.setup}/logout`, {
           trustBrowsers: trust,
           allBrowsers: trust,
         });
-      } catch {}
+      } catch (err) {
+        console.error(err)
+      }
     }
 
     await this.session.cleanUp();

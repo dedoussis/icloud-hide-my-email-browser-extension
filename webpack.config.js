@@ -139,7 +139,7 @@ const options = {
           from: 'src/manifest.json',
           to: path.join(__dirname, 'build'),
           force: true,
-          transform: function (content, path) {
+          transform: function (content) {
             // generates the manifest file using the package.json information
             const mv3 = JSON.parse(content.toString());
             const manifest = MANIFEST_VERSION === 3 ? mv3 : makeManifestV2(mv3);

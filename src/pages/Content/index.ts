@@ -76,7 +76,7 @@ const makeInputElementWithButton = (
 
   disableButton(btnElement, 'cursor-not-allowed', LOADING_COPY);
 
-  const inputOnFocusCallback = async (ev: FocusEvent) => {
+  const inputOnFocusCallback = async () => {
     disableButton(btnElement, 'cursor-progress', LOADING_COPY);
     inputElement.parentNode?.insertBefore(btnElement, inputElement.nextSibling);
 
@@ -88,7 +88,7 @@ const makeInputElementWithButton = (
 
   inputElement.addEventListener('focus', inputOnFocusCallback);
 
-  const inputOnBlurCallback = (ev: FocusEvent) => {
+  const inputOnBlurCallback = () => {
     disableButton(btnElement, 'cursor-not-allowed', LOADING_COPY);
     btnElement.remove();
   };
@@ -164,7 +164,7 @@ observer.observe(document.body, {
   subtree: true,
 });
 
-browser.runtime.onMessage.addListener((message: Message<unknown>, _) => {
+browser.runtime.onMessage.addListener((message: Message<unknown>) => {
   switch (message.type) {
     case MessageType.Autofill:
       emaiInputElementsWithButtons.forEach(
