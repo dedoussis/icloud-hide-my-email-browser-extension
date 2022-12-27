@@ -76,15 +76,17 @@ The following table outlines the sequence of steps that need to be followed in o
 
 Note: the following console commands are to be executed from the root directory of this repo
 
+<!-- prettier-ignore-start -->
 | # | Description | MV3 (Chromium) | MV2 (Firefox) |
 | - | - | - | - |
-| 0 | Install deps | `npm ci` | `npm ci` & `npm i -g web-ext` |
+| 0 | Install deps | `npm ci` | `npm ci && npm i -g web-ext` |
 | 1 | Spin up the DevServer. The server generates the `build` dir. | `npm run start` | `npm run start:v2` |
-| 2 | Load on browser |  The `build` dir can be loaded as an unpacked extension through the browser's UI. See the relevant [Google Chrome guide](https://developer.chrome.com/docs/extensions/mv3/getstarted/development-basics/#load-unpacked). | `web-ext -s build run` |
+| 2 | Load on browser | See the relevant [Google Chrome guide](https://developer.chrome.com/docs/extensions/mv3/getstarted/development-basics/#load-unpacked). | `web-ext -s build run` |
 | 3 | Develop against the local browser instance on which the `build` dir is loaded | N/A | N/A |
 | 4 | Build productionised artefact | `npm run build` | `npm run build:mv2` |
 | 5 | Compress productionised artefact | `zip build.zip ./build/*` | `web-ext -s build build` |
 | 6 | Publish | N/A | N/A |
+<!-- prettier-ignore-end -->
 
 ### TODOs
 
