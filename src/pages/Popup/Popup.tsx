@@ -159,7 +159,7 @@ const SignInForm = (props: { callback: Callback; client: ICloudClient }) => {
         </div>
 
         <div>
-          <LoadingButton disabled={isSubmitting}>Sign In</LoadingButton>
+          <LoadingButton loading={isSubmitting}>Sign In</LoadingButton>
         </div>
         {error && <ErrorMessage>{error}</ErrorMessage>}
       </form>
@@ -213,7 +213,7 @@ const TwoFaForm = (props: { callback: Callback; client: ICloudClient }) => {
           placeholder="."
         />
         <div>
-          <LoadingButton disabled={isSubmitting}>Verify</LoadingButton>
+          <LoadingButton loading={isSubmitting}>Verify</LoadingButton>
         </div>
         {error && <ErrorMessage>{error}</ErrorMessage>}
       </form>
@@ -395,7 +395,10 @@ const HmeGenerator = (props: { callback: Callback; client: ICloudClient }) => {
     setIsUseSubmitting(false);
   };
 
-  const useInputClassName =
+  const isReservationFormDisabled =
+    isEmailRefreshSubmitting || hmeEmail == reservedHme?.hme;
+
+  const reservationFormInputClassName =
     'appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-sky-500 focus:border-sky-500 focus:z-10 sm:text-sm';
 
   return (
@@ -422,37 +425,51 @@ const HmeGenerator = (props: { callback: Callback; client: ICloudClient }) => {
         {hmeError && <ErrorMessage>{hmeError}</ErrorMessage>}
       </div>
       {hmeEmail && (
-        <form className="space-y-3" onSubmit={onUseSubmit}>
-          <div>
-            <label htmlFor="label" className="block font-medium">
-              Label
-            </label>
-            <input
-              id="label"
-              placeholder={tabHost}
-              required
-              value={label || ''}
-              onChange={(e) => setLabel(e.target.value)}
-              className={useInputClassName}
-            />
-          </div>
-          <div>
-            <label htmlFor="note" className="block font-medium">
-              Note
-            </label>
-            <textarea
-              id="note"
-              rows={1}
-              className={useInputClassName}
-              placeholder="Make a note (optional)"
-              value={note || ''}
-              onChange={(e) => setNote(e.target.value)}
-            ></textarea>
-          </div>
-          <LoadingButton disabled={isUseSubmitting}>Use</LoadingButton>
+        <div className="space-y-3">
+          <form
+            className={`space-y-3 ${
+              isReservationFormDisabled ? 'opacity-70' : ''
+            }`}
+            onSubmit={onUseSubmit}
+          >
+            <div>
+              <label htmlFor="label" className="block font-medium">
+                Label
+              </label>
+              <input
+                id="label"
+                placeholder={tabHost}
+                required
+                value={label || ''}
+                onChange={(e) => setLabel(e.target.value)}
+                className={reservationFormInputClassName}
+                disabled={isReservationFormDisabled}
+              />
+            </div>
+            <div>
+              <label htmlFor="note" className="block font-medium">
+                Note
+              </label>
+              <textarea
+                id="note"
+                rows={1}
+                className={reservationFormInputClassName}
+                placeholder="Make a note (optional)"
+                value={note || ''}
+                onChange={(e) => setNote(e.target.value)}
+                disabled={isReservationFormDisabled}
+              ></textarea>
+            </div>
+            <LoadingButton
+              loading={isUseSubmitting}
+              disabled={isReservationFormDisabled}
+            >
+              Use
+            </LoadingButton>
+            {reserveError && <ErrorMessage>{reserveError}</ErrorMessage>}
+          </form>
           {reservedHme && <ReservationResult hme={reservedHme} />}
-          {reserveError && <ErrorMessage>{reserveError}</ErrorMessage>}
-        </form>
+        </div>
       )}
       <div className="grid grid-cols-2">
         <div>
@@ -589,7 +606,7 @@ const HmeDetails = (props: {
               : 'bg-sky-400 hover:bg-sky-500 focus:ring-blue-300'
           }`}
           onClick={onActivationClick}
-          disabled={isActivateSubmitting}
+          loading={isActivateSubmitting}
         >
           <FontAwesomeIcon icon={props.hme.isActive ? faBan : faRefresh} />
         </LoadingButton>
@@ -598,7 +615,7 @@ const HmeDetails = (props: {
             title="Delete"
             className={`${btnClassName} bg-red-500 hover:bg-red-600 focus:ring-red-300 col-span-3`}
             onClick={onDeletionClick}
-            disabled={isDeleteSubmitting}
+            loading={isDeleteSubmitting}
           >
             <FontAwesomeIcon icon={faTrashAlt} className="mr-1" /> Delete
           </LoadingButton>

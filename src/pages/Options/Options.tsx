@@ -92,7 +92,7 @@ const SelectFwdToForm = (props: { client: ICloudClient }) => {
           </label>
         </div>
       ))}
-      <LoadingButton disabled={isSubmitting}>Update</LoadingButton>
+      <LoadingButton loading={isSubmitting}>Update</LoadingButton>
       {fwdToError && <ErrorMessage>{fwdToError}</ErrorMessage>}
     </form>
   );
