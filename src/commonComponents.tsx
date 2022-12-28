@@ -16,18 +16,30 @@ export const Spinner = () => {
 
 export const LoadingButton = (
   props: {
-    children?: React.ReactNode;
+    loading: boolean;
   } & DetailedHTMLProps<
     ButtonHTMLAttributes<HTMLButtonElement>,
     HTMLButtonElement
   >
 ) => {
+  const { loading, disabled, ...btnHtmlAttrs } = props;
+
   const defaultClassName =
     'w-full justify-center text-white bg-sky-400 hover:bg-sky-500 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg px-5 py-2.5 text-center mr-2 inline-flex items-center';
 
+  const diabledClassName =
+    'w-full justify-center text-white bg-gray-400 font-medium rounded-lg px-5 py-2.5 text-center mr-2 inline-flex items-center';
+
+  const btnClassName = disabled ? diabledClassName : defaultClassName;
+
   return (
-    <button type="submit" className={defaultClassName} {...props}>
-      {props.disabled && (
+    <button
+      type="submit"
+      className={btnClassName}
+      disabled={loading || disabled}
+      {...btnHtmlAttrs}
+    >
+      {loading && !disabled && (
         <FontAwesomeIcon icon={faSpinner} spin={true} className="mr-1" />
       )}
       {props.children}

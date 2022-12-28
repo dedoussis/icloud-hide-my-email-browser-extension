@@ -4,9 +4,9 @@
 
 [Hide My Email](https://support.apple.com/en-us/HT210425) is a premium feature of iCloud that is natively supported in Safari. This extension aims to bring a similar UX to a wider variety of browsers. In particular, it has been explicitly tested to work on:
 
-- Chrome
-- Firefox
-- Brave
+- [Chrome](https://chrome.google.com/webstore/detail/icloud-hide-my-email/omiaekblhgfopjkjnenhahfgcgnbohlk)
+- [Firefox](https://addons.mozilla.org/en-US/firefox/addon/icloud-hide-my-email/)
+- [Brave](https://chrome.google.com/webstore/detail/icloud-hide-my-email/omiaekblhgfopjkjnenhahfgcgnbohlk)
 - Microsoft Edge
 
 Note that the extension _should_ work on any browser that implements the [extension API](https://developer.chrome.com/docs/extensions/reference/) supported by Chromium-based browsers (regardless of manifest version).
