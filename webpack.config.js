@@ -35,6 +35,7 @@ const makeManifestV2 = (mv3) => {
     'host_permissions',
     'options_page',
     'declarative_net_request',
+    'description',
   ];
   const commonKeys = Object.keys(mv3).filter(
     (k) => !transformedV3Keys.includes(k)
@@ -44,6 +45,7 @@ const makeManifestV2 = (mv3) => {
   return {
     ...innerJoin,
     manifest_version: 2,
+    description: "Use iCloud's Hide My Email service on Firefox.",
     background: { scripts: [mv3.background.service_worker] },
     browser_action: mv3.action,
     browser_specific_settings: {

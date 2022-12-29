@@ -33,9 +33,8 @@ export const EMPTY_SESSION_DATA = {
 export class ICloudClientSession {
   constructor(
     public data: ICloudClientSessionData = EMPTY_SESSION_DATA,
-    private readonly dataSaver: (data: ICloudClientSessionData) => void = (
-      _data
-    ) => undefined
+    private readonly dataSaver: (data: ICloudClientSessionData) => void = () =>
+      undefined
   ) {}
 
   async save(): Promise<void> {
