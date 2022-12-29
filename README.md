@@ -2,7 +2,7 @@
 
 [![Tests Status](https://github.com/dedoussis/icloud-hide-my-email-browser-extension/workflows/tests/badge.svg)](https://github.com/dedoussis/icloud-hide-my-email-browser-extension/actions/workflows/tests.yml)
 
-[Hide My Email](https://support.apple.com/en-us/HT210425) is a premium feature of iCloud that is natively supported in Safari. This extension aims to bring a similar UX to a wider variety of browsers. In particular, it has been explicitly tested to work on:
+[Hide My Email](https://support.apple.com/en-us/HT210425) is a premium privacy service of iCloud. Safari offers a native integration with Hide My Email, whereby users are prompted to generate a Hide My Email address upon registration to any website. This extension aims to bring a similar UX into a wider variety of browsers. In particular, it has been explicitly tested to work on:
 
 - [Chrome](https://chrome.google.com/webstore/detail/icloud-hide-my-email/omiaekblhgfopjkjnenhahfgcgnbohlk)
 - [Firefox](https://addons.mozilla.org/en-US/firefox/addon/icloud-hide-my-email/)
@@ -72,7 +72,7 @@ ENTRYPOINT ["sh"]
 
 ### Developer workflow
 
-The following table outlines the sequence of steps that need to be followed in order to ship a change in the extension. The execution of some of these steps varies per browser/manifest version.
+The table below outlines the sequence of steps that need to be followed in order to ship a change in the extension. The execution of some of these steps varies per browser/manifest version.
 
 Note: the following console commands are to be executed from the root directory of this repo
 
@@ -94,5 +94,5 @@ Note: the following console commands are to be executed from the root directory 
 - [ ] Ability to modify the label and note of existing HME addresses
 - [ ] Options page to validate client token
 - [ ] Expiration of session data stored in Chrome storage
-- [ ] CI/CD
+- [ ] CI and maybe CD
 - [ ] Dependabot
