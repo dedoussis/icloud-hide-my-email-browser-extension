@@ -276,7 +276,10 @@ const FooterButton = (
   >
 ) => {
   return (
-    <button className="text-sky-400 hover:text-sky-500 focus:outline-sky-400" {...props}>
+    <button
+      className="text-sky-400 hover:text-sky-500 focus:outline-sky-400"
+      {...props}
+    >
       <FontAwesomeIcon icon={props.icon} className="mr-1" />
       {props.label}
     </button>
@@ -636,7 +639,10 @@ const searchHmeEmails = (
     return undefined;
   }
 
-  const searchEngine = new Fuse(hmeEmails, { keys: ['label', 'hme'] });
+  const searchEngine = new Fuse(hmeEmails, {
+    keys: ['label', 'hme'],
+    threshold: 0.4,
+  });
   const searchResults = searchEngine.search(searchPrompt);
   return searchResults.map((result) => result.item);
 };
