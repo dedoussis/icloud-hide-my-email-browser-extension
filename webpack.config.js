@@ -1,7 +1,6 @@
 const webpack = require('webpack'),
   path = require('path'),
   pick = require('lodash.pick'),
-  env = require('./utils/env'),
   CopyWebpackPlugin = require('copy-webpack-plugin'),
   HtmlWebpackPlugin = require('html-webpack-plugin'),
   TerserPlugin = require('terser-webpack-plugin'),
@@ -67,7 +66,7 @@ const makeManifestV2 = (mv3) => {
 };
 
 const options = {
-  mode: isDev ? 'production' : 'development',
+  mode: isDev ? 'development' : 'production',
   entry: {
     popup: path.join(__dirname, 'src', 'pages', 'Popup', 'index.tsx'),
     background: path.join(__dirname, 'src', 'pages', 'Background', 'index.ts'),
@@ -199,7 +198,7 @@ const options = {
   },
 };
 
-if (env.NODE_ENV === 'development') {
+if (isDev) {
   options.devtool = 'cheap-module-source-map';
 } else {
   options.optimization = {

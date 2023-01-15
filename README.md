@@ -90,7 +90,6 @@ Note: the following console commands are to be executed from the root directory 
 
 ### TODOs
 
-- [ ] Ability to search for existing HME addresses
 - [ ] Ability to modify the label and note of existing HME addresses
 - [ ] Options page to validate client token
 - [ ] Expiration of session data stored in Chrome storage
