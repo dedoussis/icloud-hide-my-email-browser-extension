@@ -718,28 +718,36 @@ const HmeManager = (props: { callback: Callback; client: ICloudClient }) => {
     );
 
     const btnBaseClassName =
-      'p-2 w-full text-left border-b cursor-pointer truncate focus:outline-sky-400';
+      'p-2 w-full text-left cursor-pointer truncate focus:outline-sky-400';
     const btnClassName = `${btnBaseClassName} hover:bg-gray-100`;
     const selectedBtnClassName = `${btnBaseClassName} text-white bg-sky-400 font-medium`;
 
-    const labelList = hmeEmails?.map((hme, idx) => (
-      <button
-        key={idx}
-        aria-current={selectedHmeIdx === idx}
-        type="button"
-        className={idx === selectedHmeIdx ? selectedBtnClassName : btnClassName}
-        onClick={() => setSelectedHmeIdx(idx)}
-      >
-        {hme.isActive ? (
-          hme.label
-        ) : (
-          <div title="Deactivated">
-            <FontAwesomeIcon icon={faBan} className="text-red-500 mr-1" />
-            {hme.label}
-          </div>
-        )}
-      </button>
-    ));
+    const labelList = hmeEmails.map((hme, idx) => {
+      const borderlessClassName =
+        idx === selectedHmeIdx ? selectedBtnClassName : btnClassName;
+      const className =
+        idx < hmeEmails.length - 1
+          ? `${borderlessClassName} border-b`
+          : borderlessClassName;
+      return (
+        <button
+          key={idx}
+          aria-current={selectedHmeIdx === idx}
+          type="button"
+          className={className}
+          onClick={() => setSelectedHmeIdx(idx)}
+        >
+          {hme.isActive ? (
+            hme.label
+          ) : (
+            <div title="Deactivated">
+              <FontAwesomeIcon icon={faBan} className="text-red-500 mr-1" />
+              {hme.label}
+            </div>
+          )}
+        </button>
+      );
+    });
 
     const noSearchResult = (
       <div className="p-3 break-words text-center text-gray-400">
