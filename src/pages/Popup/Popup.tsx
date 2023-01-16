@@ -27,6 +27,7 @@ import {
   faPlus,
   faTrashAlt,
   faBan,
+  faSearch,
 } from '@fortawesome/free-solid-svg-icons';
 import { MessageType, sendMessageToActiveTab } from '../../messages';
 import {
@@ -42,6 +43,8 @@ import {
 
 import browser from 'webextension-polyfill';
 import { setupWebRequestListeners } from '../../webRequestUtils';
+import Fuse from 'fuse.js';
+import isEqual from 'lodash.isequal';
 
 enum PopupTransition {
   SuccessfulSignIn,
@@ -120,7 +123,7 @@ const SignInForm = (props: { callback: Callback; client: ICloudClient }) => {
               type="email"
               autoComplete="email"
               required
-              className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-sky-500 focus:border-sky-500 focus:z-10 sm:text-sm"
+              className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-400 text-gray-900 rounded-t-md focus:outline-none focus:ring-sky-400 focus:border-sky-400 focus:z-10 sm:text-sm"
               placeholder="Email address"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -138,7 +141,7 @@ const SignInForm = (props: { callback: Callback; client: ICloudClient }) => {
               type="password"
               autoComplete="current-password"
               required
-              className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-sky-500 focus:border-sky-500 focus:z-10 sm:text-sm"
+              className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-400 text-gray-900 rounded-b-md focus:outline-none focus:ring-sky-400 focus:border-sky-400 focus:z-10 sm:text-sm"
               placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -207,7 +210,7 @@ const TwoFaForm = (props: { callback: Callback; client: ICloudClient }) => {
         <AuthCode
           onChange={(v) => setCode(v)}
           containerClassName="grid grid-cols-6 gap-2"
-          inputClassName="col-auto h-14 text-center text-2xl mt-1 block w-full shadow-bg bg:text-bg border-2 border-sky-200 focus:outline-none focus:ring-sky-400 focus:border-sky-400 rounded-md"
+          inputClassName="col-auto h-14 text-center text-2xl mt-1 block w-full shadow-bg bg:text-bg border border-gray-300 placeholder-gray-400 focus:outline-none focus:ring-sky-400 focus:border-sky-400 rounded-md"
           allowedCharacters="numeric"
           disabled={isSubmitting}
           placeholder="."
@@ -273,7 +276,10 @@ const FooterButton = (
   >
 ) => {
   return (
-    <button className="text-sky-400 hover:text-sky-500" {...props}>
+    <button
+      className="text-sky-400 hover:text-sky-500 focus:outline-sky-400"
+      {...props}
+    >
       <FontAwesomeIcon icon={props.icon} className="mr-1" />
       {props.label}
     </button>
@@ -283,7 +289,7 @@ const FooterButton = (
 const SignOutButton = (props: { callback: Callback; client: ICloudClient }) => {
   return (
     <FooterButton
-      className="text-sky-400 hover:text-sky-500"
+      className="text-sky-400 hover:text-sky-500 focus:outline-sky-400"
       onClick={async () => {
         await props.client.logOut();
         props.callback(PopupTransition.SuccessfulSignOut);
@@ -399,7 +405,7 @@ const HmeGenerator = (props: { callback: Callback; client: ICloudClient }) => {
     isEmailRefreshSubmitting || hmeEmail == reservedHme?.hme;
 
   const reservationFormInputClassName =
-    'appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-sky-500 focus:border-sky-500 focus:z-10 sm:text-sm';
+    'appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-400 text-gray-900 focus:outline-none focus:border-sky-400 focus:z-10 sm:text-sm';
 
   return (
     <TitledComponent
@@ -476,7 +482,7 @@ const HmeGenerator = (props: { callback: Callback; client: ICloudClient }) => {
           <FooterButton
             onClick={() => props.callback(PopupTransition.List)}
             icon={faList}
-            label="List emails"
+            label="Manage emails"
           />
         </div>
         <div className="text-right">
@@ -497,6 +503,9 @@ const HmeDetails = (props: {
   const [isDeleteSubmitting, setIsDeleteSubmitting] = useState(false);
 
   const [error, setError] = useState<string>();
+
+  // Reset the error if a new HME prop is passed to this component
+  useEffect(() => setError(undefined), [props.hme]);
 
   const onActivationClick = async () => {
     setIsActivateSubmitting(true);
@@ -625,11 +634,28 @@ const HmeDetails = (props: {
   );
 };
 
-const HmeList = (props: { callback: Callback; client: ICloudClient }) => {
-  const [hmeEmails, setHmeEmails] = useState<HmeEmail[]>();
+const searchHmeEmails = (
+  searchPrompt: string,
+  hmeEmails: HmeEmail[]
+): HmeEmail[] | undefined => {
+  if (!searchPrompt) {
+    return undefined;
+  }
+
+  const searchEngine = new Fuse(hmeEmails, {
+    keys: ['label', 'hme'],
+    threshold: 0.4,
+  });
+  const searchResults = searchEngine.search(searchPrompt);
+  return searchResults.map((result) => result.item);
+};
+
+const HmeManager = (props: { callback: Callback; client: ICloudClient }) => {
+  const [fetchedHmeEmails, setFetchedHmeEmails] = useState<HmeEmail[]>();
   const [hmeEmailsError, setHmeEmailsError] = useState<string>();
   const [isFetching, setIsFetching] = useState(false);
-  const [selectedHmeIdx, setSelectedHmeIndex] = useState(0);
+  const [selectedHmeIdx, setSelectedHmeIdx] = useState(0);
+  const [searchPrompt, setSearchPrompt] = useState<string>();
 
   useEffect(() => {
     const fetchHmeList = async () => {
@@ -638,7 +664,7 @@ const HmeList = (props: { callback: Callback; client: ICloudClient }) => {
       try {
         const pms = new PremiumMailSettings(props.client);
         const result = await pms.listHme();
-        setHmeEmails(
+        setFetchedHmeEmails(
           result.hmeEmails.sort((a, b) => b.createTimestamp - a.createTimestamp)
         );
       } catch (e) {
@@ -651,72 +677,98 @@ const HmeList = (props: { callback: Callback; client: ICloudClient }) => {
     fetchHmeList();
   }, [props.client]);
 
-  const activationCallback = () => {
-    setHmeEmails((prevHmeEmails) =>
-      prevHmeEmails?.map((hmeEmail, idx) => {
-        if (idx === selectedHmeIdx) {
-          hmeEmail.isActive = !hmeEmail.isActive;
-        }
-        return hmeEmail;
-      })
+  const activationCallbackFactory = (hmeEmail: HmeEmail) => () => {
+    const newHmeEmail = { ...hmeEmail, isActive: !hmeEmail.isActive };
+    setFetchedHmeEmails((prevFetchedHmeEmails) =>
+      prevFetchedHmeEmails?.map((item) =>
+        isEqual(item, hmeEmail) ? newHmeEmail : item
+      )
     );
   };
 
-  const deletionCallback = () => {
-    const currSelectedIdxTmp = selectedHmeIdx;
-    if (
-      hmeEmails &&
-      selectedHmeIdx > 0 &&
-      selectedHmeIdx >= hmeEmails.length - 1
-    ) {
-      setSelectedHmeIndex((prevSelectedHmeIdx) => prevSelectedHmeIdx - 1);
+  const deletionCallbackFactory = (hmeEmail: HmeEmail) => () => {
+    setFetchedHmeEmails((prevFetchedHmeEmails) =>
+      prevFetchedHmeEmails?.filter((item) => !isEqual(item, hmeEmail))
+    );
+  };
+
+  const hmeListGrid = (fetchedHmeEmails: HmeEmail[]) => {
+    const hmeEmails =
+      searchHmeEmails(searchPrompt || '', fetchedHmeEmails) || fetchedHmeEmails;
+
+    if (selectedHmeIdx >= hmeEmails.length) {
+      setSelectedHmeIdx(hmeEmails.length - 1);
     }
-    setHmeEmails((prevHmeEmails) =>
-      prevHmeEmails?.filter((_, idx) => idx !== currSelectedIdxTmp)
+
+    const selectedHmeEmail = hmeEmails[selectedHmeIdx];
+
+    const searchBox = (
+      <div className="relative p-2 rounded-tl-md bg-gray-100">
+        <div className="absolute inset-y-0 flex items-center pl-3 pointer-events-none">
+          <FontAwesomeIcon className="text-gray-400" icon={faSearch} />
+        </div>
+        <input
+          type="search"
+          className="pl-9 p-2 w-full rounded placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-sky-400"
+          placeholder="Search"
+          aria-label="Search through your HideMyEmail addresses"
+          onChange={(e) => {
+            setSearchPrompt(e.target.value);
+            setSelectedHmeIdx(0);
+          }}
+        />
+      </div>
+    );
+
+    const btnBaseClassName =
+      'p-2 w-full text-left border-b last:border-b-0 cursor-pointer truncate focus:outline-sky-400';
+    const btnClassName = `${btnBaseClassName} hover:bg-gray-100`;
+    const selectedBtnClassName = `${btnBaseClassName} text-white bg-sky-400 font-medium`;
+
+    const labelList = hmeEmails.map((hme, idx) => (
+      <button
+        key={idx}
+        aria-current={selectedHmeIdx === idx}
+        type="button"
+        className={idx === selectedHmeIdx ? selectedBtnClassName : btnClassName}
+        onClick={() => setSelectedHmeIdx(idx)}
+      >
+        {hme.isActive ? (
+          hme.label
+        ) : (
+          <div title="Deactivated">
+            <FontAwesomeIcon icon={faBan} className="text-red-500 mr-1" />
+            {hme.label}
+          </div>
+        )}
+      </button>
+    ));
+
+    const noSearchResult = (
+      <div className="p-3 break-words text-center text-gray-400">
+        No results for &quot;{searchPrompt}&quot;
+      </div>
+    );
+
+    return (
+      <div className="grid grid-cols-2" style={{ height: 398 }}>
+        <div className="overflow-y-auto text-sm rounded-l-md border border-gray-200">
+          <div className="sticky top-0 border-b">{searchBox}</div>
+          {hmeEmails.length === 0 && searchPrompt ? noSearchResult : labelList}
+        </div>
+        <div className="overflow-y-auto p-2 rounded-r-md border border-l-0 border-gray-200">
+          {selectedHmeEmail && (
+            <HmeDetails
+              client={props.client}
+              hme={selectedHmeEmail}
+              activationCallback={activationCallbackFactory(selectedHmeEmail)}
+              deletionCallback={deletionCallbackFactory(selectedHmeEmail)}
+            />
+          )}
+        </div>
+      </div>
     );
   };
-
-  const btnBaseClassName =
-    'p-2 w-full text-left border-b border-gray-200 cursor-pointer focus:outline-none truncate';
-  const btnClassName = `${btnBaseClassName} hover:bg-gray-100`;
-  const selectedBtnClassName = `${btnBaseClassName} text-white bg-sky-400 font-medium`;
-
-  const hmeListGrid = (
-    <div className="grid grid-cols-2" style={{ height: 394 }}>
-      <div className="overflow-y-auto text-sm rounded-l-md text-gray-900 border border-gray-200">
-        {hmeEmails?.map((hme, idx) => (
-          <button
-            key={idx}
-            aria-current={selectedHmeIdx === idx}
-            type="button"
-            className={
-              idx === selectedHmeIdx ? selectedBtnClassName : btnClassName
-            }
-            onClick={() => setSelectedHmeIndex(idx)}
-          >
-            {hme.isActive ? (
-              hme.label
-            ) : (
-              <div title="Deactivated">
-                <FontAwesomeIcon icon={faBan} className="text-red-500 mr-1" />
-                {hme.label}
-              </div>
-            )}
-          </button>
-        ))}
-      </div>
-      <div className="p-2 overflow-y-auto rounded-r-md text-gray-900 border border-l-0 border-gray-200">
-        {hmeEmails && (
-          <HmeDetails
-            client={props.client}
-            hme={hmeEmails[selectedHmeIdx]}
-            activationCallback={activationCallback}
-            deletionCallback={deletionCallback}
-          />
-        )}
-      </div>
-    </div>
-  );
 
   const emptyState = (
     <div className="text-center text-lg text-gray-400">
@@ -733,15 +785,18 @@ const HmeList = (props: { callback: Callback; client: ICloudClient }) => {
       return <ErrorMessage>{hmeEmailsError}</ErrorMessage>;
     }
 
-    if (!hmeEmails || hmeEmails.length === 0) {
+    if (!fetchedHmeEmails || fetchedHmeEmails.length === 0) {
       return emptyState;
     }
 
-    return hmeListGrid;
+    return hmeListGrid(fetchedHmeEmails);
   };
 
   return (
-    <TitledComponent title="Hide My Email" subtitle="All HideMyEmail addresses">
+    <TitledComponent
+      title="Hide My Email"
+      subtitle="Manage your HideMyEmail addresses"
+    >
       {resolveMainChildComponent()}
       <div className="grid grid-cols-2">
         <div>
@@ -763,7 +818,7 @@ export enum PopupState {
   SignedIn,
   Verified,
   SignedOut,
-  VerifiedAndListing,
+  VerifiedAndManaging,
 }
 
 const STATE_ELEMENTS: {
@@ -772,7 +827,7 @@ const STATE_ELEMENTS: {
   [PopupState.SignedOut]: SignInForm,
   [PopupState.SignedIn]: TwoFaForm,
   [PopupState.Verified]: HmeGenerator,
-  [PopupState.VerifiedAndListing]: HmeList,
+  [PopupState.VerifiedAndManaging]: HmeManager,
 };
 
 const STATE_MACHINE_TRANSITIONS: {
@@ -787,9 +842,9 @@ const STATE_MACHINE_TRANSITIONS: {
   },
   [PopupState.Verified]: {
     [PopupTransition.SuccessfulSignOut]: PopupState.SignedOut,
-    [PopupTransition.List]: PopupState.VerifiedAndListing,
+    [PopupTransition.List]: PopupState.VerifiedAndManaging,
   },
-  [PopupState.VerifiedAndListing]: {
+  [PopupState.VerifiedAndManaging]: {
     [PopupTransition.SuccessfulSignOut]: PopupState.SignedOut,
     [PopupTransition.Generate]: PopupState.Verified,
   },
