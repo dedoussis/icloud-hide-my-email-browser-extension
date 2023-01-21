@@ -12,7 +12,7 @@ input[type='search']::-webkit-search-cancel-button {
   padding-left: 5%;
 }
 input[type='search']:focus::-webkit-search-cancel-button {
-  opacity: 0.3;
+  opacity: 0.25;
   pointer-events: all;
 }
 

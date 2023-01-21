@@ -18,7 +18,7 @@ import {
   ReservationRequestData,
   sendMessageToActiveTab,
 } from '../../messages';
-import { PopupState } from '../Popup/Popup';
+import { PopupState } from '../Popup/stateMachine';
 import browser from 'webextension-polyfill';
 
 const getClient = async (withTokenValidation = true): Promise<ICloudClient> => {
