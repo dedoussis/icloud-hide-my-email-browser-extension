@@ -5,6 +5,7 @@ import React, {
   ButtonHTMLAttributes,
   DetailedHTMLProps,
   ReactNode,
+  ReactElement,
 } from 'react';
 import ICloudClient, {
   PremiumMailSettings,
@@ -45,19 +46,17 @@ import browser from 'webextension-polyfill';
 import { setupWebRequestListeners } from '../../webRequestUtils';
 import Fuse from 'fuse.js';
 import isEqual from 'lodash.isequal';
+import {
+  PopupAction,
+  PopupState,
+  SignedInAction,
+  SignedOutAction,
+  STATE_MACHINE_TRANSITIONS,
+  VerifiedAction,
+  VerifiedAndManagingAction,
+} from './stateMachine';
 
-enum PopupTransition {
-  SuccessfulSignIn,
-  FailedSignIn,
-  SuccessfulVerification,
-  FailedVerification,
-  SuccessfulSignOut,
-  FailedSignOut,
-  List,
-  Generate,
-}
-
-type Callback = (transition: PopupTransition) => void;
+type TransitionCallback<T extends PopupAction> = (action: T) => void;
 
 // The iCloud API requires the Origin and Referer HTTP headers of a request
 // to be set to https://www.icloud.com.
@@ -78,7 +77,10 @@ if (browser.webRequest !== undefined) {
   setupWebRequestListeners();
 }
 
-const SignInForm = (props: { callback: Callback; client: ICloudClient }) => {
+const SignInForm = (props: {
+  callback: TransitionCallback<SignedOutAction>;
+  client: ICloudClient;
+}) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -94,9 +96,9 @@ const SignInForm = (props: { callback: Callback; client: ICloudClient }) => {
       await props.client.accountLogin();
       setIsSubmitting(false);
       if (props.client.requires2fa) {
-        props.callback(PopupTransition.SuccessfulSignIn);
+        props.callback('SUCCESSFUL_SIGN_IN');
       } else {
-        props.callback(PopupTransition.SuccessfulVerification);
+        props.callback('SUCCESSFUL_VERIFICATION');
       }
     } catch (e) {
       setIsSubmitting(false);
@@ -170,7 +172,10 @@ const SignInForm = (props: { callback: Callback; client: ICloudClient }) => {
   );
 };
 
-const TwoFaForm = (props: { callback: Callback; client: ICloudClient }) => {
+const TwoFaForm = (props: {
+  callback: TransitionCallback<SignedInAction>;
+  client: ICloudClient;
+}) => {
   const [code, setCode] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string>();
@@ -187,7 +192,7 @@ const TwoFaForm = (props: { callback: Callback; client: ICloudClient }) => {
 
         setIsSubmitting(false);
 
-        props.callback(PopupTransition.SuccessfulVerification);
+        props.callback('SUCCESSFUL_VERIFICATION');
       } catch (e) {
         setIsSubmitting(false);
         setError(
@@ -286,13 +291,16 @@ const FooterButton = (
   );
 };
 
-const SignOutButton = (props: { callback: Callback; client: ICloudClient }) => {
+const SignOutButton = (props: {
+  callback: TransitionCallback<'SUCCESSFUL_SIGN_OUT'>;
+  client: ICloudClient;
+}) => {
   return (
     <FooterButton
       className="text-sky-400 hover:text-sky-500 focus:outline-sky-400"
       onClick={async () => {
         await props.client.logOut();
-        props.callback(PopupTransition.SuccessfulSignOut);
+        props.callback('SUCCESSFUL_SIGN_OUT');
       }}
       label="Sign out"
       icon={faSignOut}
@@ -300,7 +308,10 @@ const SignOutButton = (props: { callback: Callback; client: ICloudClient }) => {
   );
 };
 
-const HmeGenerator = (props: { callback: Callback; client: ICloudClient }) => {
+const HmeGenerator = (props: {
+  callback: TransitionCallback<VerifiedAction>;
+  client: ICloudClient;
+}) => {
   const [hmeEmail, setHmeEmail] = useState<string>();
   const [hmeError, setHmeError] = useState<string>();
 
@@ -480,7 +491,7 @@ const HmeGenerator = (props: { callback: Callback; client: ICloudClient }) => {
       <div className="grid grid-cols-2">
         <div>
           <FooterButton
-            onClick={() => props.callback(PopupTransition.List)}
+            onClick={() => props.callback('MANAGE')}
             icon={faList}
             label="Manage emails"
           />
@@ -650,7 +661,10 @@ const searchHmeEmails = (
   return searchResults.map((result) => result.item);
 };
 
-const HmeManager = (props: { callback: Callback; client: ICloudClient }) => {
+const HmeManager = (props: {
+  callback: TransitionCallback<VerifiedAndManagingAction>;
+  client: ICloudClient;
+}) => {
   const [fetchedHmeEmails, setFetchedHmeEmails] = useState<HmeEmail[]>();
   const [hmeEmailsError, setHmeEmailsError] = useState<string>();
   const [isFetching, setIsFetching] = useState(false);
@@ -709,7 +723,7 @@ const HmeManager = (props: { callback: Callback; client: ICloudClient }) => {
         </div>
         <input
           type="search"
-          className="pl-9 p-2 w-full rounded placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-sky-400"
+          className="pl-9 p-2 w-full rounded placeholder-gray-400 border border-gray-200 focus:outline-none focus:border-sky-400"
           placeholder="Search"
           aria-label="Search through your HideMyEmail addresses"
           onChange={(e) => {
@@ -801,7 +815,7 @@ const HmeManager = (props: { callback: Callback; client: ICloudClient }) => {
       <div className="grid grid-cols-2">
         <div>
           <FooterButton
-            onClick={() => props.callback(PopupTransition.Generate)}
+            onClick={() => props.callback('GENERATE')}
             icon={faPlus}
             label="Generate new email"
           />
@@ -814,54 +828,37 @@ const HmeManager = (props: { callback: Callback; client: ICloudClient }) => {
   );
 };
 
-export enum PopupState {
-  SignedIn,
-  Verified,
-  SignedOut,
-  VerifiedAndManaging,
-}
-
-const STATE_ELEMENTS: {
-  [key in PopupState]: React.FC<{ callback: Callback; client: ICloudClient }>;
-} = {
-  [PopupState.SignedOut]: SignInForm,
-  [PopupState.SignedIn]: TwoFaForm,
-  [PopupState.Verified]: HmeGenerator,
-  [PopupState.VerifiedAndManaging]: HmeManager,
-};
-
-const STATE_MACHINE_TRANSITIONS: {
-  [key in PopupState]: { [key in PopupTransition]?: PopupState };
-} = {
-  [PopupState.SignedOut]: {
-    [PopupTransition.SuccessfulSignIn]: PopupState.SignedIn,
-  },
-  [PopupState.SignedIn]: {
-    [PopupTransition.SuccessfulVerification]: PopupState.Verified,
-    [PopupTransition.SuccessfulSignOut]: PopupState.SignedOut,
-  },
-  [PopupState.Verified]: {
-    [PopupTransition.SuccessfulSignOut]: PopupState.SignedOut,
-    [PopupTransition.List]: PopupState.VerifiedAndManaging,
-  },
-  [PopupState.VerifiedAndManaging]: {
-    [PopupTransition.SuccessfulSignOut]: PopupState.SignedOut,
-    [PopupTransition.Generate]: PopupState.Verified,
-  },
-};
-
 const transitionToNextStateElement = (
   state: PopupState,
   setState: Dispatch<PopupState>,
   client: ICloudClient
-) => {
-  const callback = (transition: PopupTransition) => {
-    const currStateTransitions = STATE_MACHINE_TRANSITIONS[state];
-    const nextState = currStateTransitions[transition];
-    nextState !== undefined && setState(nextState);
-  };
-  const StateElement = STATE_ELEMENTS[state];
-  return <StateElement callback={callback} client={client} />;
+): ReactElement => {
+  switch (state) {
+    case PopupState.SignedOut: {
+      const callback = (action: SignedOutAction) =>
+        setState(STATE_MACHINE_TRANSITIONS[state][action]);
+      return <SignInForm callback={callback} client={client} />;
+    }
+    case PopupState.SignedIn: {
+      const callback = (action: SignedInAction) =>
+        setState(STATE_MACHINE_TRANSITIONS[state][action]);
+      return <TwoFaForm callback={callback} client={client} />;
+    }
+    case PopupState.Verified: {
+      const callback = (action: VerifiedAction) =>
+        setState(STATE_MACHINE_TRANSITIONS[state][action]);
+      return <HmeGenerator callback={callback} client={client} />;
+    }
+    case PopupState.VerifiedAndManaging: {
+      const callback = (action: VerifiedAndManagingAction) =>
+        setState(STATE_MACHINE_TRANSITIONS[state][action]);
+      return <HmeManager callback={callback} client={client} />;
+    }
+    default: {
+      const exhaustivenessCheck: never = state;
+      throw new Error(`Unhandled PopupState case: ${exhaustivenessCheck}`);
+    }
+  }
 };
 
 const Popup = () => {
