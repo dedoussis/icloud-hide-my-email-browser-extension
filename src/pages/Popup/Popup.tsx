@@ -30,7 +30,13 @@ import {
   faBan,
   faSearch,
 } from '@fortawesome/free-solid-svg-icons';
-import { MessageType, sendMessageToActiveTab } from '../../messages';
+import {
+  LogInRequestData,
+  LogInResponseData,
+  Message,
+  MessageType,
+  sendMessageToActiveTab,
+} from '../../messages';
 import {
   ErrorMessage,
   LoadingButton,
@@ -38,6 +44,7 @@ import {
   TitledComponent,
 } from '../../commonComponents';
 import {
+  getBrowserStorageValue,
   POPUP_STATE_STORAGE_KEYS,
   SESSION_DATA_STORAGE_KEYS,
 } from '../../storage';
@@ -86,24 +93,31 @@ const SignInForm = (props: {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string>();
 
+  useEffect(() => {
+    browser.runtime.onMessage.addListener(
+     async (message: Message<LogInResponseData>) => {
+        if (message.type !== MessageType.LogInResponse) {
+          return;
+        }
+        setIsSubmitting(false);
+        if (message.data.success) {
+          await props.client.refreshSession();
+          message.data.action && props.callback(message.data.action)
+        } else {
+          setError('Failed to sign in. Please try again.');
+        }
+      }
+    );
+  });
+
   const onFormSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsSubmitting(true);
     setError(undefined);
-
-    try {
-      await props.client.signIn(email, password);
-      await props.client.accountLogin();
-      setIsSubmitting(false);
-      if (props.client.requires2fa) {
-        props.callback('SUCCESSFUL_SIGN_IN');
-      } else {
-        props.callback('SUCCESSFUL_VERIFICATION');
-      }
-    } catch (e) {
-      setIsSubmitting(false);
-      setError('Failed to sign in. Please try again.');
-    }
+    await browser.runtime.sendMessage({
+      type: MessageType.LogInRequest,
+      data: { email, password },
+    } as Message<LogInRequestData>);
   };
 
   return (
@@ -873,6 +887,11 @@ const Popup = () => {
       EMPTY_SESSION_DATA
     );
 
+  const refreshSessionCallback = async (): Promise<void> => {
+    const refreshedSessionData = await getBrowserStorageValue(SESSION_DATA_STORAGE_KEYS) as ICloudClientSessionData;
+    await setSessionData(refreshedSessionData);
+  }
+
   useEffect(() => {
     const validateSession = async () => {
       const session = new ICloudClientSession(sessionData, setSessionData);
@@ -891,7 +910,7 @@ const Popup = () => {
     validateSession();
   }, [sessionData, setSessionData, setState]);
 
-  const session = new ICloudClientSession(sessionData, setSessionData);
+  const session = new ICloudClientSession(sessionData, setSessionData, refreshSessionCallback);
   const client = new ICloudClient(session);
 
   return (
