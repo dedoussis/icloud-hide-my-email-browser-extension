@@ -33,8 +33,9 @@ export const EMPTY_SESSION_DATA = {
 export class ICloudClientSession {
   constructor(
     public data: ICloudClientSessionData = EMPTY_SESSION_DATA,
-    private readonly persistCallback: (data: ICloudClientSessionData) => void = async () =>
-      undefined,
+    private readonly persistCallback: (
+      data: ICloudClientSessionData
+    ) => void = async () => undefined,
     private readonly refreshCallback: () => void = () => undefined
   ) {}
 

@@ -95,14 +95,14 @@ const SignInForm = (props: {
 
   useEffect(() => {
     browser.runtime.onMessage.addListener(
-     async (message: Message<LogInResponseData>) => {
+      async (message: Message<LogInResponseData>) => {
         if (message.type !== MessageType.LogInResponse) {
           return;
         }
         setIsSubmitting(false);
         if (message.data.success) {
           await props.client.refreshSession();
-          message.data.action && props.callback(message.data.action)
+          message.data.action && props.callback(message.data.action);
         } else {
           setError('Failed to sign in. Please try again.');
         }
@@ -888,9 +888,11 @@ const Popup = () => {
     );
 
   const refreshSessionCallback = async (): Promise<void> => {
-    const refreshedSessionData = await getBrowserStorageValue(SESSION_DATA_STORAGE_KEYS) as ICloudClientSessionData;
+    const refreshedSessionData = (await getBrowserStorageValue(
+      SESSION_DATA_STORAGE_KEYS
+    )) as ICloudClientSessionData;
     await setSessionData(refreshedSessionData);
-  }
+  };
 
   useEffect(() => {
     const validateSession = async () => {
@@ -910,7 +912,11 @@ const Popup = () => {
     validateSession();
   }, [sessionData, setSessionData, setState]);
 
-  const session = new ICloudClientSession(sessionData, setSessionData, refreshSessionCallback);
+  const session = new ICloudClientSession(
+    sessionData,
+    setSessionData,
+    refreshSessionCallback
+  );
   const client = new ICloudClient(session);
 
   return (

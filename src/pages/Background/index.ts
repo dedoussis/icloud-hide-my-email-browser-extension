@@ -20,7 +20,11 @@ import {
   ReservationRequestData,
   sendMessageToActiveTab,
 } from '../../messages';
-import { PopupState, SignedOutAction, STATE_MACHINE_TRANSITIONS } from '../Popup/stateMachine';
+import {
+  PopupState,
+  SignedOutAction,
+  STATE_MACHINE_TRANSITIONS,
+} from '../Popup/stateMachine';
 import browser from 'webextension-polyfill';
 
 const getClient = async (withTokenValidation = true): Promise<ICloudClient> => {
@@ -68,13 +72,13 @@ browser.runtime.onMessage.addListener(async (message: Message<unknown>) => {
           return;
         }
 
-        const action: SignedOutAction = client.requires2fa ? 'SUCCESSFUL_SIGN_IN' : 'SUCCESSFUL_VERIFICATION';
-        const newState = STATE_MACHINE_TRANSITIONS[PopupState.SignedOut][action];
+        const action: SignedOutAction = client.requires2fa
+          ? 'SUCCESSFUL_SIGN_IN'
+          : 'SUCCESSFUL_VERIFICATION';
+        const newState =
+          STATE_MACHINE_TRANSITIONS[PopupState.SignedOut][action];
 
-        await setBrowserStorageValue(
-          POPUP_STATE_STORAGE_KEYS,
-          newState
-        );
+        await setBrowserStorageValue(POPUP_STATE_STORAGE_KEYS, newState);
         await browser.runtime.sendMessage({
           type: MessageType.LogInResponse,
           data: { success: true, action },
