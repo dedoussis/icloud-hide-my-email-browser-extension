@@ -26,6 +26,11 @@ import {
   STATE_MACHINE_TRANSITIONS,
 } from '../Popup/stateMachine';
 import browser from 'webextension-polyfill';
+import { setupWebRequestListeners } from '../../webRequestUtils';
+
+if (browser.webRequest !== undefined) {
+  setupWebRequestListeners();
+}
 
 const getClient = async (withTokenValidation = true): Promise<ICloudClient> => {
   const sessionData =
