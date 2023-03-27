@@ -70,7 +70,7 @@ WORKDIR /opt/extension
 ENTRYPOINT ["sh"]
 ```
 
-### Developer workflow
+### Development workflow
 
 The table below outlines the sequence of steps that need to be followed in order to ship a change in the extension. The execution of some of these steps varies per browser/manifest version.
 
