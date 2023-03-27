@@ -13,13 +13,24 @@ import ICloudClient, {
   PremiumMailSettings,
 } from '../../iCloudClient';
 import {
+  LogInRequestData,
+  LogInResponseData,
   Message,
   MessageType,
   ReservationRequestData,
   sendMessageToActiveTab,
 } from '../../messages';
-import { PopupState } from '../Popup/stateMachine';
+import {
+  PopupState,
+  SignedOutAction,
+  STATE_MACHINE_TRANSITIONS,
+} from '../Popup/stateMachine';
 import browser from 'webextension-polyfill';
+import { setupWebRequestListeners } from '../../webRequestUtils';
+
+if (browser.webRequest !== undefined) {
+  setupWebRequestListeners();
+}
 
 const getClient = async (withTokenValidation = true): Promise<ICloudClient> => {
   const sessionData =
@@ -50,6 +61,35 @@ const getClient = async (withTokenValidation = true): Promise<ICloudClient> => {
 
 browser.runtime.onMessage.addListener(async (message: Message<unknown>) => {
   switch (message.type) {
+    case MessageType.LogInRequest:
+      {
+        const { email, password } = message.data as LogInRequestData;
+        const client = await getClient(false);
+
+        try {
+          await client.signIn(email, password);
+          await client.accountLogin();
+        } catch (e) {
+          await browser.runtime.sendMessage({
+            type: MessageType.LogInResponse,
+            data: { success: false },
+          } as Message<LogInResponseData>);
+          return;
+        }
+
+        const action: SignedOutAction = client.requires2fa
+          ? 'SUCCESSFUL_SIGN_IN'
+          : 'SUCCESSFUL_VERIFICATION';
+        const newState =
+          STATE_MACHINE_TRANSITIONS[PopupState.SignedOut][action];
+
+        await setBrowserStorageValue(POPUP_STATE_STORAGE_KEYS, newState);
+        await browser.runtime.sendMessage({
+          type: MessageType.LogInResponse,
+          data: { success: true, action },
+        } as Message<LogInResponseData>);
+      }
+      break;
     case MessageType.GenerateRequest:
       {
         const elementId = message.data;

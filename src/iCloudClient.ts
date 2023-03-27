@@ -33,17 +33,23 @@ export const EMPTY_SESSION_DATA = {
 export class ICloudClientSession {
   constructor(
     public data: ICloudClientSessionData = EMPTY_SESSION_DATA,
-    private readonly dataSaver: (data: ICloudClientSessionData) => void = () =>
-      undefined
+    private readonly persistCallback: (
+      data: ICloudClientSessionData
+    ) => void = async () => undefined,
+    private readonly refreshCallback: () => void = () => undefined
   ) {}
 
-  async save(): Promise<void> {
-    await this.dataSaver(this.data);
+  async persist(): Promise<void> {
+    await this.persistCallback(this.data);
+  }
+
+  async refresh(): Promise<void> {
+    await this.refreshCallback();
   }
 
   async cleanUp(): Promise<void> {
     this.data = EMPTY_SESSION_DATA;
-    await this.save();
+    await this.persist();
   }
 }
 
@@ -101,6 +107,10 @@ class ICloudClient {
     );
   }
 
+  public async refreshSession(): Promise<void> {
+    await this.session.refresh();
+  }
+
   private prepareRequest(config: AxiosRequestConfig) {
     ICloudClient.SESSION_HEADERS.forEach((headerKey: string) => {
       const sessionVal = this.session.data.headers[headerKey];
@@ -114,14 +124,15 @@ class ICloudClient {
   private async handleResponse<T, D>(
     response: AxiosResponse<T, D>
   ): Promise<AxiosResponse<T, D>> {
+    const responseHeaders = new Headers(response.headers);
     ICloudClient.SESSION_HEADERS.forEach((headerKey: string) => {
-      const headerVal = response.headers[headerKey];
-      if (headerVal !== undefined) {
+      const headerVal = responseHeaders.get(headerKey);
+      if (headerVal !== null) {
         this.session.data.headers[headerKey] = headerVal;
       }
     });
 
-    await this.session.save();
+    await this.session.persist();
 
     return response;
   }
@@ -213,7 +224,7 @@ class ICloudClient {
     this.session.data.hsaChallengeRequired = response.data.hsaChallengeRequired;
     this.session.data.hsaTrustedBrowser = response.data.hsaTrustedBrowser;
     this.session.data.dsInfo.hsaVersion = response.data.dsInfo.hsaVersion;
-    await this.session.save();
+    await this.session.persist();
   }
 
   async verify2faCode(code: string): Promise<void> {
