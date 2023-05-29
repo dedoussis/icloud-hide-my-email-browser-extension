@@ -89,7 +89,7 @@ browser.runtime.onMessage.addListener(async (message: Message<unknown>) => {
           type: MessageType.LogInResponse,
           data: { success: true, action },
         } as Message<LogInResponseData>);
-        
+
         browser.contextMenus.update(CONTEXT_MENU_ITEM_ID, {
           title: 'Generate and reserve Hide My Email address',
           enabled: true,
