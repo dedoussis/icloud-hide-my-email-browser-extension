@@ -18,7 +18,7 @@ import {
   Message,
   MessageType,
   ReservationRequestData,
-  sendMessageToActiveTab,
+  sendMessageToTab,
 } from '../../messages';
 import {
   PopupState,
@@ -27,6 +27,7 @@ import {
 } from '../Popup/stateMachine';
 import browser from 'webextension-polyfill';
 import { setupWebRequestListeners } from '../../webRequestUtils';
+import { v4 as uuidv4 } from 'uuid';
 
 if (browser.webRequest !== undefined) {
   setupWebRequestListeners();
@@ -88,6 +89,11 @@ browser.runtime.onMessage.addListener(async (message: Message<unknown>) => {
           type: MessageType.LogInResponse,
           data: { success: true, action },
         } as Message<LogInResponseData>);
+        
+        browser.contextMenus.update(CONTEXT_MENU_ITEM_ID, {
+          title: 'Generate and reserve Hide My Email address',
+          enabled: true,
+        });
       }
       break;
     case MessageType.GenerateRequest:
@@ -95,7 +101,7 @@ browser.runtime.onMessage.addListener(async (message: Message<unknown>) => {
         const elementId = message.data;
         const client = await getClient();
         if (!client.authenticated) {
-          await sendMessageToActiveTab(MessageType.GenerateResponse, {
+          await sendMessageToTab(MessageType.GenerateResponse, {
             error: 'Please sign-in to iCloud.',
             elementId,
           });
@@ -105,12 +111,12 @@ browser.runtime.onMessage.addListener(async (message: Message<unknown>) => {
         const pms = new PremiumMailSettings(client);
         try {
           const hme = await pms.generateHme();
-          await sendMessageToActiveTab(MessageType.GenerateResponse, {
+          await sendMessageToTab(MessageType.GenerateResponse, {
             hme,
             elementId,
           });
         } catch (e) {
-          await sendMessageToActiveTab(MessageType.GenerateResponse, {
+          await sendMessageToTab(MessageType.GenerateResponse, {
             error: e.toString(),
             elementId,
           });
@@ -123,7 +129,7 @@ browser.runtime.onMessage.addListener(async (message: Message<unknown>) => {
           message.data as ReservationRequestData;
         const client = await getClient(false);
         if (!client.authenticated) {
-          await sendMessageToActiveTab(MessageType.GenerateResponse, {
+          await sendMessageToTab(MessageType.GenerateResponse, {
             error: 'Please sign-in to iCloud.',
             elementId,
           });
@@ -133,12 +139,12 @@ browser.runtime.onMessage.addListener(async (message: Message<unknown>) => {
         try {
           const pms = new PremiumMailSettings(client);
           await pms.reserveHme(hme, label);
-          await sendMessageToActiveTab(MessageType.ReservationResponse, {
+          await sendMessageToTab(MessageType.ReservationResponse, {
             hme,
             elementId,
           });
         } catch (e) {
-          await sendMessageToActiveTab(MessageType.ReservationResponse, {
+          await sendMessageToTab(MessageType.ReservationResponse, {
             error: e.toString(),
             elementId,
           });
@@ -148,4 +154,51 @@ browser.runtime.onMessage.addListener(async (message: Message<unknown>) => {
     default:
       break;
   }
+});
+
+const CONTEXT_MENU_ITEM_ID = uuidv4();
+
+browser.contextMenus.create(
+  {
+    id: CONTEXT_MENU_ITEM_ID,
+    title: 'Hide My Email — Loading...',
+    contexts: ['editable'],
+    enabled: false,
+  },
+  async () => {
+    const client = await getClient();
+    if (!client.authenticated) {
+      browser.contextMenus.update(CONTEXT_MENU_ITEM_ID, {
+        title: 'Please sign-in to iCloud.',
+        enabled: false,
+      });
+      return;
+    }
+
+    browser.contextMenus.update(CONTEXT_MENU_ITEM_ID, {
+      title: 'Generate and reserve Hide My Email address',
+      enabled: true,
+    });
+  }
+);
+
+browser.contextMenus.onClicked.addListener(async (info, tab) => {
+  if (info.menuItemId !== CONTEXT_MENU_ITEM_ID) {
+    return;
+  }
+
+  const client = await getClient();
+  if (!client.authenticated) {
+    return;
+  }
+
+  const pms = new PremiumMailSettings(client);
+  const hme = await pms.generateHme();
+  await pms.reserveHme(hme, info.pageUrl || tab?.url || '');
+
+  sendMessageToTab(
+    MessageType.ReservationResponse,
+    { hme, elementId: info.targetElementId },
+    tab
+  );
 });

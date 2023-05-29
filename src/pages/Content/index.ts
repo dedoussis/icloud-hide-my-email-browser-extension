@@ -203,6 +203,12 @@ browser.runtime.onMessage.addListener((message: Message<unknown>) => {
         const { hme, error, elementId } =
           message.data as ReservationResponseData;
 
+        const inputElement = document.activeElement as HTMLInputElement | null;
+
+        if (inputElement && hme) {
+          inputElement.value = hme;
+        }
+
         if (hme !== undefined) {
           emaiInputElementsWithButtons.forEach(
             ({
