@@ -28,6 +28,7 @@
     "axios": "^0.27.2",
     "fuse.js": "^6.6.2",
     "lodash.isequal": "^4.5.0",
+    "lodash.startcase": "^4.4.0",
     "react": "^17.0.2",
     "react-auth-code-input": "^3.2.1",
     "react-dom": "^17.0.2",
@@ -35,6 +36,7 @@
   },
   "devDependencies": {
     "@types/lodash.isequal": "^4.5.6",
+    "@types/lodash.startcase": "^4.4.7",
     "@types/react": "^17.0.39",
     "@types/react-dom": "^17.0.11",
     "@types/uuid": "^8.3.4",

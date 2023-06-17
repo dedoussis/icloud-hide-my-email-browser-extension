@@ -20,7 +20,7 @@ const LOADING_COPY = 'Hide My Email — Loading...';
 // A unique CSS class prefix is used to guarantee that the style injected
 // by the extension does not interfere with the existing style of
 // a web page.
-const STYLE_CLASS_PREFIX = 'd1691f0f-b8f0-495e-9ffb-fe4e6f84b518';
+const STYLE_CLASS_PREFIX = browser.runtime.id;
 
 const className = (shortName: string): string =>
   `${STYLE_CLASS_PREFIX}-${shortName}`;

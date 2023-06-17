@@ -35,7 +35,7 @@ import {
   LogInResponseData,
   Message,
   MessageType,
-  sendMessageToActiveTab,
+  sendMessageToTab,
 } from '../../messages';
 import {
   ErrorMessage,
@@ -62,6 +62,7 @@ import {
   VerifiedAction,
   VerifiedAndManagingAction,
 } from './stateMachine';
+import { CONTEXT_MENU_ITEM_ID, SIGNED_OUT_CTA_COPY } from '../Background';
 
 type TransitionCallback<T extends PopupAction> = (action: T) => void;
 
@@ -252,7 +253,7 @@ const ReservationResult = (props: { hme: HmeEmail }) => {
   };
 
   const onAutofillClick = async () => {
-    await sendMessageToActiveTab(MessageType.Autofill, props.hme.hme);
+    await sendMessageToTab(MessageType.Autofill, props.hme.hme);
   };
 
   const btnClassName =
@@ -305,6 +306,16 @@ const FooterButton = (
   );
 };
 
+async function logOut(client: ICloudClient): Promise<void> {
+  await client.logOut();
+  await browser.contextMenus
+    .update(CONTEXT_MENU_ITEM_ID, {
+      title: SIGNED_OUT_CTA_COPY,
+      enabled: false,
+    })
+    .catch();
+}
+
 const SignOutButton = (props: {
   callback: TransitionCallback<'SUCCESSFUL_SIGN_OUT'>;
   client: ICloudClient;
@@ -313,7 +324,7 @@ const SignOutButton = (props: {
     <FooterButton
       className="text-sky-400 hover:text-sky-500 focus:outline-sky-400"
       onClick={async () => {
-        await props.client.logOut();
+        await logOut(props.client);
         props.callback('SUCCESSFUL_SIGN_OUT');
       }}
       label="Sign out"
@@ -567,7 +578,7 @@ const HmeDetails = (props: {
   };
 
   const onAutofillClick = async () => {
-    await sendMessageToActiveTab(MessageType.Autofill, props.hme.hme);
+    await sendMessageToTab(MessageType.Autofill, props.hme.hme);
   };
 
   const btnClassName =
@@ -681,7 +692,7 @@ const HmeManager = (props: {
 }) => {
   const [fetchedHmeEmails, setFetchedHmeEmails] = useState<HmeEmail[]>();
   const [hmeEmailsError, setHmeEmailsError] = useState<string>();
-  const [isFetching, setIsFetching] = useState(false);
+  const [isFetching, setIsFetching] = useState(true);
   const [selectedHmeIdx, setSelectedHmeIdx] = useState(0);
   const [searchPrompt, setSearchPrompt] = useState<string>();
 
@@ -903,7 +914,7 @@ const Popup = () => {
         try {
           await client.validateToken();
         } catch {
-          await client.logOut();
+          await logOut(client);
           setState(PopupState.SignedOut);
         }
       }
