@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import './Options.css';
 import { useBrowserStorageState } from '../../hooks';
 import ICloudClient, {
+  ClientAuthenticationError,
   EMPTY_SESSION_DATA,
   ICloudClientSession,
   ICloudClientSessionData,
@@ -13,30 +14,39 @@ import {
   ErrorMessage,
   TitledComponent,
 } from '../../commonComponents';
-import { SESSION_DATA_STORAGE_KEYS } from '../../storage';
+import { OPTIONS_STORAGE_KEYS, SESSION_DATA_STORAGE_KEYS } from '../../storage';
+import { DEFAULT_OPTIONS, Options } from '../../options';
+import startCase from 'lodash.startcase';
 
 const SelectFwdToForm = (props: { client: ICloudClient }) => {
   const [selectedFwdToEmail, setSelectedFwdToEmail] = useState<string>();
   const [fwdToEmails, setFwdToEmails] = useState<string[]>();
+  const [isFetching, setIsFetching] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [authenticated, setAuthenticated] = useState<boolean>(false);
-  const [fwdToError, setFwdToError] = useState<string>();
+  const [listHmeError, setListHmeError] = useState<string>();
+  const [updateFwdToError, setUpdateFwdToError] = useState<string>();
 
   useEffect(() => {
     const fetchHmeList = async () => {
-      setIsSubmitting(true);
-      if (props.client.authenticated) {
-        setAuthenticated(true);
+      setListHmeError(undefined);
+      setIsFetching(true);
+      try {
         const pms = new PremiumMailSettings(props.client);
         const result = await pms.listHme();
         setFwdToEmails(result.forwardToEmails);
         setSelectedFwdToEmail(result.selectedForwardTo);
+      } catch (e) {
+        const errorMsg =
+          e instanceof ClientAuthenticationError
+            ? 'Please sign-in through the extension pop-up in order to select a new Forward-To address.'
+            : e.toString();
+        setListHmeError(errorMsg);
+      } finally {
+        setIsFetching(false);
       }
     };
 
-    fetchHmeList()
-      .catch(setFwdToError)
-      .finally(() => setIsSubmitting(false));
+    fetchHmeList();
   }, [props.client]);
 
   const onSelectedFwdToSubmit = async (
@@ -44,30 +54,25 @@ const SelectFwdToForm = (props: { client: ICloudClient }) => {
   ) => {
     event.preventDefault();
     setIsSubmitting(true);
-    const pms = new PremiumMailSettings(props.client);
     if (selectedFwdToEmail) {
       try {
+        const pms = new PremiumMailSettings(props.client);
         await pms.updateForwardToHme(selectedFwdToEmail);
       } catch (e) {
-        setFwdToError(e.toString());
+        setUpdateFwdToError(e.toString());
       }
     } else {
-      setFwdToError('No Forward To address has been selected.');
+      setUpdateFwdToError('No Forward To address has been selected.');
     }
     setIsSubmitting(false);
   };
 
-  if (!authenticated) {
-    return (
-      <ErrorMessage>
-        Please sign-in through the extension pop-up in order to select a new
-        Forward-To address.
-      </ErrorMessage>
-    );
+  if (isFetching) {
+    return <Spinner />;
   }
 
-  if (fwdToEmails === undefined && fwdToError === undefined) {
-    return <Spinner />;
+  if (listHmeError !== undefined) {
+    return <ErrorMessage>{listHmeError}</ErrorMessage>;
   }
 
   return (
@@ -79,10 +84,9 @@ const SelectFwdToForm = (props: { client: ICloudClient }) => {
             checked={fwdToEmail === selectedFwdToEmail}
             id={`radio-${key}`}
             type="radio"
-            value=""
             disabled={isSubmitting}
             name={`fwdto-radio-${key}`}
-            className="cursor-pointer w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500"
+            className="cursor-pointer w-4 h-4 accent-gray-900 hover:accent-gray-500"
           />
           <label
             htmlFor={`radio-${key}`}
@@ -93,7 +97,7 @@ const SelectFwdToForm = (props: { client: ICloudClient }) => {
         </div>
       ))}
       <LoadingButton loading={isSubmitting}>Update</LoadingButton>
-      {fwdToError && <ErrorMessage>{fwdToError}</ErrorMessage>}
+      {updateFwdToError && <ErrorMessage>{updateFwdToError}</ErrorMessage>}
     </form>
   );
 };
@@ -137,6 +141,41 @@ const Disclaimer = () => {
   );
 };
 
+const AutofillForm = () => {
+  const [options, setOptions] = useBrowserStorageState<Options>(
+    OPTIONS_STORAGE_KEYS,
+    DEFAULT_OPTIONS
+  );
+
+  return (
+    <form className="space-y-3">
+      {Object.entries(options.autofill).map(([key, value]) => (
+        <div className="flex items-center mb-3" key={key}>
+          <input
+            onChange={() =>
+              setOptions({
+                ...options,
+                autofill: { ...options.autofill, [key]: !value },
+              })
+            }
+            checked={value}
+            id={`checkbox-${key}`}
+            type="checkbox"
+            name={`checkbox-${key}`}
+            className="cursor-pointer w-4 h-4 accent-gray-900 hover:accent-gray-500"
+          />
+          <label
+            htmlFor={`checkbox-${key}`}
+            className="cursor-pointer ml-2 text-gray-900"
+          >
+            {startCase(key)}
+          </label>
+        </div>
+      ))}
+    </form>
+  );
+};
+
 const Options = () => {
   const [sessionData, setSessionData] =
     useBrowserStorageState<ICloudClientSessionData>(
@@ -157,6 +196,10 @@ const Options = () => {
         <div>
           <h3 className="font-bold text-lg mb-3">Forward To Address</h3>
           <SelectFwdToForm client={client} />
+        </div>
+        <div>
+          <h3 className="font-bold text-lg mb-3">Autofill</h3>
+          <AutofillForm />
         </div>
       </TitledComponent>
     </div>

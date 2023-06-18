@@ -13,9 +13,13 @@ Note that the extension _should_ work on any browser that implements the [extens
 
 _Disclaimer: This extension is not endorsed by, directly affiliated with, maintained, authorized, or sponsored by Apple._
 
-![Extension popup demo](./src/assets/img/demo-popup.gif)
+<p align="center">
+<img src="./src/assets/img/demo-popup.gif" alt="Extension popup demo" width="380" height="auto"/>
+</p>
 
-![Extension content demo](./src/assets/img/demo-content.gif)
+<p align="center">
+<img src="./src/assets/img/demo-content.gif" alt="Extension content demo" width="550" height="auto"/>
+</p>
 
 ## Features
 
@@ -23,6 +27,25 @@ _Disclaimer: This extension is not endorsed by, directly affiliated with, mainta
 - Ability to manage existing Hide My Email addresses (including deactivation, reactivation, and deletion)
 - Autofilling on any HTML input element that is relevant to email
 - Quick configuration of Hide My Email settings, such as the Forward-To address, through the Options page of the extension
+
+## Options
+
+### Address autofilling
+
+The extension can be configured to
+
+1. show an autofill button on input field focus
+2. show a context menu item when right-clicking on input fields
+
+<p align="center">
+<img src="./src/assets/img/readme-button-autofilling.png" alt="Autofilling button on input field focus" width="45%" height="45%"/>
+</p>
+
+<p align="center">
+<img src="./src/assets/img/readme-context-menu-autofilling.png" alt="Context menu item when right-clicking on input fields" width="45%" height="45%"/>
+</p>
+
+You can enable/disable any of the autofilling mechanisms through the Options page of the extension.
 
 ## Develop
 

@@ -9,6 +9,7 @@ export enum MessageType {
   GenerateResponse,
   ReservationRequest,
   ReservationResponse,
+  ActiveInputElementWrite,
 }
 
 export type Message<T> = {
@@ -28,6 +29,10 @@ export type GenerationResponseData = {
   error?: string;
 };
 
+export type ActiveInputElementWriteData = {
+  text: string;
+};
+
 export type ReservationResponseData = GenerationResponseData;
 
 export type LogInRequestData = {
@@ -40,14 +45,18 @@ export type LogInResponseData = {
   action?: SignedOutAction;
 };
 
-export const sendMessageToActiveTab = async (
+export const sendMessageToTab = async (
   type: MessageType,
-  data: unknown
+  data: unknown,
+  tab?: browser.Tabs.Tab
 ): Promise<void> => {
-  const [tab] = await browser.tabs.query({
-    active: true,
-    lastFocusedWindow: true,
-  });
+  if (tab === undefined) {
+    [tab] = await browser.tabs.query({
+      active: true,
+      lastFocusedWindow: true,
+    });
+  }
+
   if (tab.id !== undefined) {
     await browser.tabs.sendMessage(tab.id, {
       type,

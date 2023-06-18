@@ -4,21 +4,24 @@ import {
   getBrowserStorageValue,
   POPUP_STATE_STORAGE_KEYS,
   SESSION_DATA_STORAGE_KEYS,
+  OPTIONS_STORAGE_KEYS,
   setBrowserStorageValue,
 } from '../../storage';
 import ICloudClient, {
+  ClientAuthenticationError,
   EMPTY_SESSION_DATA,
   ICloudClientSession,
   ICloudClientSessionData,
   PremiumMailSettings,
 } from '../../iCloudClient';
 import {
+  ActiveInputElementWriteData,
   LogInRequestData,
   LogInResponseData,
   Message,
   MessageType,
   ReservationRequestData,
-  sendMessageToActiveTab,
+  sendMessageToTab,
 } from '../../messages';
 import {
   PopupState,
@@ -27,6 +30,7 @@ import {
 } from '../Popup/stateMachine';
 import browser from 'webextension-polyfill';
 import { setupWebRequestListeners } from '../../webRequestUtils';
+import { Options } from '../../options';
 
 if (browser.webRequest !== undefined) {
   setupWebRequestListeners();
@@ -54,10 +58,18 @@ const getClient = async (withTokenValidation = true): Promise<ICloudClient> => {
         POPUP_STATE_STORAGE_KEYS,
         PopupState.SignedOut
       );
+      browser.contextMenus
+        .update(CONTEXT_MENU_ITEM_ID, {
+          title: SIGNED_OUT_CTA_COPY,
+          enabled: false,
+        })
+        .catch();
     }
   }
   return client;
 };
+
+// ===== Message handling =====
 
 browser.runtime.onMessage.addListener(async (message: Message<unknown>) => {
   switch (message.type) {
@@ -88,6 +100,13 @@ browser.runtime.onMessage.addListener(async (message: Message<unknown>) => {
           type: MessageType.LogInResponse,
           data: { success: true, action },
         } as Message<LogInResponseData>);
+
+        browser.contextMenus
+          .update(CONTEXT_MENU_ITEM_ID, {
+            title: SIGNED_IN_CTA_COPY,
+            enabled: true,
+          })
+          .catch();
       }
       break;
     case MessageType.GenerateRequest:
@@ -95,22 +114,22 @@ browser.runtime.onMessage.addListener(async (message: Message<unknown>) => {
         const elementId = message.data;
         const client = await getClient();
         if (!client.authenticated) {
-          await sendMessageToActiveTab(MessageType.GenerateResponse, {
-            error: 'Please sign-in to iCloud.',
+          await sendMessageToTab(MessageType.GenerateResponse, {
+            error: SIGNED_OUT_CTA_COPY,
             elementId,
           });
           break;
         }
 
-        const pms = new PremiumMailSettings(client);
         try {
+          const pms = new PremiumMailSettings(client);
           const hme = await pms.generateHme();
-          await sendMessageToActiveTab(MessageType.GenerateResponse, {
+          await sendMessageToTab(MessageType.GenerateResponse, {
             hme,
             elementId,
           });
         } catch (e) {
-          await sendMessageToActiveTab(MessageType.GenerateResponse, {
+          await sendMessageToTab(MessageType.GenerateResponse, {
             error: e.toString(),
             elementId,
           });
@@ -123,8 +142,8 @@ browser.runtime.onMessage.addListener(async (message: Message<unknown>) => {
           message.data as ReservationRequestData;
         const client = await getClient(false);
         if (!client.authenticated) {
-          await sendMessageToActiveTab(MessageType.GenerateResponse, {
-            error: 'Please sign-in to iCloud.',
+          await sendMessageToTab(MessageType.GenerateResponse, {
+            error: SIGNED_OUT_CTA_COPY,
             elementId,
           });
           break;
@@ -133,12 +152,12 @@ browser.runtime.onMessage.addListener(async (message: Message<unknown>) => {
         try {
           const pms = new PremiumMailSettings(client);
           await pms.reserveHme(hme, label);
-          await sendMessageToActiveTab(MessageType.ReservationResponse, {
+          await sendMessageToTab(MessageType.ReservationResponse, {
             hme,
             elementId,
           });
         } catch (e) {
-          await sendMessageToActiveTab(MessageType.ReservationResponse, {
+          await sendMessageToTab(MessageType.ReservationResponse, {
             error: e.toString(),
             elementId,
           });
@@ -147,5 +166,136 @@ browser.runtime.onMessage.addListener(async (message: Message<unknown>) => {
       break;
     default:
       break;
+  }
+});
+
+// ===== Context menu =====
+
+export const CONTEXT_MENU_ITEM_ID = browser.runtime.id.concat(
+  '/',
+  'hme_generation_and_reservation'
+);
+
+export const SIGNED_OUT_CTA_COPY = 'Please sign-in to iCloud';
+const LOADING_COPY = 'Hide My Email — Loading...';
+const SIGNED_IN_CTA_COPY = 'Generate and reserve Hide My Email address';
+
+const createContextMenuItem = (): void => {
+  browser.contextMenus.create(
+    {
+      id: CONTEXT_MENU_ITEM_ID,
+      title: LOADING_COPY,
+      contexts: ['editable'],
+      enabled: false,
+    },
+    async () => {
+      const client = await getClient();
+      if (!client.authenticated) {
+        browser.contextMenus
+          .update(CONTEXT_MENU_ITEM_ID, {
+            title: SIGNED_OUT_CTA_COPY,
+            enabled: false,
+          })
+          .catch();
+        return;
+      }
+
+      browser.contextMenus
+        .update(CONTEXT_MENU_ITEM_ID, {
+          title: SIGNED_IN_CTA_COPY,
+          enabled: true,
+        })
+        .catch();
+    }
+  );
+};
+
+// At any given time, there should be <=1 created context menu items. We want to prevent
+// the creation of multiple items that serve the same purpose (i.e. the context menu having multiple
+// "Generate and reserve Hide My Email address" rows). Hence, we create the context menu item once,
+// upon the installation of the extension.
+browser.runtime.onInstalled.addListener(async () => {
+  const options = await getBrowserStorageValue<Options>(OPTIONS_STORAGE_KEYS);
+
+  if (!options?.autofill.contextMenu) {
+    return;
+  }
+
+  createContextMenuItem();
+});
+
+// The following callback detects changes in the autofill config of the user
+// and acts accordingly. In particular:
+// * it removes the context menu item when the user un-checks the context menu option.
+// * it creates a context menu item when the user checks the context menu option.
+browser.storage.onChanged.addListener((changes, namespace) => {
+  const iCloudHmeOptions = changes[OPTIONS_STORAGE_KEYS[0]];
+  if (namespace !== 'local' || iCloudHmeOptions === undefined) {
+    return;
+  }
+
+  const {
+    oldValue,
+    newValue,
+  }: browser.Storage.StorageChange<Options, Options> = iCloudHmeOptions;
+
+  if (oldValue?.autofill.contextMenu === newValue?.autofill.contextMenu) {
+    // No change has been made to the context menu autofilling config.
+    // There is no need to create or remove a context menu item.
+    return;
+  }
+
+  if (newValue?.autofill.contextMenu === true) {
+    createContextMenuItem();
+  } else {
+    browser.contextMenus.removeAll();
+  }
+});
+
+// Upon clicking on the context menu item, we generate an email, reserve it, and emit it back to the content script
+browser.contextMenus.onClicked.addListener(async (info, tab) => {
+  if (info.menuItemId !== CONTEXT_MENU_ITEM_ID) {
+    return;
+  }
+
+  sendMessageToTab(
+    MessageType.ActiveInputElementWrite,
+    { text: LOADING_COPY } as ActiveInputElementWriteData,
+    tab
+  );
+
+  const serializedUrl = info.pageUrl || tab?.url;
+  const hostname = serializedUrl ? new URL(serializedUrl).hostname : '';
+
+  const client = await getClient();
+  try {
+    const pms = new PremiumMailSettings(client);
+    const hme = await pms.generateHme();
+    await pms.reserveHme(hme, hostname);
+    await sendMessageToTab(
+      MessageType.ActiveInputElementWrite,
+      { text: hme } as ActiveInputElementWriteData,
+      tab
+    );
+  } catch (e) {
+    if (e instanceof ClientAuthenticationError) {
+      browser.contextMenus.update(CONTEXT_MENU_ITEM_ID, {
+        title: SIGNED_OUT_CTA_COPY,
+        enabled: false,
+      });
+
+      sendMessageToTab(
+        MessageType.ActiveInputElementWrite,
+        { text: SIGNED_OUT_CTA_COPY } as ActiveInputElementWriteData,
+        tab
+      );
+    } else {
+      sendMessageToTab(
+        MessageType.ActiveInputElementWrite,
+        { text: e.toString() } as ActiveInputElementWriteData,
+        tab
+      );
+    }
+    return;
   }
 });

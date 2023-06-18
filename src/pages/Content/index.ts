@@ -1,4 +1,5 @@
 import {
+  ActiveInputElementWriteData,
   GenerationResponseData,
   Message,
   MessageType,
@@ -7,12 +8,15 @@ import {
 } from '../../messages';
 import { v4 as uuidv4 } from 'uuid';
 import './index.css';
-import '@fortawesome/fontawesome-svg-core';
-import '@fortawesome/free-solid-svg-icons';
 import browser from 'webextension-polyfill';
+import { OPTIONS_STORAGE_KEYS, getBrowserStorageValue } from '../../storage';
+import { Options } from '../../options';
+
+const EMAIL_INPUT_QUERY_STRING =
+  'input[type="email"], input[name="email"], input[id="email"]';
 
 const emailInputElements = document.querySelectorAll<HTMLInputElement>(
-  'input[type="email"], input[name="email"], input[id="email"]'
+  EMAIL_INPUT_QUERY_STRING
 );
 
 const LOADING_COPY = 'Hide My Email — Loading...';
@@ -25,12 +29,14 @@ const STYLE_CLASS_PREFIX = 'd1691f0f-b8f0-495e-9ffb-fe4e6f84b518';
 const className = (shortName: string): string =>
   `${STYLE_CLASS_PREFIX}-${shortName}`;
 
-type InputElementWithButton = {
+type AutofillableInputElement = {
   inputElement: HTMLInputElement;
-  btnElement: HTMLButtonElement;
-  inputOnFocusCallback: (ev: FocusEvent) => void;
-  inputOnBlurCallback: (ev: FocusEvent) => void;
-  btnOnMousedownCallback: (ev: MouseEvent) => void;
+  buttonSupport?: {
+    btnElement: HTMLButtonElement;
+    inputOnFocusCallback: (ev: FocusEvent) => void;
+    inputOnBlurCallback: (ev: FocusEvent) => void;
+    btnOnMousedownCallback: (ev: MouseEvent) => void;
+  };
 };
 
 const disableButton = (
@@ -65,9 +71,17 @@ const enableButton = (
   btn.classList.add(className(cursorClass));
 };
 
-const makeInputElementWithButton = (
+function removeItem<T>(arr: Array<T>, value: T): Array<T> {
+  const index = arr.indexOf(value);
+  if (index > -1) {
+    arr.splice(index, 1);
+  }
+  return arr;
+}
+
+const makeButtonSupport = (
   inputElement: HTMLInputElement
-): InputElementWithButton => {
+): AutofillableInputElement['buttonSupport'] => {
   const btnElement = document.createElement('button');
   const btnElementId = uuidv4();
   btnElement.setAttribute('id', btnElementId);
@@ -108,135 +122,165 @@ const makeInputElementWithButton = (
   btnElement.addEventListener('mousedown', btnOnMousedownCallback);
 
   return {
-    inputElement,
     btnElement,
     inputOnFocusCallback,
     inputOnBlurCallback,
     btnOnMousedownCallback,
   };
 };
+async function main(): Promise<void> {
+  const options = await getBrowserStorageValue<Options>(OPTIONS_STORAGE_KEYS);
 
-const emaiInputElementsWithButtons = Array.from(emailInputElements).map(
-  makeInputElementWithButton
-);
-
-const mutationCallback: MutationCallback = (mutations) => {
-  mutations.forEach((mutation) => {
-    const addedDfsStack = Array.from(mutation.addedNodes);
-
-    while (addedDfsStack.length > 0) {
-      const node = addedDfsStack.pop();
-      if (
-        node instanceof HTMLInputElement &&
-        [node.name, node.type, node.id].includes('email')
-      ) {
-        const inputEmailWithButton = makeInputElementWithButton(node);
-        emaiInputElementsWithButtons.push(inputEmailWithButton);
-      }
-      node?.childNodes.forEach((child) => {
-        addedDfsStack.push(child);
-      });
-    }
-
-    const removedDfsStack = Array.from(mutation.removedNodes);
-
-    while (removedDfsStack.length > 0) {
-      const node = removedDfsStack.pop();
-      if (node instanceof HTMLInputElement) {
-        const foundNode = emaiInputElementsWithButtons.find(
-          (value) => value.inputElement.id === node.id
-        );
-        if (foundNode !== undefined) {
-          removeItem(emaiInputElementsWithButtons, foundNode);
-        }
-      }
-      node?.childNodes.forEach((child) => {
-        removedDfsStack.push(child);
-      });
-    }
+  const makeAutofillableInputElement = (
+    inputElement: HTMLInputElement
+  ): AutofillableInputElement => ({
+    inputElement,
+    buttonSupport:
+      options?.autofill.button === false
+        ? undefined
+        : makeButtonSupport(inputElement),
   });
-};
 
-const observer = new MutationObserver(mutationCallback);
-observer.observe(document.body, {
-  childList: true,
-  attributes: false,
-  subtree: true,
-});
+  const autofillableInputElements = Array.from(emailInputElements).map(
+    makeAutofillableInputElement
+  );
 
-browser.runtime.onMessage.addListener((message: Message<unknown>) => {
-  switch (message.type) {
-    case MessageType.Autofill:
-      emaiInputElementsWithButtons.forEach(
-        ({
-          inputElement,
-          inputOnFocusCallback,
-          inputOnBlurCallback,
-          btnElement,
-        }) => {
+  const mutationCallback: MutationCallback = (mutations) => {
+    mutations.forEach((mutation) => {
+      mutation.addedNodes.forEach((node) => {
+        if (!(node instanceof Element)) {
+          return;
+        }
+
+        const addedElements = node.querySelectorAll<HTMLInputElement>(
+          EMAIL_INPUT_QUERY_STRING
+        );
+        addedElements.forEach((el) =>
+          autofillableInputElements.push(makeAutofillableInputElement(el))
+        );
+      });
+
+      mutation.removedNodes.forEach((node) => {
+        if (!(node instanceof Element)) {
+          return;
+        }
+
+        const removedElements = node.querySelectorAll<HTMLInputElement>(
+          EMAIL_INPUT_QUERY_STRING
+        );
+        removedElements.forEach((el) => {
+          const foundElement = autofillableInputElements.find((item) =>
+            el.isEqualNode(item.inputElement)
+          );
+          if (foundElement) {
+            removeItem(autofillableInputElements, foundElement);
+          }
+        });
+      });
+    });
+  };
+
+  const observer = new MutationObserver(mutationCallback);
+  observer.observe(document.body, {
+    childList: true,
+    attributes: false,
+    subtree: true,
+  });
+
+  browser.runtime.onMessage.addListener((message: Message<unknown>) => {
+    switch (message.type) {
+      case MessageType.Autofill:
+        autofillableInputElements.forEach(({ inputElement, buttonSupport }) => {
           inputElement.value = message.data as string;
           inputElement.dispatchEvent(new Event('input', { bubbles: true }));
+
+          if (buttonSupport) {
+            const { btnElement, inputOnFocusCallback, inputOnBlurCallback } =
+              buttonSupport;
+            inputElement.removeEventListener('focus', inputOnFocusCallback);
+            inputElement.removeEventListener('blur', inputOnBlurCallback);
+            btnElement.remove();
+          }
+        });
+        break;
+      case MessageType.GenerateResponse:
+        {
+          const { hme, elementId, error } =
+            message.data as GenerationResponseData;
+
+          const element = document.getElementById(elementId);
+
+          if (!element || !(element instanceof HTMLButtonElement)) {
+            return;
+          }
+
+          if (error) {
+            return disableButton(element, 'cursor-not-allowed', error);
+          }
+
+          if (!hme) {
+            return;
+          }
+
+          enableButton(element, 'cursor-pointer', hme);
+        }
+        break;
+      case MessageType.ReservationResponse:
+        {
+          const { hme, error, elementId } =
+            message.data as ReservationResponseData;
+
+          const btnElement = document.getElementById(elementId);
+
+          if (!btnElement || !(btnElement instanceof HTMLButtonElement)) {
+            return;
+          }
+
+          if (error) {
+            return disableButton(btnElement, 'cursor-not-allowed', error);
+          }
+
+          if (!hme) {
+            return;
+          }
+
+          const found = autofillableInputElements.find(
+            (ael) => ael.buttonSupport?.btnElement.id === btnElement.id
+          );
+          if (!found) {
+            return;
+          }
+
+          const { inputElement, buttonSupport } = found;
+          inputElement.value = hme;
+          inputElement.dispatchEvent(new Event('input', { bubbles: true }));
+          btnElement.remove();
+
+          if (!buttonSupport) {
+            return;
+          }
+
+          const { inputOnFocusCallback, inputOnBlurCallback } = buttonSupport;
           inputElement.removeEventListener('focus', inputOnFocusCallback);
           inputElement.removeEventListener('blur', inputOnBlurCallback);
-          btnElement.remove();
         }
-      );
-      break;
-    case MessageType.GenerateResponse:
-      {
-        const { hme, elementId, error } =
-          message.data as GenerationResponseData;
-        const element = document.getElementById(
-          elementId
-        ) as HTMLButtonElement | null;
-        if (element) {
-          if (hme !== undefined) {
-            enableButton(element, 'cursor-pointer', hme);
-          } else if (error !== undefined) {
-            disableButton(element, 'cursor-not-allowed', error);
+        break;
+      case MessageType.ActiveInputElementWrite:
+        {
+          const { activeElement } = document;
+          if (!activeElement || !(activeElement instanceof HTMLInputElement)) {
+            return;
           }
-        }
-      }
-      break;
-    case MessageType.ReservationResponse:
-      {
-        const { hme, error, elementId } =
-          message.data as ReservationResponseData;
 
-        if (hme !== undefined) {
-          emaiInputElementsWithButtons.forEach(
-            ({
-              inputElement,
-              inputOnFocusCallback,
-              inputOnBlurCallback,
-              btnElement,
-            }) => {
-              inputElement.value = hme;
-              inputElement.dispatchEvent(new Event('input', { bubbles: true }));
-              inputElement.removeEventListener('focus', inputOnFocusCallback);
-              inputElement.removeEventListener('blur', inputOnBlurCallback);
-              btnElement.remove();
-            }
-          );
-        } else if (error) {
-          const btnElement = document.getElementById(
-            elementId
-          ) as HTMLButtonElement | null;
-          if (btnElement) {
-            disableButton(btnElement, 'cursor-not-allowed', error);
-          }
+          const { text } = message.data as ActiveInputElementWriteData;
+          activeElement.value = text;
+          activeElement.dispatchEvent(new Event('input', { bubbles: true }));
         }
-      }
-      break;
-    default:
-      break;
-  }
-});
-
-function removeItem<T>(arr: Array<T>, value: T): Array<T> {
-  const index = arr.indexOf(value);
-  if (index > -1) {
-    arr.splice(index, 1);
-  }
-  return arr;
+        break;
+      default:
+        break;
+    }
+  });
 }
+
+main();
