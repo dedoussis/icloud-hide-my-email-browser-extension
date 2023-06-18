@@ -24,6 +24,21 @@ _Disclaimer: This extension is not endorsed by, directly affiliated with, mainta
 - Autofilling on any HTML input element that is relevant to email
 - Quick configuration of Hide My Email settings, such as the Forward-To address, through the Options page of the extension
 
+### Options
+
+#### Address autofilling
+
+The extension can be configured to
+
+1. show an autofill button on input field focus
+2. show an context menu item when right-clicking on input fields
+
+<img src="./src/assets/img/readme-button-autofilling.png" alt="Autofilling button on input field focus" width="35%" height="35%"/>
+
+<img src="./src/assets/img/readme-context-menu-autofilling.png" alt="Context menu item when right-clicking on input fields" width="35%" height="35%"/>
+
+You can enable/disable any of the autofilling mechanisms through the Options page of the extension.
+
 ## Develop
 
 This extension is entirely writen in TypeScript. The UI pages of the extension (e.g. Pop-Up and Options) are implemented as React apps and styled with TailwindCSS.

@@ -29,6 +29,7 @@ import {
   faTrashAlt,
   faBan,
   faSearch,
+  faInfoCircle,
 } from '@fortawesome/free-solid-svg-icons';
 import {
   LogInRequestData,
@@ -166,8 +167,7 @@ const SignInForm = (props: {
             />
           </div>
         </div>
-
-        <div className="text-md">
+        <div>
           <a
             href="https://iforgot.apple.com/password/verify/appleid"
             className="font-medium text-sky-400 hover:text-sky-500"
@@ -177,7 +177,29 @@ const SignInForm = (props: {
             Forgot your password?
           </a>
         </div>
-
+        <div
+          className="flex p-4 text-sm border text-gray-600 rounded-lg bg-gray-50"
+          role="alert"
+        >
+          <FontAwesomeIcon icon={faInfoCircle} className="mr-2 mt-1" />
+          <span className="sr-only">Info</span>
+          <div>
+            <span className="font-medium">
+              The extension doesn&apos;t store your iCloud credentials.
+            </span>{' '}
+            It passes them directly to Apple without logging or utilizing them
+            for any other purpose. Review the{' '}
+            <a
+              href="https://github.com/dedoussis/icloud-hide-my-email-browser-extension"
+              className="text-sky-400 font-medium hover:text-sky-500"
+              target="_blank"
+              rel="noreferrer"
+            >
+              source code
+            </a>
+            .
+          </div>
+        </div>
         <div>
           <LoadingButton loading={isSubmitting}>Sign In</LoadingButton>
         </div>
