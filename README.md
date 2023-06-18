@@ -33,10 +33,9 @@ The extension can be configured to
 1. show an autofill button on input field focus
 2. show an context menu item when right-clicking on input fields
 
-<!-- the following image size modifications only work on github flavoured markdown -->
-![Autofilling button on input field focus](./src/assets/img/readme-button-autofilling.png | height=45)
+<img src="./src/assets/img/readme-button-autofilling.png" alt="Autofilling button on input field focus" width="45%" height="45%"/>
 
-![Context menu item when right-clicking on input fields](./src/assets/img/readme-context-menu-autofilling.png | height=45)
+<img src="./src/assets/img/readme-context-menu-autofilling.png" alt="Context menu item when right-clicking on input fields" width="45%" height="45%"/>
 
 You can enable/disable any of the autofilling mechanisms through the Options page of the extension.
 
