@@ -8,12 +8,14 @@ import {
   setBrowserStorageValue,
 } from '../../storage';
 import ICloudClient, {
+  ClientAuthenticationError,
   EMPTY_SESSION_DATA,
   ICloudClientSession,
   ICloudClientSessionData,
   PremiumMailSettings,
 } from '../../iCloudClient';
 import {
+  ActiveInputElementWriteData,
   LogInRequestData,
   LogInResponseData,
   Message,
@@ -56,6 +58,12 @@ const getClient = async (withTokenValidation = true): Promise<ICloudClient> => {
         POPUP_STATE_STORAGE_KEYS,
         PopupState.SignedOut
       );
+      browser.contextMenus
+        .update(CONTEXT_MENU_ITEM_ID, {
+          title: SIGNED_OUT_CTA_COPY,
+          enabled: false,
+        })
+        .catch();
     }
   }
   return client;
@@ -162,11 +170,6 @@ browser.runtime.onMessage.addListener(async (message: Message<unknown>) => {
 });
 
 // ===== Context menu =====
-//
-// The context menu item should be created once, upon the installation of the extension.
-// Subsequent starts of the background service worker should not create an item. This prevents
-// the creation of multiple items that serve the same purpose (i.e. the context menu having multiple
-// "Generate and reserve Hide My Email address" items).
 
 export const CONTEXT_MENU_ITEM_ID = browser.runtime.id.concat(
   '/',
@@ -207,6 +210,10 @@ const createContextMenuItem = (): void => {
   );
 };
 
+// At any given time, there should be <=1 created context menu items. We want to prevent
+// the creation of multiple items that serve the same purpose (i.e. the context menu having multiple
+// "Generate and reserve Hide My Email address" rows). Hence, we create the context menu item once,
+// upon the installation of the extension.
 browser.runtime.onInstalled.addListener(async () => {
   const options = await getBrowserStorageValue<Options>(OPTIONS_STORAGE_KEYS);
 
@@ -215,47 +222,6 @@ browser.runtime.onInstalled.addListener(async () => {
   }
 
   createContextMenuItem();
-});
-
-// Upon clicking on the context menu item, we generate and reserve an email
-browser.contextMenus.onClicked.addListener(async (info, tab) => {
-  if (info.menuItemId !== CONTEXT_MENU_ITEM_ID) {
-    return;
-  }
-
-  sendMessageToTab(
-    MessageType.ReservationResponse,
-    { hme: LOADING_COPY, elementId: info.targetElementId },
-    tab
-  );
-
-  const client = await getClient();
-  if (!client.authenticated) {
-    browser.contextMenus.update(CONTEXT_MENU_ITEM_ID, {
-      title: SIGNED_OUT_CTA_COPY,
-      enabled: false,
-    });
-
-    sendMessageToTab(
-      MessageType.ReservationResponse,
-      { hme: SIGNED_OUT_CTA_COPY, elementId: info.targetElementId },
-      tab
-    );
-    return;
-  }
-
-  const pms = new PremiumMailSettings(client);
-  const hme = await pms.generateHme();
-
-  const serializedUrl = info.pageUrl || tab?.url;
-  const hostname = serializedUrl ? new URL(serializedUrl).hostname : '';
-  await pms.reserveHme(hme, hostname);
-
-  await sendMessageToTab(
-    MessageType.ReservationResponse,
-    { hme, elementId: info.targetElementId },
-    tab
-  );
 });
 
 // The following callback detects changes in the autofill config of the user
@@ -283,5 +249,53 @@ browser.storage.onChanged.addListener((changes, namespace) => {
     createContextMenuItem();
   } else {
     browser.contextMenus.removeAll();
+  }
+});
+
+// Upon clicking on the context menu item, we generate an email, reserve it, and emit it back to the content script
+browser.contextMenus.onClicked.addListener(async (info, tab) => {
+  if (info.menuItemId !== CONTEXT_MENU_ITEM_ID) {
+    return;
+  }
+
+  sendMessageToTab(
+    MessageType.ActiveInputElementWrite,
+    { text: LOADING_COPY } as ActiveInputElementWriteData,
+    tab
+  );
+
+  const serializedUrl = info.pageUrl || tab?.url;
+  const hostname = serializedUrl ? new URL(serializedUrl).hostname : '';
+
+  const client = await getClient();
+  try {
+    const pms = new PremiumMailSettings(client);
+    const hme = await pms.generateHme();
+    await pms.reserveHme(hme, hostname);
+    await sendMessageToTab(
+      MessageType.ActiveInputElementWrite,
+      { text: hme } as ActiveInputElementWriteData,
+      tab
+    );
+  } catch (e) {
+    if (e instanceof ClientAuthenticationError) {
+      browser.contextMenus.update(CONTEXT_MENU_ITEM_ID, {
+        title: SIGNED_OUT_CTA_COPY,
+        enabled: false,
+      });
+
+      sendMessageToTab(
+        MessageType.ActiveInputElementWrite,
+        { text: SIGNED_OUT_CTA_COPY } as ActiveInputElementWriteData,
+        tab
+      );
+    } else {
+      sendMessageToTab(
+        MessageType.ActiveInputElementWrite,
+        { text: e.toString() } as ActiveInputElementWriteData,
+        tab
+      );
+    }
+    return;
   }
 });

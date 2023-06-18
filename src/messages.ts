@@ -9,6 +9,7 @@ export enum MessageType {
   GenerateResponse,
   ReservationRequest,
   ReservationResponse,
+  ActiveInputElementWrite,
 }
 
 export type Message<T> = {
@@ -26,6 +27,10 @@ export type GenerationResponseData = {
   hme?: string;
   elementId: string;
   error?: string;
+};
+
+export type ActiveInputElementWriteData = {
+  text: string;
 };
 
 export type ReservationResponseData = GenerationResponseData;

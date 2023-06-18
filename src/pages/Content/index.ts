@@ -1,4 +1,5 @@
 import {
+  ActiveInputElementWriteData,
   GenerationResponseData,
   Message,
   MessageType,
@@ -78,68 +79,67 @@ function removeItem<T>(arr: Array<T>, value: T): Array<T> {
   return arr;
 }
 
+const makeButtonSupport = (
+  inputElement: HTMLInputElement
+): AutofillableInputElement['buttonSupport'] => {
+  const btnElement = document.createElement('button');
+  const btnElementId = uuidv4();
+  btnElement.setAttribute('id', btnElementId);
+  btnElement.setAttribute('type', 'button');
+  btnElement.classList.add(className('button'));
+
+  disableButton(btnElement, 'cursor-not-allowed', LOADING_COPY);
+
+  const inputOnFocusCallback = async () => {
+    disableButton(btnElement, 'cursor-progress', LOADING_COPY);
+    inputElement.parentNode?.insertBefore(btnElement, inputElement.nextSibling);
+
+    await browser.runtime.sendMessage({
+      type: MessageType.GenerateRequest,
+      data: btnElementId,
+    });
+  };
+
+  inputElement.addEventListener('focus', inputOnFocusCallback);
+
+  const inputOnBlurCallback = () => {
+    disableButton(btnElement, 'cursor-not-allowed', LOADING_COPY);
+    btnElement.remove();
+  };
+
+  inputElement.addEventListener('blur', inputOnBlurCallback);
+
+  const btnOnMousedownCallback = async (ev: MouseEvent) => {
+    ev.preventDefault();
+    const hme = btnElement.innerHTML;
+    disableButton(btnElement, 'cursor-progress', LOADING_COPY);
+    await browser.runtime.sendMessage({
+      type: MessageType.ReservationRequest,
+      data: { hme, label: window.location.host, elementId: btnElement.id },
+    } as Message<ReservationRequestData>);
+  };
+
+  btnElement.addEventListener('mousedown', btnOnMousedownCallback);
+
+  return {
+    btnElement,
+    inputOnFocusCallback,
+    inputOnBlurCallback,
+    btnOnMousedownCallback,
+  };
+};
 async function main(): Promise<void> {
   const options = await getBrowserStorageValue<Options>(OPTIONS_STORAGE_KEYS);
 
   const makeAutofillableInputElement = (
     inputElement: HTMLInputElement
-  ): AutofillableInputElement => {
-    if (!options?.autofill.button) {
-      return { inputElement };
-    }
-
-    const btnElement = document.createElement('button');
-    const btnElementId = uuidv4();
-    btnElement.setAttribute('id', btnElementId);
-    btnElement.setAttribute('type', 'button');
-    btnElement.classList.add(className('button'));
-
-    disableButton(btnElement, 'cursor-not-allowed', LOADING_COPY);
-
-    const inputOnFocusCallback = async () => {
-      disableButton(btnElement, 'cursor-progress', LOADING_COPY);
-      inputElement.parentNode?.insertBefore(
-        btnElement,
-        inputElement.nextSibling
-      );
-
-      await browser.runtime.sendMessage({
-        type: MessageType.GenerateRequest,
-        data: btnElementId,
-      });
-    };
-
-    inputElement.addEventListener('focus', inputOnFocusCallback);
-
-    const inputOnBlurCallback = () => {
-      disableButton(btnElement, 'cursor-not-allowed', LOADING_COPY);
-      btnElement.remove();
-    };
-
-    inputElement.addEventListener('blur', inputOnBlurCallback);
-
-    const btnOnMousedownCallback = async (ev: MouseEvent) => {
-      ev.preventDefault();
-      const hme = btnElement.innerHTML;
-      disableButton(btnElement, 'cursor-progress', LOADING_COPY);
-      await browser.runtime.sendMessage({
-        type: MessageType.ReservationRequest,
-        data: { hme, label: window.location.host, elementId: btnElement.id },
-      } as Message<ReservationRequestData>);
-    };
-
-    btnElement.addEventListener('mousedown', btnOnMousedownCallback);
-
-    return {
-      inputElement,
-      buttonSupport: {
-        btnElement,
-        inputOnFocusCallback,
-        inputOnBlurCallback,
-        btnOnMousedownCallback,
-      },
-    };
-  };
+  ): AutofillableInputElement => ({
+    inputElement,
+    buttonSupport:
+      options?.autofill.button === false
+        ? undefined
+        : makeButtonSupport(inputElement),
+  });
 
   const autofillableInputElements = Array.from(emailInputElements).map(
     makeAutofillableInputElement
@@ -207,16 +207,22 @@ async function main(): Promise<void> {
         {
           const { hme, elementId, error } =
             message.data as GenerationResponseData;
-          const element = document.getElementById(
-            elementId
-          ) as HTMLButtonElement | null;
-          if (element) {
-            if (hme !== undefined) {
-              enableButton(element, 'cursor-pointer', hme);
-            } else if (error !== undefined) {
-              disableButton(element, 'cursor-not-allowed', error);
-            }
+
+          const element = document.getElementById(elementId);
+
+          if (!element || !(element instanceof HTMLButtonElement)) {
+            return;
           }
+
+          if (error) {
+            return disableButton(element, 'cursor-not-allowed', error);
+          }
+
+          if (!hme) {
+            return;
+          }
+
+          enableButton(element, 'cursor-pointer', hme);
         }
         break;
       case MessageType.ReservationResponse:
@@ -224,43 +230,51 @@ async function main(): Promise<void> {
           const { hme, error, elementId } =
             message.data as ReservationResponseData;
 
-          const inputElement =
-            document.activeElement as HTMLInputElement | null;
+          const btnElement = document.getElementById(elementId);
 
-          if (inputElement && hme) {
-            inputElement.value = hme;
+          if (!btnElement || !(btnElement instanceof HTMLButtonElement)) {
+            return;
           }
 
-          if (hme !== undefined) {
-            autofillableInputElements.forEach(
-              ({ inputElement, buttonSupport }) => {
-                inputElement.value = hme;
-                inputElement.dispatchEvent(
-                  new Event('input', { bubbles: true })
-                );
-                if (buttonSupport) {
-                  const {
-                    btnElement,
-                    inputOnFocusCallback,
-                    inputOnBlurCallback,
-                  } = buttonSupport;
-                  inputElement.removeEventListener(
-                    'focus',
-                    inputOnFocusCallback
-                  );
-                  inputElement.removeEventListener('blur', inputOnBlurCallback);
-                  btnElement.remove();
-                }
-              }
-            );
-          } else if (error) {
-            const btnElement = document.getElementById(
-              elementId
-            ) as HTMLButtonElement | null;
-            if (btnElement) {
-              disableButton(btnElement, 'cursor-not-allowed', error);
-            }
+          if (error) {
+            return disableButton(btnElement, 'cursor-not-allowed', error);
           }
+
+          if (!hme) {
+            return;
+          }
+
+          const found = autofillableInputElements.find(
+            (ael) => ael.buttonSupport?.btnElement.id === btnElement.id
+          );
+          if (!found) {
+            return;
+          }
+
+          const { inputElement, buttonSupport } = found;
+          inputElement.value = hme;
+          inputElement.dispatchEvent(new Event('input', { bubbles: true }));
+          btnElement.remove();
+
+          if (!buttonSupport) {
+            return;
+          }
+
+          const { inputOnFocusCallback, inputOnBlurCallback } = buttonSupport;
+          inputElement.removeEventListener('focus', inputOnFocusCallback);
+          inputElement.removeEventListener('blur', inputOnBlurCallback);
+        }
+        break;
+      case MessageType.ActiveInputElementWrite:
+        {
+          const { activeElement } = document;
+          if (!activeElement || !(activeElement instanceof HTMLInputElement)) {
+            return;
+          }
+
+          const { text } = message.data as ActiveInputElementWriteData;
+          activeElement.value = text;
+          activeElement.dispatchEvent(new Event('input', { bubbles: true }));
         }
         break;
       default:
