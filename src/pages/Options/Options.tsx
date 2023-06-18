@@ -86,7 +86,7 @@ const SelectFwdToForm = (props: { client: ICloudClient }) => {
             type="radio"
             disabled={isSubmitting}
             name={`fwdto-radio-${key}`}
-            className="cursor-pointer w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500"
+            className="cursor-pointer w-4 h-4 accent-gray-900 hover:accent-gray-500"
           />
           <label
             htmlFor={`radio-${key}`}
@@ -162,7 +162,7 @@ const AutofillForm = () => {
             id={`checkbox-${key}`}
             type="checkbox"
             name={`checkbox-${key}`}
-            className="cursor-pointer w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500"
+            className="cursor-pointer w-4 h-4 accent-gray-900 hover:accent-gray-500"
           />
           <label
             htmlFor={`checkbox-${key}`}
