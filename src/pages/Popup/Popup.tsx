@@ -562,8 +562,12 @@ const HmeDetails = (props: {
 
   const [error, setError] = useState<string>();
 
-  // Reset the error if a new HME prop is passed to this component
-  useEffect(() => setError(undefined), [props.hme]);
+  // Reset the error and the loaders when a new HME prop is passed to this component
+  useEffect(() => {
+    setError(undefined);
+    setIsActivateSubmitting(false);
+    setIsDeleteSubmitting(false);
+  }, [props.hme]);
 
   const onActivationClick = async () => {
     setIsActivateSubmitting(true);

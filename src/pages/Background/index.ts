@@ -274,7 +274,7 @@ browser.contextMenus.onClicked.addListener(async (info, tab) => {
     await pms.reserveHme(hme, hostname);
     await sendMessageToTab(
       MessageType.ActiveInputElementWrite,
-      { text: hme } as ActiveInputElementWriteData,
+      { text: hme, copyToClipboard: true } as ActiveInputElementWriteData,
       tab
     );
   } catch (e) {
@@ -286,13 +286,13 @@ browser.contextMenus.onClicked.addListener(async (info, tab) => {
 
       sendMessageToTab(
         MessageType.ActiveInputElementWrite,
-        { text: SIGNED_OUT_CTA_COPY } as ActiveInputElementWriteData,
+        { text: SIGNED_OUT_CTA_COPY, copyToClipboard: false } as ActiveInputElementWriteData,
         tab
       );
     } else {
       sendMessageToTab(
         MessageType.ActiveInputElementWrite,
-        { text: e.toString() } as ActiveInputElementWriteData,
+        { text: e.toString(), copyToClipboard: false } as ActiveInputElementWriteData,
         tab
       );
     }

@@ -14,11 +14,11 @@ Note that the extension _should_ work on any browser that implements the [extens
 _Disclaimer: This extension is not endorsed by, directly affiliated with, maintained, authorized, or sponsored by Apple._
 
 <p align="center">
-<img src="./src/assets/img/demo-popup.gif" alt="Extension popup demo" width="380" height="auto"/>
+<img src="./src/assets/img/demo-popup.gif" alt="Extension popup demo" width="400" height="auto"/>
 </p>
 
 <p align="center">
-<img src="./src/assets/img/demo-content.gif" alt="Extension content demo" width="550" height="auto"/>
+<img src="./src/assets/img/demo-content.gif" alt="Extension content demo" width="600" height="auto"/>
 </p>
 
 ## Features
@@ -38,11 +38,11 @@ The extension can be configured to
 2. show a context menu item when right-clicking on input fields
 
 <p align="center">
-<img src="./src/assets/img/readme-button-autofilling.png" alt="Autofilling button on input field focus" width="45%" height="45%"/>
+<img src="./src/assets/img/readme-button-autofilling.png" alt="Autofilling button on input field focus" width="400" height="auto"/>
 </p>
 
 <p align="center">
-<img src="./src/assets/img/readme-context-menu-autofilling.png" alt="Context menu item when right-clicking on input fields" width="45%" height="45%"/>
+<img src="./src/assets/img/readme-context-menu-autofilling.png" alt="Context menu item when right-clicking on input fields" width="400" height="auto"/>
 </p>
 
 You can enable/disable any of the autofilling mechanisms through the Options page of the extension.
