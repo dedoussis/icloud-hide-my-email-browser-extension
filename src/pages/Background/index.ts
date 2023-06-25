@@ -286,13 +286,19 @@ browser.contextMenus.onClicked.addListener(async (info, tab) => {
 
       sendMessageToTab(
         MessageType.ActiveInputElementWrite,
-        { text: SIGNED_OUT_CTA_COPY, copyToClipboard: false } as ActiveInputElementWriteData,
+        {
+          text: SIGNED_OUT_CTA_COPY,
+          copyToClipboard: false,
+        } as ActiveInputElementWriteData,
         tab
       );
     } else {
       sendMessageToTab(
         MessageType.ActiveInputElementWrite,
-        { text: e.toString(), copyToClipboard: false } as ActiveInputElementWriteData,
+        {
+          text: e.toString(),
+          copyToClipboard: false,
+        } as ActiveInputElementWriteData,
         tab
       );
     }

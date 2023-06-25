@@ -273,7 +273,9 @@ async function main(): Promise<void> {
             return;
           }
 
-          const { data: { text, copyToClipboard } } = message as Message<ActiveInputElementWriteData>;
+          const {
+            data: { text, copyToClipboard },
+          } = message as Message<ActiveInputElementWriteData>;
           activeElement.value = text;
           activeElement.dispatchEvent(new Event('input', { bubbles: true }));
           copyToClipboard && navigator.clipboard.writeText(text);
