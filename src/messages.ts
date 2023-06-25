@@ -31,6 +31,7 @@ export type GenerationResponseData = {
 
 export type ActiveInputElementWriteData = {
   text: string;
+  copyToClipboard: boolean;
 };
 
 export type ReservationResponseData = GenerationResponseData;

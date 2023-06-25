@@ -128,6 +128,7 @@ const makeButtonSupport = (
     btnOnMousedownCallback,
   };
 };
+
 async function main(): Promise<void> {
   const options = await getBrowserStorageValue<Options>(OPTIONS_STORAGE_KEYS);
 
@@ -272,9 +273,12 @@ async function main(): Promise<void> {
             return;
           }
 
-          const { text } = message.data as ActiveInputElementWriteData;
+          const {
+            data: { text, copyToClipboard },
+          } = message as Message<ActiveInputElementWriteData>;
           activeElement.value = text;
           activeElement.dispatchEvent(new Event('input', { bubbles: true }));
+          copyToClipboard && navigator.clipboard.writeText(text);
         }
         break;
       default:
