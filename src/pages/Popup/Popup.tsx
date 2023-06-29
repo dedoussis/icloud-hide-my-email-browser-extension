@@ -335,7 +335,7 @@ async function logOut(client: ICloudClient): Promise<void> {
       title: SIGNED_OUT_CTA_COPY,
       enabled: false,
     })
-    .catch();
+    .catch(console.debug);
 }
 
 const SignOutButton = (props: {

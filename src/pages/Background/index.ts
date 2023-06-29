@@ -63,7 +63,7 @@ const getClient = async (withTokenValidation = true): Promise<ICloudClient> => {
           title: SIGNED_OUT_CTA_COPY,
           enabled: false,
         })
-        .catch();
+        .catch(console.debug);
     }
   }
   return client;
@@ -106,7 +106,7 @@ browser.runtime.onMessage.addListener(async (message: Message<unknown>) => {
             title: SIGNED_IN_CTA_COPY,
             enabled: true,
           })
-          .catch();
+          .catch(console.debug);
       }
       break;
     case MessageType.GenerateRequest:
@@ -196,7 +196,7 @@ const createContextMenuItem = (): void => {
             title: SIGNED_OUT_CTA_COPY,
             enabled: false,
           })
-          .catch();
+          .catch(console.debug);
         return;
       }
 
@@ -205,7 +205,7 @@ const createContextMenuItem = (): void => {
           title: SIGNED_IN_CTA_COPY,
           enabled: true,
         })
-        .catch();
+        .catch(console.debug);
     }
   );
 };
@@ -282,7 +282,7 @@ browser.contextMenus.onClicked.addListener(async (info, tab) => {
       browser.contextMenus.update(CONTEXT_MENU_ITEM_ID, {
         title: SIGNED_OUT_CTA_COPY,
         enabled: false,
-      });
+      }).catch(console.debug);
 
       sendMessageToTab(
         MessageType.ActiveInputElementWrite,
