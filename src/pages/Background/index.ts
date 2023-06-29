@@ -279,10 +279,12 @@ browser.contextMenus.onClicked.addListener(async (info, tab) => {
     );
   } catch (e) {
     if (e instanceof ClientAuthenticationError) {
-      browser.contextMenus.update(CONTEXT_MENU_ITEM_ID, {
-        title: SIGNED_OUT_CTA_COPY,
-        enabled: false,
-      }).catch(console.debug);
+      browser.contextMenus
+        .update(CONTEXT_MENU_ITEM_ID, {
+          title: SIGNED_OUT_CTA_COPY,
+          enabled: false,
+        })
+        .catch(console.debug);
 
       sendMessageToTab(
         MessageType.ActiveInputElementWrite,
