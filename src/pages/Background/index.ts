@@ -96,7 +96,7 @@ browser.runtime.onMessage.addListener(async (message: Message<unknown>) => {
           STATE_MACHINE_TRANSITIONS[PopupState.SignedOut][action];
 
         await setBrowserStorageValue(POPUP_STATE_STORAGE_KEYS, newState);
-        await browser.runtime.sendMessage({
+        browser.runtime.sendMessage({
           type: MessageType.LogInResponse,
           data: { success: true, action },
         } as Message<LogInResponseData>);
@@ -180,13 +180,20 @@ export const SIGNED_OUT_CTA_COPY = 'Please sign-in to iCloud';
 const LOADING_COPY = 'Hide My Email — Loading...';
 const SIGNED_IN_CTA_COPY = 'Generate and reserve Hide My Email address';
 
-const createContextMenuItem = (): void => {
+// At any given time, there should be 1 created context menu item. We want to prevent
+// the creation of multiple items that serve the same purpose (i.e. the context menu having multiple
+// "Generate and reserve Hide My Email address" rows). Hence, we create the context menu item once,
+// upon the installation of the extension.
+browser.runtime.onInstalled.addListener(async () => {
+  const options = await getBrowserStorageValue<Options>(OPTIONS_STORAGE_KEYS);
+
   browser.contextMenus.create(
     {
       id: CONTEXT_MENU_ITEM_ID,
       title: LOADING_COPY,
       contexts: ['editable'],
       enabled: false,
+      visible: options?.autofill.contextMenu || false,
     },
     async () => {
       const client = await getClient();
@@ -208,26 +215,12 @@ const createContextMenuItem = (): void => {
         .catch(console.debug);
     }
   );
-};
-
-// At any given time, there should be <=1 created context menu items. We want to prevent
-// the creation of multiple items that serve the same purpose (i.e. the context menu having multiple
-// "Generate and reserve Hide My Email address" rows). Hence, we create the context menu item once,
-// upon the installation of the extension.
-browser.runtime.onInstalled.addListener(async () => {
-  const options = await getBrowserStorageValue<Options>(OPTIONS_STORAGE_KEYS);
-
-  if (!options?.autofill.contextMenu) {
-    return;
-  }
-
-  createContextMenuItem();
 });
 
 // The following callback detects changes in the autofill config of the user
 // and acts accordingly. In particular:
-// * it removes the context menu item when the user un-checks the context menu option.
-// * it creates a context menu item when the user checks the context menu option.
+// * it hides the context menu item when the user un-checks the context menu option.
+// * it makes the context menu item visible when the user checks the context menu option.
 browser.storage.onChanged.addListener((changes, namespace) => {
   const iCloudHmeOptions = changes[OPTIONS_STORAGE_KEYS[0]];
   if (namespace !== 'local' || iCloudHmeOptions === undefined) {
@@ -245,11 +238,11 @@ browser.storage.onChanged.addListener((changes, namespace) => {
     return;
   }
 
-  if (newValue?.autofill.contextMenu === true) {
-    createContextMenuItem();
-  } else {
-    browser.contextMenus.removeAll();
-  }
+  browser.contextMenus
+    .update(CONTEXT_MENU_ITEM_ID, {
+      visible: newValue?.autofill.contextMenu || false,
+    })
+    .catch(console.debug);
 });
 
 // Upon clicking on the context menu item, we generate an email, reserve it, and emit it back to the content script

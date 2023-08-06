@@ -19,7 +19,8 @@
     },
     "condition": {
       "urlFilter": "|https://*.apple.com/*",
-      "resourceTypes": ["xmlhttprequest"]
+      "resourceTypes": ["xmlhttprequest"],
+      "excludedInitiatorDomains": ["apple.com", "icloud.com"]
     }
   },
   {
@@ -42,7 +43,8 @@
     },
     "condition": {
       "urlFilter": "|https://*.icloud.com/*",
-      "resourceTypes": ["xmlhttprequest"]
+      "resourceTypes": ["xmlhttprequest"],
+      "excludedInitiatorDomains": ["apple.com", "icloud.com"]
     }
   }
 ]

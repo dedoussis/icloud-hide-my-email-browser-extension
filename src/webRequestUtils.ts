@@ -2,11 +2,23 @@ import browser from 'webextension-polyfill';
 
 export const setupWebRequestListeners = () => {
   browser.webRequest.onBeforeSendHeaders.addListener(
-    (details) => {
+    ({ requestHeaders, documentUrl, originUrl, initiator }) => {
+      const initiatedByTheExtension = [documentUrl, originUrl, initiator].some(
+        (url) =>
+          url?.includes(browser.runtime.id) ||
+          url?.includes('moz-extension') ||
+          false
+      );
+      // Do not modify headers if the request is not initiated by the extension
+      if (!initiatedByTheExtension) {
+        return { requestHeaders };
+      }
+
       const modifiedHeaders =
-        details.requestHeaders?.filter(
+        requestHeaders?.filter(
           (header) => !['referer', 'origin'].includes(header.name.toLowerCase())
         ) || [];
+
       modifiedHeaders.push({
         name: 'Referer',
         value: 'https://www.icloud.com/',

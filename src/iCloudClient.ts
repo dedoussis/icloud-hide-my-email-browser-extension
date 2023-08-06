@@ -201,7 +201,7 @@ class ICloudClient {
         rememberMe,
         trustTokens: [],
       },
-      { headers: this.authHeaders() }
+      { headers: this.authHeaders(), params: { isRememberMeEnabled: true } }
     );
   }
 
