@@ -113,8 +113,8 @@ Note: the following console commands are to be executed from the root directory 
 
 ### TODOs
 
+- [ ] iCloudClient to use Cookies (through tough-cookie)
 - [ ] Ability to modify the label and note of existing HME addresses
 - [ ] Options page to validate client token
-- [ ] Expiration of session data stored in Chrome storage
 - [ ] CI and maybe CD
 - [ ] Dependabot
