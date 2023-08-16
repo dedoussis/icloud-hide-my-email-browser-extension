@@ -290,6 +290,7 @@ export class UpdateFwdToHmeException extends Error {}
 
 export class PremiumMailSettings {
   private readonly baseUrl: string;
+  private readonly v2BaseUrl: string;
   constructor(readonly client: ICloudClient) {
     if (!client.authenticated) {
       throw new ClientAuthenticationError(
@@ -297,11 +298,12 @@ export class PremiumMailSettings {
       );
     }
     this.baseUrl = `${client.webserviceUrl('premiummailsettings')}/v1`;
+    this.v2BaseUrl = `${client.webserviceUrl('premiummailsettings')}/v2`;
   }
 
   async listHme(): Promise<ListHmeResult> {
     const response = await this.client.requester.get(
-      `${this.baseUrl}/hme/list`
+      `${this.v2BaseUrl}/hme/list`
     );
     return response.data.result;
   }

@@ -5,10 +5,9 @@ const webpack = require('webpack'),
   HtmlWebpackPlugin = require('html-webpack-plugin'),
   TerserPlugin = require('terser-webpack-plugin'),
   MiniCssExtractPlugin = require('mini-css-extract-plugin'),
+  { CleanWebpackPlugin } = require('clean-webpack-plugin'),
   ASSET_PATH = process.env.ASSET_PATH || '/',
   MANIFEST_VERSION = parseInt(process.env.MANIFEST_VERSION || '3');
-
-const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 
 const isDev = process.env.NODE_ENV !== 'production';
 
