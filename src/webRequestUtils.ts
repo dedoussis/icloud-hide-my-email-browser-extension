@@ -34,7 +34,7 @@ export const setupWebRequestListeners = () => {
       urls: [
         'https://idmsa.apple.com/appleauth/auth/*',
         'https://setup.icloud.com/setup/ws/1/*',
-        'https://*.icloud.com/v1/hme/*',
+        'https://*.icloud.com/v*/hme/*',
       ],
     },
     ['requestHeaders', 'blocking']

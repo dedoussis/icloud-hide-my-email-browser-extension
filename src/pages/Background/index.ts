@@ -31,6 +31,10 @@ import {
 import browser from 'webextension-polyfill';
 import { setupWebRequestListeners } from '../../webRequestUtils';
 import { Options } from '../../options';
+import {
+  STATIC_RULESET_ID,
+  constructRules,
+} from '../../declarativeNetRequestRules';
 
 if (browser.webRequest !== undefined) {
   setupWebRequestListeners();
@@ -69,6 +73,57 @@ const getClient = async (withTokenValidation = true): Promise<ICloudClient> => {
   return client;
 };
 
+const maybeSetupDeclarativeNetworkRules = async (): Promise<void> => {
+  const mv3Browser = browser as unknown as typeof chrome;
+  if (mv3Browser.declarativeNetRequest === undefined) {
+    console.debug(
+      'declarativeNetRequest not enabled. Likely due to manifest version 2.'
+    );
+    return;
+  }
+
+  const enabledStaticRulesets =
+    await mv3Browser.declarativeNetRequest.getEnabledRulesets();
+
+  if (enabledStaticRulesets.length > 0) {
+    console.debug(
+      'Found enabled static rulesets. Skipping the creation of dynamic rules.',
+      { enabledStaticRulesets }
+    );
+    return;
+  }
+
+  console.debug(
+    'No enabled static ruleset has been found. Attempting to enable static ruleset...'
+  );
+  try {
+    await mv3Browser.declarativeNetRequest.updateEnabledRulesets({
+      enableRulesetIds: [STATIC_RULESET_ID],
+    });
+    console.debug('Static ruleset has successfully been enabled!', {
+      staticRulesetId: STATIC_RULESET_ID,
+    });
+    return;
+  } catch (e) {
+    console.debug('Failed to enable the static ruleset', {
+      staticRulesetId: STATIC_RULESET_ID,
+      errorMessage: e.message,
+    });
+  }
+
+  const rules = constructRules();
+  const updateRuleOptions: chrome.declarativeNetRequest.UpdateRuleOptions = {
+    // potential existing rules are deleted to not exceed the MAX_NUMBER_OF_DYNAMIC_AND_SESSION_RULES
+    removeRuleIds: rules.map((rule) => rule.id),
+    addRules: rules,
+  };
+  console.debug(
+    'Falling back to dynamic rules. Updating dynamic rules...',
+    updateRuleOptions
+  );
+  await mv3Browser.declarativeNetRequest.updateDynamicRules(updateRuleOptions);
+};
+
 // ===== Message handling =====
 
 browser.runtime.onMessage.addListener(async (message: Message<unknown>) => {
@@ -77,6 +132,13 @@ browser.runtime.onMessage.addListener(async (message: Message<unknown>) => {
       {
         const { email, password } = message.data as LogInRequestData;
         const client = await getClient(false);
+        try {
+          await maybeSetupDeclarativeNetworkRules();
+        } catch (e) {
+          console.error('Failed to setup declarative network rules', {
+            errorMessage: e.message,
+          });
+        }
 
         try {
           await client.signIn(email, password);
@@ -96,10 +158,12 @@ browser.runtime.onMessage.addListener(async (message: Message<unknown>) => {
           STATE_MACHINE_TRANSITIONS[PopupState.SignedOut][action];
 
         await setBrowserStorageValue(POPUP_STATE_STORAGE_KEYS, newState);
-        browser.runtime.sendMessage({
-          type: MessageType.LogInResponse,
-          data: { success: true, action },
-        } as Message<LogInResponseData>);
+        browser.runtime
+          .sendMessage({
+            type: MessageType.LogInResponse,
+            data: { success: true, action },
+          } as Message<LogInResponseData>)
+          .catch(console.debug);
 
         browser.contextMenus
           .update(CONTEXT_MENU_ITEM_ID, {

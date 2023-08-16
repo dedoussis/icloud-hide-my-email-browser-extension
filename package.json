@@ -1,6 +1,6 @@
 {
   "name": "icloud-hide-my-email-browser-extension",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Cross-browser extension enabling the usage of iCloud's Hide My Email service.",
   "license": "MIT",
   "author": "dedoussis",
@@ -35,6 +35,7 @@
     "uuid": "^8.3.2"
   },
   "devDependencies": {
+    "@types/chrome": "^0.0.243",
     "@types/lodash.isequal": "^4.5.6",
     "@types/lodash.startcase": "^4.4.7",
     "@types/react": "^17.0.39",
