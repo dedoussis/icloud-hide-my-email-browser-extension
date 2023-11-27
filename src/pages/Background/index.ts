@@ -16,28 +16,18 @@ import ICloudClient, {
 } from '../../iCloudClient';
 import {
   ActiveInputElementWriteData,
-  LogInRequestData,
-  LogInResponseData,
   Message,
   MessageType,
   ReservationRequestData,
   sendMessageToTab,
 } from '../../messages';
-import {
-  PopupState,
-  SignedOutAction,
-  STATE_MACHINE_TRANSITIONS,
-} from '../Popup/stateMachine';
+import { PopupState } from '../Popup/stateMachine';
 import browser from 'webextension-polyfill';
-import { setupWebRequestListeners } from '../../webRequestUtils';
+import { setupBlockingWebRequestListeners } from '../../webRequestUtils';
 import { Options } from '../../options';
-import {
-  STATIC_RULESET_ID,
-  constructRules,
-} from '../../declarativeNetRequestRules';
 
-if (browser.webRequest !== undefined) {
-  setupWebRequestListeners();
+if (!('declarativeNetRequest' in browser)) {
+  setupBlockingWebRequestListeners();
 }
 
 const getClient = async (withTokenValidation = true): Promise<ICloudClient> => {
@@ -51,128 +41,23 @@ const getClient = async (withTokenValidation = true): Promise<ICloudClient> => {
     async (data) =>
       await setBrowserStorageValue(SESSION_DATA_STORAGE_KEYS, data)
   );
+
   const client = new ICloudClient(clientSession, { adapter: fetchAdapter });
 
   if (withTokenValidation && client.authenticated) {
     try {
       await client.validateToken();
     } catch {
-      await client.logOut();
-      await setBrowserStorageValue(
-        POPUP_STATE_STORAGE_KEYS,
-        PopupState.SignedOut
-      );
-      browser.contextMenus
-        .update(CONTEXT_MENU_ITEM_ID, {
-          title: SIGNED_OUT_CTA_COPY,
-          enabled: false,
-        })
-        .catch(console.debug);
+      await signOut(client);
     }
   }
   return client;
-};
-
-const maybeSetupDeclarativeNetworkRules = async (): Promise<void> => {
-  const mv3Browser = browser as unknown as typeof chrome;
-  if (mv3Browser.declarativeNetRequest === undefined) {
-    console.debug(
-      'declarativeNetRequest not enabled. Likely due to manifest version 2.'
-    );
-    return;
-  }
-
-  const enabledStaticRulesets =
-    await mv3Browser.declarativeNetRequest.getEnabledRulesets();
-
-  if (enabledStaticRulesets.length > 0) {
-    console.debug(
-      'Found enabled static rulesets. Skipping the creation of dynamic rules.',
-      { enabledStaticRulesets }
-    );
-    return;
-  }
-
-  console.debug(
-    'No enabled static ruleset has been found. Attempting to enable static ruleset...'
-  );
-  try {
-    await mv3Browser.declarativeNetRequest.updateEnabledRulesets({
-      enableRulesetIds: [STATIC_RULESET_ID],
-    });
-    console.debug('Static ruleset has successfully been enabled!', {
-      staticRulesetId: STATIC_RULESET_ID,
-    });
-    return;
-  } catch (e) {
-    console.debug('Failed to enable the static ruleset', {
-      staticRulesetId: STATIC_RULESET_ID,
-      errorMessage: e.message,
-    });
-  }
-
-  const rules = constructRules();
-  const updateRuleOptions: chrome.declarativeNetRequest.UpdateRuleOptions = {
-    // potential existing rules are deleted to not exceed the MAX_NUMBER_OF_DYNAMIC_AND_SESSION_RULES
-    removeRuleIds: rules.map((rule) => rule.id),
-    addRules: rules,
-  };
-  console.debug(
-    'Falling back to dynamic rules. Updating dynamic rules...',
-    updateRuleOptions
-  );
-  await mv3Browser.declarativeNetRequest.updateDynamicRules(updateRuleOptions);
 };
 
 // ===== Message handling =====
 
 browser.runtime.onMessage.addListener(async (message: Message<unknown>) => {
   switch (message.type) {
-    case MessageType.LogInRequest:
-      {
-        const { email, password } = message.data as LogInRequestData;
-        const client = await getClient(false);
-        try {
-          await maybeSetupDeclarativeNetworkRules();
-        } catch (e) {
-          console.error('Failed to setup declarative network rules', {
-            errorMessage: e.message,
-          });
-        }
-
-        try {
-          await client.signIn(email, password);
-          await client.accountLogin();
-        } catch (e) {
-          await browser.runtime.sendMessage({
-            type: MessageType.LogInResponse,
-            data: { success: false },
-          } as Message<LogInResponseData>);
-          return;
-        }
-
-        const action: SignedOutAction = client.requires2fa
-          ? 'SUCCESSFUL_SIGN_IN'
-          : 'SUCCESSFUL_VERIFICATION';
-        const newState =
-          STATE_MACHINE_TRANSITIONS[PopupState.SignedOut][action];
-
-        await setBrowserStorageValue(POPUP_STATE_STORAGE_KEYS, newState);
-        browser.runtime
-          .sendMessage({
-            type: MessageType.LogInResponse,
-            data: { success: true, action },
-          } as Message<LogInResponseData>)
-          .catch(console.debug);
-
-        browser.contextMenus
-          .update(CONTEXT_MENU_ITEM_ID, {
-            title: SIGNED_IN_CTA_COPY,
-            enabled: true,
-          })
-          .catch(console.debug);
-      }
-      break;
     case MessageType.GenerateRequest:
       {
         const elementId = message.data;
@@ -364,3 +249,87 @@ browser.contextMenus.onClicked.addListener(async (info, tab) => {
     return;
   }
 });
+
+browser.webRequest.onResponseStarted.addListener(
+  async (details: browser.WebRequest.OnResponseStartedDetailsType) => {
+    const { responseHeaders, url, statusCode } = details;
+    if (!responseHeaders || (statusCode < 199 && statusCode > 300)) {
+      return;
+    }
+
+    const headers = new Headers();
+    if (responseHeaders) {
+      responseHeaders.forEach(({ name, value }) => {
+        if (value !== undefined) {
+          headers.append(name, value);
+        }
+      });
+    }
+
+    const client = await getClient(false);
+    const clientWasAuthenticated = client.authenticated;
+
+    await client.populateAndPersistSessionHeaders(headers);
+
+    if (
+      url.startsWith(
+        `${ICloudClient.DEFAULT_BASE_URL_CONFIG.setup}/accountLogin`
+      )
+    ) {
+      await client.validateToken(true).catch(console.debug);
+
+      if (!clientWasAuthenticated && client.authenticated) {
+        browser.notifications
+          .create({
+            type: 'basic',
+            title: 'iCloud HideMyEmail Extension',
+            message: 'The iCloud HideMyEmail extension is ready to use!',
+            iconUrl: 'icon-128.png',
+          })
+          .catch(console.debug);
+
+        browser.contextMenus
+          .update(CONTEXT_MENU_ITEM_ID, {
+            title: SIGNED_IN_CTA_COPY,
+            enabled: true,
+          })
+          .catch(console.debug);
+      }
+    }
+  },
+  {
+    urls: [
+      `${ICloudClient.DEFAULT_BASE_URL_CONFIG.auth}/*`,
+      `${ICloudClient.DEFAULT_BASE_URL_CONFIG.setup}/accountLogin*`,
+    ],
+  },
+  ['responseHeaders']
+);
+
+browser.webRequest.onResponseStarted.addListener(
+  async (details: browser.WebRequest.OnResponseStartedDetailsType) => {
+    const { statusCode } = details;
+    if (statusCode < 199 && statusCode > 300) {
+      return;
+    }
+
+    const client = await getClient(false);
+    signOut(client);
+  },
+  {
+    urls: [`${ICloudClient.DEFAULT_BASE_URL_CONFIG.setup}/logout*`],
+  },
+  ['responseHeaders']
+);
+
+const signOut = async (client: ICloudClient) => {
+  await client.resetSession();
+  await setBrowserStorageValue(POPUP_STATE_STORAGE_KEYS, PopupState.SignedOut);
+
+  browser.contextMenus
+    .update(CONTEXT_MENU_ITEM_ID, {
+      title: SIGNED_OUT_CTA_COPY,
+      enabled: false,
+    })
+    .catch(console.debug);
+};

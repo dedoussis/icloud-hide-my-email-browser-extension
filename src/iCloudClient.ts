@@ -1,9 +1,4 @@
-import axios, {
-  AxiosRequestConfig,
-  AxiosRequestHeaders,
-  AxiosResponse,
-} from 'axios';
-import { v4 as uuidv4 } from 'uuid';
+import axios, { AxiosRequestConfig, AxiosRequestHeaders } from 'axios';
 import isEqual from 'lodash.isequal';
 
 type BaseUrlConfig = {
@@ -16,12 +11,7 @@ export type ICloudClientSessionData = {
   webservices: {
     [k: string]: { url: string; status: string };
   };
-  dsInfo: {
-    hsaVersion?: number;
-  };
   headers: { [k: string]: string };
-  hsaChallengeRequired?: boolean;
-  hsaTrustedBrowser?: boolean;
 };
 
 export const EMPTY_SESSION_DATA = {
@@ -31,35 +21,6 @@ export const EMPTY_SESSION_DATA = {
 };
 
 export class ICloudClientSession {
-  constructor(
-    public data: ICloudClientSessionData = EMPTY_SESSION_DATA,
-    private readonly persistCallback: (
-      data: ICloudClientSessionData
-    ) => void = async () => undefined,
-    private readonly refreshCallback: () => void = () => undefined
-  ) {}
-
-  async persist(): Promise<void> {
-    await this.persistCallback(this.data);
-  }
-
-  async refresh(): Promise<void> {
-    await this.refreshCallback();
-  }
-
-  async cleanUp(): Promise<void> {
-    this.data = EMPTY_SESSION_DATA;
-    await this.persist();
-  }
-}
-
-class ICloudClient {
-  private static readonly DEFAULT_BASE_URL_CONFIG = {
-    auth: 'https://idmsa.apple.com/appleauth/auth',
-    home: 'https://www.icloud.com',
-    setup: 'https://setup.icloud.com/setup/ws/1',
-  };
-
   private static readonly ACCOUNT_COUNTRY_HEADER =
     'X-Apple-ID-Account-Country'.toLowerCase();
   private static readonly SESSION_ID_HEADER =
@@ -70,49 +31,71 @@ class ICloudClient {
     'X-Apple-TwoSV-Trust-Token'.toLowerCase();
   private static readonly SCNT_HEADER = 'scnt'.toLowerCase();
 
-  private static readonly SESSION_HEADERS = [
+  public static readonly REQUIRED_HEADERS = [
     this.ACCOUNT_COUNTRY_HEADER,
     this.SESSION_ID_HEADER,
     this.SESSION_TOKEN_HEADER,
-    this.TWOSV_TRUST_TOKEN_HEADER,
     this.SCNT_HEADER,
   ];
 
-  private readonly clientId: string;
+  private static readonly OPTIONAL_HEADERS = [this.TWOSV_TRUST_TOKEN_HEADER];
+
+  public static readonly HEADERS = this.REQUIRED_HEADERS.concat(
+    this.OPTIONAL_HEADERS
+  );
+
+  constructor(
+    public data: ICloudClientSessionData = EMPTY_SESSION_DATA,
+    private readonly persistCallback: (
+      data: ICloudClientSessionData
+    ) => void = async () => undefined
+  ) {}
+
+  async persist(): Promise<void> {
+    await this.persistCallback(this.data);
+  }
+
+  async reset(): Promise<void> {
+    this.data = EMPTY_SESSION_DATA;
+    await this.persist();
+  }
+
+  public setHeaders(headers: Headers) {
+    ICloudClientSession.HEADERS.forEach((headerKey: string) => {
+      const headerVal = headers.get(headerKey);
+      if (headerVal !== null) {
+        this.data.headers[headerKey] = headerVal;
+      }
+    });
+  }
+}
+
+export class ClientSessionIsMissingRequiredHeaders extends Error {}
+
+class ICloudClient {
+  public static readonly DEFAULT_BASE_URL_CONFIG = {
+    auth: 'https://idmsa.apple.com/appleauth/auth',
+    home: 'https://www.icloud.com',
+    setup: 'https://setup.icloud.com/setup/ws/1',
+  };
+
   public readonly requester;
-  private readonly nonPersistingRequester;
 
   constructor(
     private readonly session: ICloudClientSession = new ICloudClientSession(),
     private readonly axiosConfig?: AxiosRequestConfig,
     readonly baseUrls: BaseUrlConfig = ICloudClient.DEFAULT_BASE_URL_CONFIG
   ) {
-    this.clientId = uuidv4();
-
     this.requester = axios.create(this.axiosConfig);
-    this.nonPersistingRequester = axios.create(this.axiosConfig);
-
-    [this.requester, this.nonPersistingRequester].forEach((instance) =>
-      instance.interceptors.request.use(
-        this.prepareRequest.bind(this),
-        (error) => Promise.reject(error),
-        { synchronous: true }
-      )
-    );
-
-    this.requester.interceptors.response.use(
-      this.handleResponse.bind(this),
+    this.requester.interceptors.request.use(
+      this.prepareRequest.bind(this),
       (error) => Promise.reject(error),
       { synchronous: true }
     );
   }
 
-  public async refreshSession(): Promise<void> {
-    await this.session.refresh();
-  }
-
   private prepareRequest(config: AxiosRequestConfig) {
-    ICloudClient.SESSION_HEADERS.forEach((headerKey: string) => {
+    ICloudClientSession.HEADERS.forEach((headerKey: string) => {
       const sessionVal = this.session.data.headers[headerKey];
       if (sessionVal !== undefined) {
         (config.headers as AxiosRequestHeaders)[headerKey] = sessionVal;
@@ -121,141 +104,65 @@ class ICloudClient {
     return config;
   }
 
-  private async handleResponse<T, D>(
-    response: AxiosResponse<T, D>
-  ): Promise<AxiosResponse<T, D>> {
-    const responseHeaders = new Headers(response.headers);
-    ICloudClient.SESSION_HEADERS.forEach((headerKey: string) => {
-      const headerVal = responseHeaders.get(headerKey);
-      if (headerVal !== null) {
-        this.session.data.headers[headerKey] = headerVal;
-      }
-    });
-
+  public async populateAndPersistSessionHeaders(
+    headers: Headers
+  ): Promise<void> {
+    this.session.setHeaders(headers);
     await this.session.persist();
-
-    return response;
   }
 
-  private authHeaders(overrides?: { [k: string]: string }): {
-    [k: string]: string;
-  } {
-    return {
-      Accept: '*/*',
-      'Content-Type': 'application/json',
-      'X-Apple-OAuth-Client-Id':
-        'd39ba9916b7251055b22c7f910e2ea796ee65e98b2ddecea8f5dde8d9d1a815d',
-      'X-Apple-OAuth-Client-Type': 'firstPartyAuth',
-      'X-Apple-OAuth-Redirect-URI': this.baseUrls.home,
-      'X-Apple-OAuth-Require-Grant-Code': 'true',
-      'X-Apple-OAuth-Response-Mode': 'web_message',
-      'X-Apple-OAuth-Response-Type': 'code',
-      'X-Apple-OAuth-State': this.clientId,
-      'X-Apple-Widget-Key':
-        'd39ba9916b7251055b22c7f910e2ea796ee65e98b2ddecea8f5dde8d9d1a815d',
-      ...(overrides || {}),
-    };
+  public async resetSession(): Promise<void> {
+    await this.session.reset();
   }
 
   public get authenticated(): boolean {
     return (
       !isEqual(this.session.data.webservices, {}) &&
-      !isEqual(this.session.data.dsInfo, {}) &&
-      ICloudClient.SESSION_HEADERS.every(
+      ICloudClientSession.REQUIRED_HEADERS.every(
         (header) => header in this.session.data.headers
-      ) &&
-      !this.requires2fa
+      )
     );
   }
 
-  public get requires2fa(): boolean {
-    return (
-      this.session.data.dsInfo.hsaVersion === 2 &&
-      (this.session.data.hsaChallengeRequired === true ||
-        !this.isTrustedSession)
-    );
-  }
-
-  public get isTrustedSession(): boolean {
-    return this.session.data.hsaTrustedBrowser === true;
-  }
-
-  webserviceUrl(serviceName: string): string {
+  public webserviceUrl(serviceName: string): string {
     return this.session.data.webservices[serviceName].url;
   }
 
-  async validateToken(): Promise<void> {
-    await this.nonPersistingRequester.post(`${this.baseUrls.setup}/validate`);
-  }
-
-  async signIn(
-    appleId: string,
-    password: string,
-    rememberMe = true
+  public async validateToken(
+    populateAndPersistSessionWebservices = false
   ): Promise<void> {
-    await this.requester.post(
-      `${this.baseUrls.auth}/signin`,
-      {
-        accountName: appleId,
-        password,
-        rememberMe,
-        trustTokens: [],
-      },
-      { headers: this.authHeaders(), params: { isRememberMeEnabled: true } }
-    );
-  }
+    const sessionHasEveryRequiredHeader =
+      ICloudClientSession.REQUIRED_HEADERS.every(
+        (header) => header in this.session.data.headers
+      );
 
-  async accountLogin(): Promise<void> {
-    const response = await this.requester.post(
-      `${this.baseUrls.setup}/accountLogin`,
-      {
-        accountCountryCode:
-          this.session.data.headers[ICloudClient.ACCOUNT_COUNTRY_HEADER],
-        dsWebAuthToken:
-          this.session.data.headers[ICloudClient.SESSION_TOKEN_HEADER],
-        extended_login: true,
-        trustToken:
-          this.session.data.headers[ICloudClient.TWOSV_TRUST_TOKEN_HEADER],
-      },
-      { headers: this.authHeaders() }
-    );
-
-    this.session.data.webservices = response.data.webservices;
-    this.session.data.hsaChallengeRequired = response.data.hsaChallengeRequired;
-    this.session.data.hsaTrustedBrowser = response.data.hsaTrustedBrowser;
-    this.session.data.dsInfo.hsaVersion = response.data.dsInfo.hsaVersion;
-    await this.session.persist();
-  }
-
-  async verify2faCode(code: string): Promise<void> {
-    await this.requester.post(
-      `${this.baseUrls.auth}/verify/trusteddevice/securitycode`,
-      {
-        securityCode: { code },
-      },
-      { headers: this.authHeaders({ Accept: 'application/json' }) }
-    );
-  }
-
-  async trustDevice(): Promise<void> {
-    await this.requester.get(`${this.baseUrls.auth}/2sv/trust`, {
-      headers: this.authHeaders(),
-    });
-  }
-
-  async logOut(trust = false): Promise<void> {
-    if (this.authenticated) {
-      try {
-        await this.requester.post(`${this.baseUrls.setup}/logout`, {
-          trustBrowsers: trust,
-          allBrowsers: trust,
-        });
-      } catch (err) {
-        console.error(err);
-      }
+    if (!sessionHasEveryRequiredHeader) {
+      throw new ClientSessionIsMissingRequiredHeaders(
+        'Session of the iCloud client is missing required headers'
+      );
     }
 
-    await this.session.cleanUp();
+    const {
+      data: { webservices },
+    } = await this.requester.post(`${this.baseUrls.setup}/validate`);
+
+    if (populateAndPersistSessionWebservices) {
+      this.session.data.webservices = webservices;
+      await this.session.persist();
+    }
+  }
+
+  public async signOut(trust = false): Promise<void> {
+    if (this.authenticated) {
+      await this.requester
+        .post(`${this.baseUrls.setup}/logout`, {
+          trustBrowsers: trust,
+          allBrowsers: trust,
+        })
+        .catch(console.debug);
+    }
+
+    await this.resetSession();
   }
 }
 

@@ -24,7 +24,14 @@
       }
     ]
   },
-  "permissions": ["declarativeNetRequest", "storage", "tabs", "contextMenus"],
+  "permissions": [
+    "declarativeNetRequest",
+    "storage",
+    "tabs",
+    "contextMenus",
+    "webRequest",
+    "notifications"
+  ],
   "host_permissions": [
     "https://idmsa.apple.com/appleauth/auth/*",
     "https://setup.icloud.com/setup/ws/1/*",

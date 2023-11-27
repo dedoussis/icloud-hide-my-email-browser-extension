@@ -1,10 +1,7 @@
 import browser from 'webextension-polyfill';
-import { SignedOutAction } from './pages/Popup/stateMachine';
 
 export enum MessageType {
   Autofill,
-  LogInRequest,
-  LogInResponse,
   GenerateRequest,
   GenerateResponse,
   ReservationRequest,
@@ -35,16 +32,6 @@ export type ActiveInputElementWriteData = {
 };
 
 export type ReservationResponseData = GenerationResponseData;
-
-export type LogInRequestData = {
-  email: string;
-  password: string;
-};
-
-export type LogInResponseData = {
-  success: boolean;
-  action?: SignedOutAction;
-};
 
 export const sendMessageToTab = async (
   type: MessageType,
