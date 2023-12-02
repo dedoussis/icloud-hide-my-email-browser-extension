@@ -38,7 +38,7 @@ const SelectFwdToForm = (props: { client: ICloudClient }) => {
       } catch (e) {
         const errorMsg =
           e instanceof ClientAuthenticationError
-            ? 'To select a new Fortward-To address, you first need to sign-in by following the instructions on the extension pop-up.'
+            ? 'To select a new Forward-To address, you first need to sign-in by following the instructions on the extension pop-up.'
             : e.toString();
         setListHmeError(errorMsg);
       } finally {
