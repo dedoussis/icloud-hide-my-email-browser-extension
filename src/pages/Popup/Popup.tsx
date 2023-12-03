@@ -15,7 +15,6 @@ import ICloudClient, {
   EMPTY_SESSION_DATA,
 } from '../../iCloudClient';
 import './Popup.css';
-import AuthCode from 'react-auth-code-input';
 import { useBrowserStorageState } from '../../hooks';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
@@ -30,14 +29,10 @@ import {
   faBan,
   faSearch,
   faInfoCircle,
+  faExternalLink,
+  faQuestionCircle,
 } from '@fortawesome/free-solid-svg-icons';
-import {
-  LogInRequestData,
-  LogInResponseData,
-  Message,
-  MessageType,
-  sendMessageToTab,
-} from '../../messages';
+import { MessageType, sendMessageToTab } from '../../messages';
 import {
   ErrorMessage,
   LoadingButton,
@@ -45,23 +40,21 @@ import {
   TitledComponent,
 } from '../../commonComponents';
 import {
-  getBrowserStorageValue,
   POPUP_STATE_STORAGE_KEYS,
   SESSION_DATA_STORAGE_KEYS,
 } from '../../storage';
 
 import browser from 'webextension-polyfill';
-import { setupWebRequestListeners } from '../../webRequestUtils';
+import { setupBlockingWebRequestListeners } from '../../webRequestUtils';
 import Fuse from 'fuse.js';
 import isEqual from 'lodash.isequal';
 import {
   PopupAction,
   PopupState,
-  SignedInAction,
+  AuthenticatedAction,
   SignedOutAction,
   STATE_MACHINE_TRANSITIONS,
-  VerifiedAction,
-  VerifiedAndManagingAction,
+  AuthenticatedAndManagingAction,
 } from './stateMachine';
 import { CONTEXT_MENU_ITEM_ID, SIGNED_OUT_CTA_COPY } from '../Background';
 
@@ -82,188 +75,80 @@ type TransitionCallback<T extends PopupAction> = (action: T) => void;
 //
 // [0] https://developer.mozilla.org/en-US/docs/Glossary/Forbidden_header_name
 // [1] https://bugzilla.mozilla.org/show_bug.cgi?id=1687755
-if (browser.webRequest !== undefined) {
-  setupWebRequestListeners();
+if ((browser as unknown as typeof chrome).declarativeNetRequest === undefined) {
+  setupBlockingWebRequestListeners();
 }
 
-const SignInForm = (props: {
+const SignInInstructions = (props: {
   callback: TransitionCallback<SignedOutAction>;
   client: ICloudClient;
 }) => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string>();
+  const userguideUrl = browser.runtime.getURL('userguide.html');
 
-  useEffect(() => {
-    browser.runtime.onMessage.addListener(
-      async (message: Message<LogInResponseData>) => {
-        if (message.type !== MessageType.LogInResponse) {
-          return;
-        }
-        setIsSubmitting(false);
-        if (message.data.success) {
-          await props.client.refreshSession();
-          message.data.action && props.callback(message.data.action);
-        } else {
-          setError('Failed to sign in. Please try again.');
-        }
-      }
-    );
-  });
-
-  const onFormSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setIsSubmitting(true);
-    setError(undefined);
-    await browser.runtime.sendMessage({
-      type: MessageType.LogInRequest,
-      data: { email, password },
-    } as Message<LogInRequestData>);
-  };
+  if (props.client.authenticated) {
+    props.callback('AUTHENTICATE');
+  }
 
   return (
     <TitledComponent title="Hide My Email" subtitle="Sign in to iCloud">
-      <form
-        className="space-y-3 text-base"
-        action="#"
-        method="POST"
-        onSubmit={onFormSubmit}
-      >
-        <div className="rounded-md shadow-sm -space-y-px">
-          <div>
-            <label htmlFor="email-address" className="sr-only">
-              Email address
-            </label>
-            <input
-              id="email-address"
-              name="email"
-              type="email"
-              autoComplete="email"
-              required
-              className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-400 text-gray-900 rounded-t-md focus:outline-none focus:ring-sky-400 focus:border-sky-400 focus:z-10 sm:text-sm"
-              placeholder="Email address"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              disabled={isSubmitting}
-              autoFocus // eslint-disable-line jsx-a11y/no-autofocus
-            />
-          </div>
-          <div>
-            <label htmlFor="password" className="sr-only">
-              Password
-            </label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              autoComplete="current-password"
-              required
-              className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-400 text-gray-900 rounded-b-md focus:outline-none focus:ring-sky-400 focus:border-sky-400 focus:z-10 sm:text-sm"
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              disabled={isSubmitting}
-            />
-          </div>
-        </div>
-        <div>
-          <a
-            href="https://iforgot.apple.com/password/verify/appleid"
-            className="font-medium text-sky-400 hover:text-sky-500"
-            target="_blank"
-            rel="noreferrer"
-          >
-            Forgot your password?
-          </a>
+      <div className="space-y-4">
+        <div className="text-sm space-y-2">
+          <p>
+            To use this extension, sign in to your iCloud account on{' '}
+            <a
+              href="https://icloud.com"
+              className="font-semibold text-sky-400 hover:text-sky-500"
+              target="_blank"
+              rel="noreferrer"
+              aria-label="Go to iCloud.com"
+            >
+              icloud.com
+            </a>
+            .
+          </p>
+          <p>
+            Complete the full sign-in process, including{' '}
+            <span className="font-semibold">two-factor authentication</span> and{' '}
+            <span className="font-semibold">Trust This Browser</span>.
+          </p>
+          <p>
+            <span className="font-semibold">Already signed in?</span> Please
+            sign out and sign back in.
+          </p>
         </div>
         <div
-          className="flex p-4 text-sm border text-gray-600 rounded-lg bg-gray-50"
+          className="flex p-3 text-sm border text-gray-600 rounded-lg bg-gray-50"
           role="alert"
         >
           <FontAwesomeIcon icon={faInfoCircle} className="mr-2 mt-1" />
           <span className="sr-only">Info</span>
           <div>
-            <span className="font-medium">
-              The extension doesn&apos;t store your iCloud credentials.
-            </span>{' '}
-            It passes them directly to Apple without logging or utilizing them
-            for any other purpose. Review the{' '}
-            <a
-              href="https://github.com/dedoussis/icloud-hide-my-email-browser-extension"
-              className="text-sky-400 font-medium hover:text-sky-500"
-              target="_blank"
-              rel="noreferrer"
-            >
-              source code
-            </a>
-            .
+            <span className="font-semibold">Pro-tip:</span> Tick the{' '}
+            <span className="font-semibold">Keep me signed in</span> box
           </div>
         </div>
-        <div>
-          <LoadingButton loading={isSubmitting}>Sign In</LoadingButton>
+        <div className="grid grid-cols-2 gap-3">
+          <a
+            href={userguideUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="w-full justify-center text-white bg-sky-400 hover:bg-sky-500 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg px-5 py-2.5 text-center mr-2 inline-flex items-center"
+            aria-label="Help"
+          >
+            <FontAwesomeIcon icon={faQuestionCircle} className="mr-1" />
+            Help
+          </a>
+          <a
+            href="https://icloud.com"
+            target="_blank"
+            rel="noreferrer"
+            className="w-full justify-center text-white bg-sky-400 hover:bg-sky-500 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg px-5 py-2.5 text-center mr-2 inline-flex items-center"
+            aria-label="Go to iCloud.com"
+          >
+            <FontAwesomeIcon icon={faExternalLink} className="mr-1" /> Go to
+            icloud.com
+          </a>
         </div>
-        {error && <ErrorMessage>{error}</ErrorMessage>}
-      </form>
-    </TitledComponent>
-  );
-};
-
-const TwoFaForm = (props: {
-  callback: TransitionCallback<SignedInAction>;
-  client: ICloudClient;
-}) => {
-  const [code, setCode] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string>();
-
-  const onFormSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setIsSubmitting(true);
-    setError(undefined);
-    if (code.length === 6) {
-      try {
-        await props.client.verify2faCode(code);
-        await props.client.trustDevice();
-        await props.client.accountLogin();
-
-        setIsSubmitting(false);
-
-        props.callback('SUCCESSFUL_VERIFICATION');
-      } catch (e) {
-        setIsSubmitting(false);
-        setError(
-          '2FA failed. Please try entering the code again or sign-out and sign back in.'
-        );
-      }
-    } else {
-      setIsSubmitting(false);
-      setError('Please fill in all of the 6 digits of the code.');
-    }
-  };
-  return (
-    <TitledComponent title="Hide My Email" subtitle="Enter the 2FA code">
-      <form
-        className="mt-8 space-y-3"
-        action="#"
-        method="POST"
-        onSubmit={onFormSubmit}
-      >
-        <AuthCode
-          onChange={(v) => setCode(v)}
-          containerClassName="grid grid-cols-6 gap-2"
-          inputClassName="col-auto h-14 text-center text-2xl mt-1 block w-full shadow-bg bg:text-bg border border-gray-300 placeholder-gray-400 focus:outline-none focus:ring-sky-400 focus:border-sky-400 rounded-md"
-          allowedCharacters="numeric"
-          disabled={isSubmitting}
-          placeholder="."
-        />
-        <div>
-          <LoadingButton loading={isSubmitting}>Verify</LoadingButton>
-        </div>
-        {error && <ErrorMessage>{error}</ErrorMessage>}
-      </form>
-      <div className="text-center mt-3">
-        <SignOutButton {...props} />
       </div>
     </TitledComponent>
   );
@@ -289,7 +174,7 @@ const ReservationResult = (props: { hme: HmeEmail }) => {
       <p>
         <strong>{props.hme.hme}</strong> has successfully been reserved!
       </p>
-      <div className={`grid grid-cols-2 gap-2`}>
+      <div className="grid grid-cols-2 gap-2">
         <button
           type="button"
           className={btnClassName}
@@ -328,8 +213,16 @@ const FooterButton = (
   );
 };
 
-async function logOut(client: ICloudClient): Promise<void> {
-  await client.logOut();
+async function signOut(
+  client: ICloudClient,
+  sendSignOutRequest: boolean
+): Promise<void> {
+  if (sendSignOutRequest) {
+    await client.signOut();
+  } else {
+    client.resetSession();
+  }
+
   await browser.contextMenus
     .update(CONTEXT_MENU_ITEM_ID, {
       title: SIGNED_OUT_CTA_COPY,
@@ -339,15 +232,15 @@ async function logOut(client: ICloudClient): Promise<void> {
 }
 
 const SignOutButton = (props: {
-  callback: TransitionCallback<'SUCCESSFUL_SIGN_OUT'>;
+  callback: TransitionCallback<'SIGN_OUT'>;
   client: ICloudClient;
 }) => {
   return (
     <FooterButton
       className="text-sky-400 hover:text-sky-500 focus:outline-sky-400"
       onClick={async () => {
-        await logOut(props.client);
-        props.callback('SUCCESSFUL_SIGN_OUT');
+        await signOut(props.client, true);
+        props.callback('SIGN_OUT');
       }}
       label="Sign out"
       icon={faSignOut}
@@ -356,7 +249,7 @@ const SignOutButton = (props: {
 };
 
 const HmeGenerator = (props: {
-  callback: TransitionCallback<VerifiedAction>;
+  callback: TransitionCallback<AuthenticatedAction>;
   client: ICloudClient;
 }) => {
   const [hmeEmail, setHmeEmail] = useState<string>();
@@ -713,7 +606,7 @@ const searchHmeEmails = (
 };
 
 const HmeManager = (props: {
-  callback: TransitionCallback<VerifiedAndManagingAction>;
+  callback: TransitionCallback<AuthenticatedAndManagingAction>;
   client: ICloudClient;
 }) => {
   const [fetchedHmeEmails, setFetchedHmeEmails] = useState<HmeEmail[]>();
@@ -888,20 +781,15 @@ const transitionToNextStateElement = (
     case PopupState.SignedOut: {
       const callback = (action: SignedOutAction) =>
         setState(STATE_MACHINE_TRANSITIONS[state][action]);
-      return <SignInForm callback={callback} client={client} />;
+      return <SignInInstructions callback={callback} client={client} />;
     }
-    case PopupState.SignedIn: {
-      const callback = (action: SignedInAction) =>
-        setState(STATE_MACHINE_TRANSITIONS[state][action]);
-      return <TwoFaForm callback={callback} client={client} />;
-    }
-    case PopupState.Verified: {
-      const callback = (action: VerifiedAction) =>
+    case PopupState.Authenticated: {
+      const callback = (action: AuthenticatedAction) =>
         setState(STATE_MACHINE_TRANSITIONS[state][action]);
       return <HmeGenerator callback={callback} client={client} />;
     }
-    case PopupState.VerifiedAndManaging: {
-      const callback = (action: VerifiedAndManagingAction) =>
+    case PopupState.AuthenticatedAndManaging: {
+      const callback = (action: AuthenticatedAndManagingAction) =>
         setState(STATE_MACHINE_TRANSITIONS[state][action]);
       return <HmeManager callback={callback} client={client} />;
     }
@@ -924,36 +812,23 @@ const Popup = () => {
       EMPTY_SESSION_DATA
     );
 
-  const refreshSessionCallback = async (): Promise<void> => {
-    const refreshedSessionData = (await getBrowserStorageValue(
-      SESSION_DATA_STORAGE_KEYS
-    )) as ICloudClientSessionData;
-    await setSessionData(refreshedSessionData);
-  };
-
   useEffect(() => {
     const validateSession = async () => {
       const session = new ICloudClientSession(sessionData, setSessionData);
       const client = new ICloudClient(session);
-
       if (client.authenticated) {
-        try {
-          await client.validateToken();
-        } catch {
-          await logOut(client);
+        await client.validateToken().catch(async (e) => {
+          console.debug(e);
+          await signOut(client, false);
           setState(PopupState.SignedOut);
-        }
+        });
       }
     };
 
     validateSession();
   }, [sessionData, setSessionData, setState]);
 
-  const session = new ICloudClientSession(
-    sessionData,
-    setSessionData,
-    refreshSessionCallback
-  );
+  const session = new ICloudClientSession(sessionData, setSessionData);
   const client = new ICloudClient(session);
 
   return (

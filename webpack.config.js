@@ -58,7 +58,6 @@ const makeManifestV2 = (mv3) => {
     permissions: [
       ...mv3.host_permissions,
       ...mv3.permissions.filter((p) => p !== 'declarativeNetRequest'),
-      'webRequest',
       'webRequestBlocking',
     ],
   };
@@ -71,6 +70,7 @@ const options = {
     background: path.join(__dirname, 'src', 'pages', 'Background', 'index.ts'),
     contentScript: path.join(__dirname, 'src', 'pages', 'Content', 'index.ts'),
     options: path.join(__dirname, 'src', 'pages', 'Options', 'index.tsx'),
+    userguide: path.join(__dirname, 'src', 'pages', 'Userguide', 'index.tsx'),
   },
   chromeExtensionBoilerplate: {
     notHotReload: ['background', 'contentScript'],
@@ -177,6 +177,11 @@ const options = {
           to: path.join(__dirname, 'build'),
           force: true,
         },
+        {
+          from: 'src/assets/img/icloud-sign-in.webp',
+          to: path.join(__dirname, 'build'),
+          force: true,
+        },
       ],
     }),
     new HtmlWebpackPlugin({
@@ -189,6 +194,12 @@ const options = {
       template: path.join(__dirname, 'src', 'pages', 'Options', 'index.html'),
       filename: 'options.html',
       chunks: ['options'],
+      cache: false,
+    }),
+    new HtmlWebpackPlugin({
+      template: path.join(__dirname, 'src', 'pages', 'Userguide', 'index.html'),
+      filename: 'userguide.html',
+      chunks: ['userguide'],
       cache: false,
     }),
   ],

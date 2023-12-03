@@ -1,6 +1,7 @@
 import browser from 'webextension-polyfill';
+import ICloudClient from './iCloudClient';
 
-export const setupWebRequestListeners = () => {
+export const setupBlockingWebRequestListeners = () => {
   browser.webRequest.onBeforeSendHeaders.addListener(
     ({ requestHeaders, documentUrl, originUrl, initiator }) => {
       const initiatedByTheExtension = [documentUrl, originUrl, initiator].some(
@@ -32,8 +33,8 @@ export const setupWebRequestListeners = () => {
     },
     {
       urls: [
-        'https://idmsa.apple.com/appleauth/auth/*',
-        'https://setup.icloud.com/setup/ws/1/*',
+        `${ICloudClient.DEFAULT_BASE_URL_CONFIG.auth}/*`,
+        `${ICloudClient.DEFAULT_BASE_URL_CONFIG.setup}/*`,
         'https://*.icloud.com/v*/hme/*',
       ],
     },

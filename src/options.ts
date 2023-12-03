@@ -10,6 +10,6 @@ export type Options = {
 export const DEFAULT_OPTIONS: Options = {
   autofill: {
     button: true,
-    contextMenu: false,
+    contextMenu: true,
   },
 };
