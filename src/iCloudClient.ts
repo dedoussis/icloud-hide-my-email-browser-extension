@@ -146,7 +146,7 @@ class ICloudClient {
       data: { webservices },
     } = await this.requester.post(`${this.baseUrls.setup}/validate`);
 
-    if (populateAndPersistSessionWebservices) {
+    if (populateAndPersistSessionWebservices && webservices) {
       this.session.data.webservices = webservices;
       await this.session.persist();
     }

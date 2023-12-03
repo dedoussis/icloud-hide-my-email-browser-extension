@@ -29,6 +29,8 @@ import {
   faBan,
   faSearch,
   faInfoCircle,
+  faExternalLink,
+  faQuestionCircle,
 } from '@fortawesome/free-solid-svg-icons';
 import { MessageType, sendMessageToTab } from '../../messages';
 import {
@@ -73,7 +75,7 @@ type TransitionCallback<T extends PopupAction> = (action: T) => void;
 //
 // [0] https://developer.mozilla.org/en-US/docs/Glossary/Forbidden_header_name
 // [1] https://bugzilla.mozilla.org/show_bug.cgi?id=1687755
-if (!('declarativeNetRequest' in browser)) {
+if ((browser as unknown as typeof chrome).declarativeNetRequest === undefined) {
   setupBlockingWebRequestListeners();
 }
 
@@ -81,6 +83,8 @@ const SignInInstructions = (props: {
   callback: TransitionCallback<SignedOutAction>;
   client: ICloudClient;
 }) => {
+  const userguideUrl = browser.runtime.getURL('userguide.html');
+
   if (props.client.authenticated) {
     props.callback('AUTHENTICATE');
   }
@@ -93,7 +97,7 @@ const SignInInstructions = (props: {
             To use this extension, sign in to your iCloud account on{' '}
             <a
               href="https://icloud.com"
-              className="font-medium text-sky-400 hover:text-sky-500"
+              className="font-semibold text-sky-400 hover:text-sky-500"
               target="_blank"
               rel="noreferrer"
               aria-label="Go to iCloud.com"
@@ -104,12 +108,12 @@ const SignInInstructions = (props: {
           </p>
           <p>
             Complete the full sign-in process, including{' '}
-            <span className="font-medium">two-factor authentication</span> and{' '}
-            <span className="font-medium">Trust This Browser</span>.
+            <span className="font-semibold">two-factor authentication</span> and{' '}
+            <span className="font-semibold">Trust This Browser</span>.
           </p>
           <p>
-            <span className="font-medium">Already signed in?</span> Please sign
-            out and sign back in.
+            <span className="font-semibold">Already signed in?</span> Please
+            sign out and sign back in.
           </p>
         </div>
         <div
@@ -119,19 +123,32 @@ const SignInInstructions = (props: {
           <FontAwesomeIcon icon={faInfoCircle} className="mr-2 mt-1" />
           <span className="sr-only">Info</span>
           <div>
-            <span className="font-medium">Pro-tip:</span> Tick the{' '}
-            <span className="font-medium">Remember Me</span> box
+            <span className="font-semibold">Pro-tip:</span> Tick the{' '}
+            <span className="font-semibold">Keep me signed in</span> box
           </div>
         </div>
-        <a
-          href="https://icloud.com"
-          target="_blank"
-          rel="noreferrer"
-          className="w-full justify-center text-white bg-sky-400 hover:bg-sky-500 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg px-5 py-2.5 text-center mr-2 inline-flex items-center"
-          aria-label="Go to iCloud.com"
-        >
-          Go to icloud.com
-        </a>
+        <div className="grid grid-cols-2 gap-3">
+          <a
+            href={userguideUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="w-full justify-center text-white bg-sky-400 hover:bg-sky-500 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg px-5 py-2.5 text-center mr-2 inline-flex items-center"
+            aria-label="Help"
+          >
+            <FontAwesomeIcon icon={faQuestionCircle} className="mr-1" />
+            Help
+          </a>
+          <a
+            href="https://icloud.com"
+            target="_blank"
+            rel="noreferrer"
+            className="w-full justify-center text-white bg-sky-400 hover:bg-sky-500 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg px-5 py-2.5 text-center mr-2 inline-flex items-center"
+            aria-label="Go to iCloud.com"
+          >
+            <FontAwesomeIcon icon={faExternalLink} className="mr-1" /> Go to
+            icloud.com
+          </a>
+        </div>
       </div>
     </TitledComponent>
   );
@@ -157,7 +174,7 @@ const ReservationResult = (props: { hme: HmeEmail }) => {
       <p>
         <strong>{props.hme.hme}</strong> has successfully been reserved!
       </p>
-      <div className={`grid grid-cols-2 gap-2`}>
+      <div className="grid grid-cols-2 gap-2">
         <button
           type="button"
           className={btnClassName}
@@ -196,8 +213,16 @@ const FooterButton = (
   );
 };
 
-async function signOut(client: ICloudClient): Promise<void> {
-  await client.signOut();
+async function signOut(
+  client: ICloudClient,
+  sendSignOutRequest: boolean
+): Promise<void> {
+  if (sendSignOutRequest) {
+    await client.signOut();
+  } else {
+    client.resetSession();
+  }
+
   await browser.contextMenus
     .update(CONTEXT_MENU_ITEM_ID, {
       title: SIGNED_OUT_CTA_COPY,
@@ -214,7 +239,7 @@ const SignOutButton = (props: {
     <FooterButton
       className="text-sky-400 hover:text-sky-500 focus:outline-sky-400"
       onClick={async () => {
-        await signOut(props.client);
+        await signOut(props.client, true);
         props.callback('SIGN_OUT');
       }}
       label="Sign out"
@@ -794,14 +819,14 @@ const Popup = () => {
       if (client.authenticated) {
         await client.validateToken().catch(async (e) => {
           console.debug(e);
-          await signOut(client);
+          await signOut(client, false);
           setState(PopupState.SignedOut);
         });
       }
     };
 
     validateSession();
-  }, [sessionData, setSessionData, state, setState]);
+  }, [sessionData, setSessionData, setState]);
 
   const session = new ICloudClientSession(sessionData, setSessionData);
   const client = new ICloudClient(session);
