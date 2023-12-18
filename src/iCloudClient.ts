@@ -215,7 +215,7 @@ export class PremiumMailSettings {
   constructor(readonly client: ICloudClient) {
     if (!client.authenticated) {
       throw new ClientAuthenticationError(
-        'Client is not authenticated. A sing-in is required.'
+        'Client is not authenticated. A sign-in is required.'
       );
     }
     this.baseUrl = `${client.webserviceUrl('premiummailsettings')}/v1`;
