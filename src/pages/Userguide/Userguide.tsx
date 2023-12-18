@@ -169,7 +169,7 @@ const UsageInstructions = () => {
         it in the{' '}
         <a
           href="./options.html"
-          className="text-sky-400 font-medium hover:text-sky-500"
+          className="text-sky-400 hover:text-sky-500"
           target="_blank"
           rel="noreferrer"
         >

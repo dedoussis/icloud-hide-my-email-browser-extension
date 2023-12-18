@@ -1,5 +1,4 @@
 import 'regenerator-runtime/runtime.js';
-import fetchAdapter from '@vespaiach/axios-fetch-adapter';
 import {
   getBrowserStorageValue,
   POPUP_STATE_STORAGE_KEYS,
@@ -42,7 +41,7 @@ const getClient = async (withTokenValidation = true): Promise<ICloudClient> => {
       await setBrowserStorageValue(SESSION_DATA_STORAGE_KEYS, data)
   );
 
-  const client = new ICloudClient(clientSession, { adapter: fetchAdapter });
+  const client = new ICloudClient(clientSession);
 
   if (withTokenValidation && client.authenticated) {
     try {

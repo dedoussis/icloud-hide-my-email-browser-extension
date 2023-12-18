@@ -1,7 +1,9 @@
 import React from 'react';
-import { render } from 'react-dom';
+import { createRoot } from 'react-dom/client';
 
 import Options from './Options';
 import './index.css';
 
-render(<Options />, window.document.querySelector('#app-container'));
+const container = document.getElementById('app-container') as HTMLElement;
+const root = createRoot(container);
+root.render(<Options />);
