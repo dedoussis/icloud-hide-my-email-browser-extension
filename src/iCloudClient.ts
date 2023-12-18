@@ -8,7 +8,7 @@ type BaseUrlConfig = {
 
 export type ICloudClientSessionData = {
   webservices: Record<string, { url: string; status: string }>;
-  headers: { [k: string]: string };
+  headers: Record<string, string>;
 };
 
 export const EMPTY_SESSION_DATA = {
