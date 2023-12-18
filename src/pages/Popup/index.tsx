@@ -1,7 +1,9 @@
 import React from 'react';
-import { render } from 'react-dom';
+import { createRoot } from 'react-dom/client';
 
 import Popup from './Popup';
 import './index.css';
 
-render(<Popup />, window.document.querySelector('#app-container'));
+const container = document.getElementById('app-container') as HTMLElement;
+const root = createRoot(container);
+root.render(<Popup />);

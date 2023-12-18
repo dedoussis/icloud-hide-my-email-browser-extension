@@ -1,12 +1,11 @@
 import React from 'react';
-import { render } from 'react-dom';
+import { createRoot } from 'react-dom/client';
 
 import Userguide from './Userguide';
 import './index.css';
 import contentScript from '../Content/script';
 
-render(
-  <Userguide />,
-  window.document.querySelector('#app-container'),
-  contentScript
-);
+const container = document.getElementById('app-container') as HTMLElement;
+const root = createRoot(container);
+root.render(<Userguide />);
+requestIdleCallback(contentScript);
