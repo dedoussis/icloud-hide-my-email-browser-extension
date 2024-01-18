@@ -1,16 +1,25 @@
+import { getBrowserStorageValue, setBrowserStorageValue, COUNTRY_KEYS } from './storage';
+
 export class UnsuccessfulRequestError extends Error {}
 
 type ServiceName = 'premiummailsettings';
 
+type Country = 'default' | 'CN'
+
 class ICloudClient {
   public webservices?: Record<ServiceName, { url: string; status: string }>;
+  private country: Country
 
   constructor(webservices?: ICloudClient['webservices']) {
     this.webservices = webservices;
+    this.country = 'default'
   }
 
   static get setupUrl() {
-    return 'https://setup.icloud.com/setup/ws/1';
+    return {
+      default: 'https://setup.icloud.com/setup/ws/1',
+      CN: 'https://setup.icloud.com.cn/setup/ws/1'
+    }
   }
 
   public async request(
@@ -47,6 +56,8 @@ class ICloudClient {
 
   public async isAuthenticated(): Promise<boolean> {
     try {
+      this.country = await getBrowserStorageValue<Country>(COUNTRY_KEYS) || 'default'
+      console.log(':: 1', this.country)
       await this.validateToken();
       return true;
     } catch {
@@ -57,7 +68,7 @@ class ICloudClient {
   public async validateToken(): Promise<void> {
     const { webservices } = (await this.request(
       'POST',
-      `${ICloudClient.setupUrl}/validate`
+      `${ICloudClient.setupUrl[this.country]}/validate`
     )) as {
       webservices: ICloudClient['webservices'];
     };
@@ -71,7 +82,7 @@ class ICloudClient {
     options: { trust: boolean } = { trust: false }
   ): Promise<void> {
     const { trust } = options;
-    await this.request('POST', `${ICloudClient.setupUrl}/logout`, {
+    await this.request('POST', `${ICloudClient.setupUrl[this.country]}/logout`, {
       data: {
         trustBrowsers: trust,
         allBrowsers: trust,

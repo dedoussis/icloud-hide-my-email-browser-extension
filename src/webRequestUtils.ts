@@ -20,19 +20,26 @@ export const setupBlockingWebRequestListeners = () => {
           (header) => !['referer', 'origin'].includes(header.name.toLowerCase())
         ) || [];
 
+      const suffix = documentUrl?.match(/icloud.com(\.\w+)/)?.[1] || '';
+
       modifiedHeaders.push({
         name: 'Referer',
-        value: 'https://www.icloud.com/',
+        value: `https://www.icloud.com${suffix}/`,
       });
       modifiedHeaders.push({
         name: 'Origin',
-        value: 'https://www.icloud.com',
+        value: `https://www.icloud.com${suffix}`,
       });
 
       return { requestHeaders: modifiedHeaders };
     },
     {
-      urls: [`${ICloudClient.setupUrl}/*`, 'https://*.icloud.com/v*/hme/*'],
+      urls: [
+        `${ICloudClient.setupUrl.default}/*`,
+        `${ICloudClient.setupUrl.CN}/*`,
+         'https://*.icloud.com/v*/hme/*',
+         'https://*.icloud.com.cn/v*/hme/*',
+      ],
     },
     ['requestHeaders', 'blocking']
   );

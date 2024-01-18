@@ -3,6 +3,7 @@ import {
   getBrowserStorageValue,
   POPUP_STATE_STORAGE_KEYS,
   OPTIONS_STORAGE_KEYS,
+  COUNTRY_KEYS,
   setBrowserStorageValue,
 } from '../../storage';
 import ICloudClient, { PremiumMailSettings } from '../../iCloudClient';
@@ -259,20 +260,27 @@ browser.contextMenus.onClicked.addListener(async (info, tab) => {
 // as enabled.
 browser.webRequest.onResponseStarted.addListener(
   async (details: browser.WebRequest.OnResponseStartedDetailsType) => {
-    const { statusCode } = details;
+    const { statusCode, url } = details;
     if (statusCode < 200 && statusCode > 299) {
       console.debug('Request failed', details);
       return;
     }
 
+    const country = Object.entries(ICloudClient.setupUrl).find((entries) => url.startsWith(`${entries[1]}/accountLogin`))?.[0];
+    await setBrowserStorageValue(COUNTRY_KEYS, country);
+
     const client = new ICloudClient();
+
     const isAuthenticated = await client.isAuthenticated();
     if (isAuthenticated) {
       performAuthSideEffects();
     }
   },
   {
-    urls: [`${ICloudClient.setupUrl}/accountLogin*`],
+    urls: [
+      `${ICloudClient.setupUrl.default}/accountLogin*`,
+      `${ICloudClient.setupUrl.CN}/accountLogin*`
+    ],
   },
   []
 );
@@ -290,7 +298,10 @@ browser.webRequest.onResponseStarted.addListener(
     performDeauthSideEffects();
   },
   {
-    urls: [`${ICloudClient.setupUrl}/logout*`],
+    urls: [
+      `${ICloudClient.setupUrl.default}/logout*`,
+      `${ICloudClient.setupUrl.CN}/logout*`,
+    ],
   },
   []
 );

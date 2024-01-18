@@ -2,6 +2,7 @@ import browser from 'webextension-polyfill';
 
 export const POPUP_STATE_STORAGE_KEYS = ['iCloudHmePopupState'];
 export const OPTIONS_STORAGE_KEYS = ['iCloudHmeOptions'];
+export const COUNTRY_KEYS = ['country'];
 
 export async function getBrowserStorageValue<T>(
   keys: string[]
