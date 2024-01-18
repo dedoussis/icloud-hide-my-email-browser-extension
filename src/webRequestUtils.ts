@@ -3,7 +3,7 @@ import ICloudClient from './iCloudClient';
 
 export const setupBlockingWebRequestListeners = () => {
   browser.webRequest.onBeforeSendHeaders.addListener(
-    ({ requestHeaders, documentUrl, originUrl, initiator }) => {
+    ({ requestHeaders, documentUrl, originUrl, initiator, url, }) => {
       const initiatedByTheExtension = [documentUrl, originUrl, initiator].some(
         (url) =>
           url?.includes(browser.runtime.id) ||
@@ -20,7 +20,7 @@ export const setupBlockingWebRequestListeners = () => {
           (header) => !['referer', 'origin'].includes(header.name.toLowerCase())
         ) || [];
 
-      const suffix = documentUrl?.match(/icloud.com(\.\w+)/)?.[1] || '';
+      const suffix = url.match(/icloud.com(\.\w+)/)?.[1] || '';
 
       modifiedHeaders.push({
         name: 'Referer',
