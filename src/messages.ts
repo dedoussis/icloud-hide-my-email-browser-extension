@@ -45,7 +45,7 @@ export const sendMessageToTab = async (
     });
   }
 
-  if (tab.id !== undefined) {
+  if (tab?.id !== undefined) {
     await browser.tabs.sendMessage(tab.id, {
       type,
       data,

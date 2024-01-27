@@ -33,7 +33,6 @@
     "notifications"
   ],
   "host_permissions": [
-    "https://idmsa.apple.com/appleauth/auth/*",
     "https://setup.icloud.com/setup/ws/1/*",
     "https://*.icloud.com/v1/hme/*"
   ],

@@ -1,53 +1,55 @@
 import React, { useState, useEffect } from 'react';
 import './Options.css';
 import { useBrowserStorageState } from '../../hooks';
-import ICloudClient, {
-  ClientAuthenticationError,
-  EMPTY_SESSION_DATA,
-  ICloudClientSession,
-  ICloudClientSessionData,
-  PremiumMailSettings,
-} from '../../iCloudClient';
+import ICloudClient, { PremiumMailSettings } from '../../iCloudClient';
 import {
   Spinner,
   LoadingButton,
   ErrorMessage,
   TitledComponent,
 } from '../../commonComponents';
-import { OPTIONS_STORAGE_KEYS, SESSION_DATA_STORAGE_KEYS } from '../../storage';
+import { OPTIONS_STORAGE_KEYS } from '../../storage';
 import { DEFAULT_OPTIONS, Options } from '../../options';
 import startCase from 'lodash.startcase';
 
-const SelectFwdToForm = (props: { client: ICloudClient }) => {
+const SelectFwdToForm = () => {
   const [selectedFwdToEmail, setSelectedFwdToEmail] = useState<string>();
   const [fwdToEmails, setFwdToEmails] = useState<string[]>();
   const [isFetching, setIsFetching] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [listHmeError, setListHmeError] = useState<string>();
   const [updateFwdToError, setUpdateFwdToError] = useState<string>();
+  const [clientState, setClientState] = useState<
+    ConstructorParameters<typeof ICloudClient>
+  >([]);
 
   useEffect(() => {
     const fetchHmeList = async () => {
       setListHmeError(undefined);
       setIsFetching(true);
-      try {
-        const pms = new PremiumMailSettings(props.client);
-        const result = await pms.listHme();
-        setFwdToEmails(result.forwardToEmails);
-        setSelectedFwdToEmail(result.selectedForwardTo);
-      } catch (e) {
-        const errorMsg =
-          e instanceof ClientAuthenticationError
-            ? 'To select a new Forward-To address, you first need to sign-in by following the instructions on the extension pop-up.'
-            : e.toString();
-        setListHmeError(errorMsg);
-      } finally {
-        setIsFetching(false);
+      const client = new ICloudClient(...clientState);
+      const isClientAuthenticated = await client.isAuthenticated();
+
+      if (!isClientAuthenticated) {
+        setListHmeError(
+          'To select a new Forward-To address, you first need to sign-in by following the instructions on the extension pop-up.'
+        );
+      } else {
+        setClientState([client.webservices]);
+        try {
+          const pms = new PremiumMailSettings(client);
+          const result = await pms.listHme();
+          setFwdToEmails(result.forwardToEmails);
+          setSelectedFwdToEmail(result.selectedForwardTo);
+        } catch (e) {
+          setListHmeError(e.toString());
+        }
       }
+      setIsFetching(false);
     };
 
     fetchHmeList();
-  }, [props.client]);
+  }, [setClientState, clientState]);
 
   const onSelectedFwdToSubmit = async (
     event: React.FormEvent<HTMLFormElement>
@@ -55,8 +57,9 @@ const SelectFwdToForm = (props: { client: ICloudClient }) => {
     event.preventDefault();
     setIsSubmitting(true);
     if (selectedFwdToEmail) {
+      const client = new ICloudClient(...clientState);
       try {
-        const pms = new PremiumMailSettings(props.client);
+        const pms = new PremiumMailSettings(client);
         await pms.updateForwardToHme(selectedFwdToEmail);
       } catch (e) {
         setUpdateFwdToError(e.toString());
@@ -177,15 +180,6 @@ const AutofillForm = () => {
 };
 
 const Options = () => {
-  const [sessionData, setSessionData] =
-    useBrowserStorageState<ICloudClientSessionData>(
-      SESSION_DATA_STORAGE_KEYS,
-      EMPTY_SESSION_DATA
-    );
-
-  const session = new ICloudClientSession(sessionData, setSessionData);
-  const client = new ICloudClient(session);
-
   return (
     <div className="w-9/12 m-auto my-3">
       <TitledComponent title="Hide My Email" subtitle="Settings">
@@ -195,7 +189,7 @@ const Options = () => {
         </div>
         <div>
           <h3 className="font-bold text-lg mb-3">Forward To Address</h3>
-          <SelectFwdToForm client={client} />
+          <SelectFwdToForm />
         </div>
         <div>
           <h3 className="font-bold text-lg mb-3">Autofill</h3>

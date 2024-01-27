@@ -32,11 +32,7 @@ export const setupBlockingWebRequestListeners = () => {
       return { requestHeaders: modifiedHeaders };
     },
     {
-      urls: [
-        `${ICloudClient.DEFAULT_BASE_URL_CONFIG.auth}/*`,
-        `${ICloudClient.DEFAULT_BASE_URL_CONFIG.setup}/*`,
-        'https://*.icloud.com/v*/hme/*',
-      ],
+      urls: [`${ICloudClient.setupUrl}/*`, 'https://*.icloud.com/v*/hme/*'],
     },
     ['requestHeaders', 'blocking']
   );

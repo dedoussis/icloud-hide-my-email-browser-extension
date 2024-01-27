@@ -49,7 +49,7 @@ You can enable/disable any of the autofilling mechanisms through the Options pag
 
 ## Develop
 
-This extension is entirely writen in TypeScript. The UI pages of the extension (e.g. Pop-Up and Options) are implemented as React apps and styled with TailwindCSS.
+This extension is entirely written in TypeScript. The UI pages of the extension (e.g. Pop-Up and Options) are implemented as React apps and styled with TailwindCSS.
 
 The extension was originally developed to solely use [Manifest V3](https://developer.chrome.com/docs/extensions/mv3/intro/mv3-overview/) APIs. However, since most browsers have not caught up with MV3, MV2 compatibility has been introduced.
 
@@ -113,8 +113,6 @@ Note: the following console commands are to be executed from the root directory 
 
 ### TODOs
 
-- [ ] iCloudClient to use Cookies (through tough-cookie)
 - [ ] Ability to modify the label and note of existing HME addresses
-- [ ] Options page to validate client token
 - [ ] CI and maybe CD
 - [ ] Dependabot
