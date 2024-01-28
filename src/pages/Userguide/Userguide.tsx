@@ -72,7 +72,7 @@ const SignInInstructions = () => {
         </p>
       </div>
       <Notice title="Already signed-in?">
-        <p>No need to do anything! The extension is ready to use.</p>
+        <p>No further action needed. The extension is ready to use!</p>
       </Notice>
       <Notice title='Do I have to ✅ the "Keep me signed in" box?'>
         <p>
