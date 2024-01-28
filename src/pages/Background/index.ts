@@ -2,17 +2,10 @@ import 'regenerator-runtime/runtime.js';
 import {
   getBrowserStorageValue,
   POPUP_STATE_STORAGE_KEYS,
-  SESSION_DATA_STORAGE_KEYS,
   OPTIONS_STORAGE_KEYS,
   setBrowserStorageValue,
 } from '../../storage';
-import ICloudClient, {
-  ClientAuthenticationError,
-  EMPTY_SESSION_DATA,
-  ICloudClientSession,
-  ICloudClientSessionData,
-  PremiumMailSettings,
-} from '../../iCloudClient';
+import ICloudClient, { PremiumMailSettings } from '../../iCloudClient';
 import {
   ActiveInputElementWriteData,
   Message,
@@ -29,38 +22,31 @@ if ((browser as unknown as typeof chrome).declarativeNetRequest === undefined) {
   setupBlockingWebRequestListeners();
 }
 
-const getClient = async (withTokenValidation = true): Promise<ICloudClient> => {
-  const sessionData =
-    (await getBrowserStorageValue<ICloudClientSessionData>(
-      SESSION_DATA_STORAGE_KEYS
-    )) || EMPTY_SESSION_DATA;
-
-  const clientSession = new ICloudClientSession(
-    sessionData,
-    async (data) =>
-      await setBrowserStorageValue(SESSION_DATA_STORAGE_KEYS, data)
-  );
-
-  const client = new ICloudClient(clientSession);
-
-  if (withTokenValidation && client.authenticated) {
-    try {
-      await client.validateToken();
-    } catch {
-      await signOut(client);
-    }
-  }
-  return client;
-};
-
-const signOut = async (client: ICloudClient) => {
-  await client.resetSession();
+const performDeauthSideEffects = async () => {
   await setBrowserStorageValue(POPUP_STATE_STORAGE_KEYS, PopupState.SignedOut);
 
   browser.contextMenus
     .update(CONTEXT_MENU_ITEM_ID, {
       title: SIGNED_OUT_CTA_COPY,
       enabled: false,
+    })
+    .catch(console.debug);
+};
+
+const performAuthSideEffects = () => {
+  browser.contextMenus
+    .update(CONTEXT_MENU_ITEM_ID, {
+      title: SIGNED_IN_CTA_COPY,
+      enabled: true,
+    })
+    .catch(console.debug);
+
+  browser.notifications
+    .create({
+      type: 'basic',
+      title: NOTIFICATION_TITLE_COPY,
+      message: NOTIFICATION_MESSAGE_COPY,
+      iconUrl: 'icon-128.png',
     })
     .catch(console.debug);
 };
@@ -72,12 +58,14 @@ browser.runtime.onMessage.addListener(async (message: Message<unknown>) => {
     case MessageType.GenerateRequest:
       {
         const elementId = message.data;
-        const client = await getClient();
-        if (!client.authenticated) {
+        const client = new ICloudClient();
+        const isClientAuthenticated = await client.isAuthenticated();
+        if (!isClientAuthenticated) {
           await sendMessageToTab(MessageType.GenerateResponse, {
             error: SIGNED_OUT_CTA_COPY,
             elementId,
           });
+          performDeauthSideEffects();
           break;
         }
 
@@ -100,12 +88,18 @@ browser.runtime.onMessage.addListener(async (message: Message<unknown>) => {
       {
         const { hme, label, elementId } =
           message.data as ReservationRequestData;
-        const client = await getClient(false);
-        if (!client.authenticated) {
+        const client = new ICloudClient();
+
+        // TODO: Instead of re-validating the token,
+        // find a way to persist the client state between the
+        // generation and reservation events
+        const isClientAuthenticated = await client.isAuthenticated();
+        if (!isClientAuthenticated) {
           await sendMessageToTab(MessageType.GenerateResponse, {
             error: SIGNED_OUT_CTA_COPY,
             elementId,
           });
+          performDeauthSideEffects();
           break;
         }
 
@@ -139,6 +133,9 @@ export const CONTEXT_MENU_ITEM_ID = browser.runtime.id.concat(
 export const SIGNED_OUT_CTA_COPY = 'Please sign-in to iCloud';
 const LOADING_COPY = 'Hide My Email — Loading...';
 const SIGNED_IN_CTA_COPY = 'Generate and reserve Hide My Email address';
+const NOTIFICATION_MESSAGE_COPY =
+  'The iCloud HideMyEmail extension is ready to use!';
+const NOTIFICATION_TITLE_COPY = 'iCloud HideMyEmail Extension';
 
 // At any given time, there should be 1 created context menu item. We want to prevent
 // the creation of multiple items that serve the same purpose (i.e. the context menu having multiple
@@ -157,14 +154,10 @@ browser.runtime.onInstalled.addListener(async () => {
         options?.autofill.contextMenu || DEFAULT_OPTIONS.autofill.contextMenu,
     },
     async () => {
-      const client = await getClient();
-      if (!client.authenticated) {
-        browser.contextMenus
-          .update(CONTEXT_MENU_ITEM_ID, {
-            title: SIGNED_OUT_CTA_COPY,
-            enabled: false,
-          })
-          .catch(console.debug);
+      const client = new ICloudClient();
+      const isClientAuthenticated = await client.isAuthenticated();
+      if (!isClientAuthenticated) {
+        performDeauthSideEffects();
         return;
       }
 
@@ -222,7 +215,22 @@ browser.contextMenus.onClicked.addListener(async (info, tab) => {
   const serializedUrl = info.pageUrl || tab?.url;
   const hostname = serializedUrl ? new URL(serializedUrl).hostname : '';
 
-  const client = await getClient();
+  const client = new ICloudClient();
+  const isClientAuthenticated = await client.isAuthenticated();
+
+  if (!isClientAuthenticated) {
+    sendMessageToTab(
+      MessageType.ActiveInputElementWrite,
+      {
+        text: SIGNED_OUT_CTA_COPY,
+        copyToClipboard: false,
+      } as ActiveInputElementWriteData,
+      tab
+    );
+    performDeauthSideEffects();
+    return;
+  }
+
   try {
     const pms = new PremiumMailSettings(client);
     const hme = await pms.generateHme();
@@ -233,88 +241,22 @@ browser.contextMenus.onClicked.addListener(async (info, tab) => {
       tab
     );
   } catch (e) {
-    const text =
-      e instanceof ClientAuthenticationError
-        ? SIGNED_OUT_CTA_COPY
-        : e.toString();
-
     sendMessageToTab(
       MessageType.ActiveInputElementWrite,
       {
-        text,
+        text: e.toString(),
         copyToClipboard: false,
       } as ActiveInputElementWriteData,
       tab
     );
-    return;
   }
 });
 
-// ===== Non-blocking webrequest listeners (used for signing in/out) =====
+// ===== Non-blocking webrequest listeners (used for syncing the authentication state of the user) =====
 
-// Listens to icloud.com and apple.com responses to populate the session data
-// of the client. Once all the session data have been collected, we validate
-// the session and if successful, we notify the user that the extension is
-// ready to use.
-browser.webRequest.onResponseStarted.addListener(
-  async (details: browser.WebRequest.OnResponseStartedDetailsType) => {
-    const { responseHeaders, url, statusCode } = details;
-    if (!responseHeaders || (statusCode < 200 && statusCode > 299)) {
-      console.debug('Request failed', details);
-      return;
-    }
-
-    const headers = new Headers();
-    if (responseHeaders) {
-      responseHeaders.forEach(({ name, value }) => {
-        if (name.toLowerCase() !== 'set-cookie' && value !== undefined) {
-          headers.append(name, value);
-        }
-      });
-    }
-
-    const client = await getClient(false);
-    const clientWasAuthenticated = client.authenticated;
-
-    await client.populateAndPersistSessionHeaders(headers);
-
-    if (
-      url.startsWith(
-        `${ICloudClient.DEFAULT_BASE_URL_CONFIG.setup}/accountLogin`
-      )
-    ) {
-      await client.validateToken(true).catch(console.debug);
-
-      if (!clientWasAuthenticated && client.authenticated) {
-        browser.notifications
-          .create({
-            type: 'basic',
-            title: 'iCloud HideMyEmail Extension',
-            message: 'The iCloud HideMyEmail extension is ready to use!',
-            iconUrl: 'icon-128.png',
-          })
-          .catch(console.debug);
-
-        browser.contextMenus
-          .update(CONTEXT_MENU_ITEM_ID, {
-            title: SIGNED_IN_CTA_COPY,
-            enabled: true,
-          })
-          .catch(console.debug);
-      }
-    }
-  },
-  {
-    urls: [
-      `${ICloudClient.DEFAULT_BASE_URL_CONFIG.auth}/*`,
-      `${ICloudClient.DEFAULT_BASE_URL_CONFIG.setup}/accountLogin*`,
-    ],
-  },
-  ['responseHeaders']
-);
-
-// When the user signs out of their account through icloud.com, we should
-// reset the session of the extension:
+// The extension needs to be in sync with the icloud.com authentication state of the browser.
+// For example, when the user is authenticated we need to render the context menu item
+// as enabled.
 browser.webRequest.onResponseStarted.addListener(
   async (details: browser.WebRequest.OnResponseStartedDetailsType) => {
     const { statusCode } = details;
@@ -323,22 +265,61 @@ browser.webRequest.onResponseStarted.addListener(
       return;
     }
 
-    const client = await getClient(false);
-    signOut(client);
+    const client = new ICloudClient();
+    const isAuthenticated = await client.isAuthenticated();
+    if (isAuthenticated) {
+      performAuthSideEffects();
+    }
   },
   {
-    urls: [`${ICloudClient.DEFAULT_BASE_URL_CONFIG.setup}/logout*`],
+    urls: [`${ICloudClient.setupUrl}/accountLogin*`],
   },
-  ['responseHeaders']
+  []
 );
 
-// ===== Post-installation onboarding page =====
+// When the user signs out of their account through icloud.com, we should
+// perform various side effects (e.g. disabling the context menu item)
+browser.webRequest.onResponseStarted.addListener(
+  async (details: browser.WebRequest.OnResponseStartedDetailsType) => {
+    const { statusCode } = details;
+    if (statusCode < 200 && statusCode > 299) {
+      console.debug('Request failed', details);
+      return;
+    }
 
+    performDeauthSideEffects();
+  },
+  {
+    urls: [`${ICloudClient.setupUrl}/logout*`],
+  },
+  []
+);
+
+// ===== Post installation hooks =====
+
+// Sync the extension with the authentication state of the browser.
+// If the user is already authenticated, they should not need to
+// log out and log back in in order to get the extension working.
+browser.runtime.onInstalled.addListener(
+  async (details: browser.Runtime.OnInstalledDetailsType) => {
+    if (['install', 'update'].includes(details.reason)) {
+      const client = new ICloudClient();
+      const isAuthenticated = await client.isAuthenticated();
+      if (isAuthenticated) {
+        performAuthSideEffects();
+      } else {
+        performDeauthSideEffects();
+      }
+    }
+  }
+);
+
+// Present the user with a getting started guide.
 browser.runtime.onInstalled.addListener(
   async (details: browser.Runtime.OnInstalledDetailsType) => {
     const userguideUrl = browser.runtime.getURL('userguide.html');
 
-    if (details.reason === chrome.runtime.OnInstalledReason.INSTALL) {
+    if (details.reason === 'install') {
       chrome.tabs.create({ url: userguideUrl }).then(console.debug);
     }
   }

@@ -18,30 +18,6 @@
       ]
     },
     "condition": {
-      "urlFilter": "|https://*.apple.com/*",
-      "resourceTypes": ["xmlhttprequest"],
-      "excludedInitiatorDomains": ["apple.com", "icloud.com"]
-    }
-  },
-  {
-    "id": 2,
-    "priority": 1,
-    "action": {
-      "type": "modifyHeaders",
-      "requestHeaders": [
-        {
-          "header": "Origin",
-          "operation": "set",
-          "value": "https://www.icloud.com"
-        },
-        {
-          "header": "Referer",
-          "operation": "set",
-          "value": "https://www.icloud.com/"
-        }
-      ]
-    },
-    "condition": {
       "urlFilter": "|https://*.icloud.com/*",
       "resourceTypes": ["xmlhttprequest"],
       "excludedInitiatorDomains": ["apple.com", "icloud.com"]
