@@ -156,9 +156,14 @@ export default async function main(): Promise<void> {
         const addedElements = node.querySelectorAll<HTMLInputElement>(
           EMAIL_INPUT_QUERY_STRING
         );
-        addedElements.forEach((el) =>
-          autofillableInputElements.push(makeAutofillableInputElement(el))
-        );
+        addedElements.forEach((el) => {
+          const elementExists = autofillableInputElements.some((item) =>
+            el.isEqualNode(item.inputElement)
+          );
+          if (!elementExists) {
+            autofillableInputElements.push(makeAutofillableInputElement(el));
+          }
+        });
       });
 
       mutation.removedNodes.forEach((node) => {
