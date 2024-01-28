@@ -85,3 +85,24 @@ export const TitledComponent = (props: {
     </div>
   );
 };
+
+export const Link = (
+  props: React.DetailedHTMLProps<
+    React.AnchorHTMLAttributes<HTMLAnchorElement>,
+    HTMLAnchorElement
+  >
+) => {
+  // https://github.com/jsx-eslint/eslint-plugin-react/issues/3284
+  // eslint-disable-next-line react/prop-types
+  const { className, children, ...restProps } = props;
+  return (
+    <a
+      className={`text-sky-400 hover:text-sky-500 ${className}`}
+      target="_blank"
+      rel="noreferrer"
+      {...restProps}
+    >
+      {children}
+    </a>
+  );
+};

@@ -1,5 +1,5 @@
 import React, { InputHTMLAttributes, useState } from 'react';
-import { TitledComponent } from '../../commonComponents';
+import { TitledComponent, Link } from '../../commonComponents';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faInfoCircle, faCheckCircle } from '@fortawesome/free-solid-svg-icons';
 
@@ -17,27 +17,6 @@ const Notice = (props: { title: string; children: React.ReactNode }) => {
         {children}
       </div>
     </div>
-  );
-};
-
-const Link = (
-  props: React.DetailedHTMLProps<
-    React.AnchorHTMLAttributes<HTMLAnchorElement>,
-    HTMLAnchorElement
-  >
-) => {
-  // https://github.com/jsx-eslint/eslint-plugin-react/issues/3284
-  // eslint-disable-next-line react/prop-types
-  const { className, children, ...restProps } = props;
-  return (
-    <a
-      className={`text-sky-400 hover:text-sky-500 ${className}`}
-      target="_blank"
-      rel="noreferrer"
-      {...restProps}
-    >
-      {children}
-    </a>
   );
 };
 
