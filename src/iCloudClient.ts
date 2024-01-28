@@ -1,11 +1,3 @@
-import { validate } from 'uuid';
-
-type BaseUrlConfig = {
-  auth: string;
-  home: string;
-  setup: string;
-};
-
 export class UnsuccessfulRequestError extends Error {}
 
 type ServiceName = 'premiummailsettings';
