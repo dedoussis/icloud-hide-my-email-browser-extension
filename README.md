@@ -108,7 +108,7 @@ Note: the following console commands are to be executed from the root directory 
 | 3 | Develop against the local browser instance on which the `build` dir is loaded | N/A | N/A |
 | 4 | Build productionised artefact | `npm run build` | `npm run build:mv2` |
 | 5 | Compress productionised artefact | `zip build.zip ./build/*` | `web-ext -s build build` |
-| 6 | Publish | N/A | N/A |
+| 6 | Publish | [Chrome webstore dev console](https://chrome.google.com/webstore/devconsole/) | [Mozilla Add-on developer hub](https://addons.mozilla.org/en-US/developers/addon/icloud-hide-my-email/versions/submit/) |
 <!-- prettier-ignore-end -->
 
 ### TODOs
