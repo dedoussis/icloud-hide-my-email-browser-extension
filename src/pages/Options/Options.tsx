@@ -11,6 +11,7 @@ import {
 import { OPTIONS_STORAGE_KEYS } from '../../storage';
 import { DEFAULT_OPTIONS, Options } from '../../options';
 import startCase from 'lodash.startcase';
+import isEqual from 'lodash.isequal';
 
 const SelectFwdToForm = () => {
   const [selectedFwdToEmail, setSelectedFwdToEmail] = useState<string>();
@@ -35,7 +36,11 @@ const SelectFwdToForm = () => {
           'To select a new Forward-To address, you first need to sign-in by following the instructions on the extension pop-up.'
         );
       } else {
-        setClientState([client.webservices]);
+        setClientState((prevState) =>
+          isEqual(prevState, [client.webservices])
+            ? prevState
+            : [client.webservices]
+        );
         try {
           const pms = new PremiumMailSettings(client);
           const result = await pms.listHme();
