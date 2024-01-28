@@ -35,6 +35,7 @@ import {
   LoadingButton,
   Spinner,
   TitledComponent,
+  Link,
 } from '../../commonComponents';
 import { POPUP_STATE_STORAGE_KEYS } from '../../storage';
 
@@ -82,15 +83,13 @@ const SignInInstructions = () => {
         <div className="text-sm space-y-2">
           <p>
             To use this extension, sign in to your iCloud account on{' '}
-            <a
+            <Link
               href="https://icloud.com"
-              className="font-semibold text-sky-400 hover:text-sky-500"
-              target="_blank"
-              rel="noreferrer"
+              className="font-semibold"
               aria-label="Go to iCloud.com"
             >
               icloud.com
-            </a>
+            </Link>
             .
           </p>
           <p>

@@ -7,6 +7,7 @@ import {
   LoadingButton,
   ErrorMessage,
   TitledComponent,
+  Link,
 } from '../../commonComponents';
 import { OPTIONS_STORAGE_KEYS } from '../../storage';
 import { DEFAULT_OPTIONS, Options } from '../../options';
@@ -107,19 +108,6 @@ const SelectFwdToForm = () => {
       <LoadingButton loading={isSubmitting}>Update</LoadingButton>
       {updateFwdToError && <ErrorMessage>{updateFwdToError}</ErrorMessage>}
     </form>
-  );
-};
-
-const Link = (props: { children: React.ReactNode; href: string }) => {
-  return (
-    <a
-      className="text-sky-400 hover:text-sky-500"
-      href={props.href}
-      target="_blank"
-      rel="nolink noreferrer"
-    >
-      {props.children}
-    </a>
   );
 };
 
