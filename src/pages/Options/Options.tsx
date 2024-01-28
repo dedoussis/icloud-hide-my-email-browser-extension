@@ -28,7 +28,7 @@ const SelectFwdToForm = () => {
     const fetchHmeList = async () => {
       setListHmeError(undefined);
       setIsFetching(true);
-      const client = new ICloudClient(...clientState);
+      const client = new ICloudClient();
       const isClientAuthenticated = await client.isAuthenticated();
 
       if (!isClientAuthenticated) {
@@ -54,7 +54,7 @@ const SelectFwdToForm = () => {
     };
 
     fetchHmeList();
-  }, [setClientState, clientState]);
+  }, [setClientState]);
 
   const onSelectedFwdToSubmit = async (
     event: React.FormEvent<HTMLFormElement>
