@@ -801,7 +801,9 @@ const Popup = () => {
         );
       } else {
         setState(PopupState.SignedOut);
-        setClientState([]);
+        setClientState((prevState) =>
+          prevState.length === 0 ? prevState : []
+        );
         performDeauthSideEffects();
       }
       setAuthStateSynced(true);
