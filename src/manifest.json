@@ -32,10 +32,7 @@
     "webRequest",
     "notifications"
   ],
-  "host_permissions": [
-    "https://setup.icloud.com/setup/ws/1/*",
-    "https://*.icloud.com/v1/hme/*"
-  ],
+  "host_permissions": ["https://*.icloud.com/*"],
   "icons": {
     "16": "icon-16.png",
     "32": "icon-32.png",
