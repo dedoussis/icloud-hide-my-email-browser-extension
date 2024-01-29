@@ -57,7 +57,6 @@ class ICloudClient {
   public async isAuthenticated(): Promise<boolean> {
     try {
       this.country = await getBrowserStorageValue<Country>(COUNTRY_KEYS) || 'default'
-      console.log(':: 1', this.country)
       await this.validateToken();
       return true;
     } catch {
