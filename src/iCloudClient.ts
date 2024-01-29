@@ -1,4 +1,4 @@
-import { getBrowserStorageValue, setBrowserStorageValue, COUNTRY_KEYS } from './storage';
+import { getBrowserStorageValue, COUNTRY_KEYS } from './storage';
 
 export class UnsuccessfulRequestError extends Error {}
 
