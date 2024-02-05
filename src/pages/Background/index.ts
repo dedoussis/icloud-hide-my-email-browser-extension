@@ -1,11 +1,16 @@
 import 'regenerator-runtime/runtime.js';
 import {
   getBrowserStorageValue,
-  POPUP_STATE_STORAGE_KEYS,
-  OPTIONS_STORAGE_KEYS,
   setBrowserStorageValue,
+  Store,
+  DEFAULT_OPTIONS,
+  Options,
 } from '../../storage';
-import ICloudClient, { PremiumMailSettings } from '../../iCloudClient';
+import ICloudClient, {
+  PremiumMailSettings,
+  DEFAULT_SETUP_URL,
+  CN_SETUP_URL,
+} from '../../iCloudClient';
 import {
   ActiveInputElementWriteData,
   Message,
@@ -16,14 +21,28 @@ import {
 import { PopupState } from '../Popup/stateMachine';
 import browser from 'webextension-polyfill';
 import { setupBlockingWebRequestListeners } from '../../webRequestUtils';
-import { DEFAULT_OPTIONS, Options } from '../../options';
+import {
+  CONTEXT_MENU_ITEM_ID,
+  LOADING_COPY,
+  NOTIFICATION_MESSAGE_COPY,
+  NOTIFICATION_TITLE_COPY,
+  SIGNED_IN_CTA_COPY,
+  SIGNED_OUT_CTA_COPY,
+} from './constants';
 
 if ((browser as unknown as typeof chrome).declarativeNetRequest === undefined) {
   setupBlockingWebRequestListeners();
 }
 
-const performDeauthSideEffects = async () => {
-  await setBrowserStorageValue(POPUP_STATE_STORAGE_KEYS, PopupState.SignedOut);
+const constructClient = async (): Promise<ICloudClient> => {
+  const clientState = (await getBrowserStorageValue('clientState')) || [];
+
+  return new ICloudClient(...clientState);
+};
+
+const performDeauthSideEffects = () => {
+  setBrowserStorageValue('popupState', PopupState.SignedOut);
+  setBrowserStorageValue('clientState', []);
 
   browser.contextMenus
     .update(CONTEXT_MENU_ITEM_ID, {
@@ -33,7 +52,9 @@ const performDeauthSideEffects = async () => {
     .catch(console.debug);
 };
 
-const performAuthSideEffects = () => {
+const performAuthSideEffects = (client: ICloudClient) => {
+  setBrowserStorageValue('clientState', [client.setupUrl, client.webservices]);
+
   browser.contextMenus
     .update(CONTEXT_MENU_ITEM_ID, {
       title: SIGNED_IN_CTA_COPY,
@@ -58,7 +79,7 @@ browser.runtime.onMessage.addListener(async (message: Message<unknown>) => {
     case MessageType.GenerateRequest:
       {
         const elementId = message.data;
-        const client = new ICloudClient();
+        const client = await constructClient();
         const isClientAuthenticated = await client.isAuthenticated();
         if (!isClientAuthenticated) {
           await sendMessageToTab(MessageType.GenerateResponse, {
@@ -88,7 +109,7 @@ browser.runtime.onMessage.addListener(async (message: Message<unknown>) => {
       {
         const { hme, label, elementId } =
           message.data as ReservationRequestData;
-        const client = new ICloudClient();
+        const client = await constructClient();
 
         // TODO: Instead of re-validating the token,
         // find a way to persist the client state between the
@@ -125,24 +146,12 @@ browser.runtime.onMessage.addListener(async (message: Message<unknown>) => {
 
 // ===== Context menu =====
 
-export const CONTEXT_MENU_ITEM_ID = browser.runtime.id.concat(
-  '/',
-  'hme_generation_and_reservation'
-);
-
-export const SIGNED_OUT_CTA_COPY = 'Please sign-in to iCloud';
-const LOADING_COPY = 'Hide My Email — Loading...';
-const SIGNED_IN_CTA_COPY = 'Generate and reserve Hide My Email address';
-const NOTIFICATION_MESSAGE_COPY =
-  'The iCloud HideMyEmail extension is ready to use!';
-const NOTIFICATION_TITLE_COPY = 'iCloud HideMyEmail Extension';
-
 // At any given time, there should be 1 created context menu item. We want to prevent
 // the creation of multiple items that serve the same purpose (i.e. the context menu having multiple
 // "Generate and reserve Hide My Email address" rows). Hence, we create the context menu item once,
 // upon the installation of the extension.
 browser.runtime.onInstalled.addListener(async () => {
-  const options = await getBrowserStorageValue<Options>(OPTIONS_STORAGE_KEYS);
+  const options = await getBrowserStorageValue('iCloudHmeOptions');
 
   browser.contextMenus.create(
     {
@@ -154,7 +163,7 @@ browser.runtime.onInstalled.addListener(async () => {
         options?.autofill.contextMenu || DEFAULT_OPTIONS.autofill.contextMenu,
     },
     async () => {
-      const client = new ICloudClient();
+      const client = await constructClient();
       const isClientAuthenticated = await client.isAuthenticated();
       if (!isClientAuthenticated) {
         performDeauthSideEffects();
@@ -176,7 +185,7 @@ browser.runtime.onInstalled.addListener(async () => {
 // * it hides the context menu item when the user un-checks the context menu option.
 // * it makes the context menu item visible when the user checks the context menu option.
 browser.storage.onChanged.addListener((changes, namespace) => {
-  const iCloudHmeOptions = changes[OPTIONS_STORAGE_KEYS[0]];
+  const iCloudHmeOptions = changes['iCloudHmeOptions' as keyof Store];
   if (namespace !== 'local' || iCloudHmeOptions === undefined) {
     return;
   }
@@ -215,7 +224,7 @@ browser.contextMenus.onClicked.addListener(async (info, tab) => {
   const serializedUrl = info.pageUrl || tab?.url;
   const hostname = serializedUrl ? new URL(serializedUrl).hostname : '';
 
-  const client = new ICloudClient();
+  const client = await constructClient();
   const isClientAuthenticated = await client.isAuthenticated();
 
   if (!isClientAuthenticated) {
@@ -259,20 +268,24 @@ browser.contextMenus.onClicked.addListener(async (info, tab) => {
 // as enabled.
 browser.webRequest.onResponseStarted.addListener(
   async (details: browser.WebRequest.OnResponseStartedDetailsType) => {
-    const { statusCode } = details;
+    const { statusCode, url } = details;
     if (statusCode < 200 && statusCode > 299) {
       console.debug('Request failed', details);
       return;
     }
 
-    const client = new ICloudClient();
+    const setupUrl = url.split('/accountLogin')[0] as ICloudClient['setupUrl'];
+    const client = new ICloudClient(setupUrl);
     const isAuthenticated = await client.isAuthenticated();
     if (isAuthenticated) {
-      performAuthSideEffects();
+      performAuthSideEffects(client);
     }
   },
   {
-    urls: [`${ICloudClient.setupUrl}/accountLogin*`],
+    urls: [
+      `${DEFAULT_SETUP_URL}/accountLogin*`,
+      `${CN_SETUP_URL}/accountLogin*`,
+    ],
   },
   []
 );
@@ -290,7 +303,7 @@ browser.webRequest.onResponseStarted.addListener(
     performDeauthSideEffects();
   },
   {
-    urls: [`${ICloudClient.setupUrl}/logout*`],
+    urls: [`${DEFAULT_SETUP_URL}/logout*`, `${CN_SETUP_URL}/logout*`],
   },
   []
 );
@@ -303,10 +316,10 @@ browser.webRequest.onResponseStarted.addListener(
 browser.runtime.onInstalled.addListener(
   async (details: browser.Runtime.OnInstalledDetailsType) => {
     if (['install', 'update'].includes(details.reason)) {
-      const client = new ICloudClient();
+      const client = await constructClient();
       const isAuthenticated = await client.isAuthenticated();
       if (isAuthenticated) {
-        performAuthSideEffects();
+        performAuthSideEffects(client);
       } else {
         performDeauthSideEffects();
       }

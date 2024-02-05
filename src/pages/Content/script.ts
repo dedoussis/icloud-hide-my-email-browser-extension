@@ -9,8 +9,7 @@ import {
 import { v4 as uuidv4 } from 'uuid';
 import './index.css';
 import browser from 'webextension-polyfill';
-import { OPTIONS_STORAGE_KEYS, getBrowserStorageValue } from '../../storage';
-import { Options } from '../../options';
+import { getBrowserStorageValue } from '../../storage';
 
 const EMAIL_INPUT_QUERY_STRING =
   'input[type="email"], input[name="email"], input[id="email"]';
@@ -130,7 +129,7 @@ export default async function main(): Promise<void> {
     EMAIL_INPUT_QUERY_STRING
   );
 
-  const options = await getBrowserStorageValue<Options>(OPTIONS_STORAGE_KEYS);
+  const options = await getBrowserStorageValue('iCloudHmeOptions');
 
   const makeAutofillableInputElement = (
     inputElement: HTMLInputElement
