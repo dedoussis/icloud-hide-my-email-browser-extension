@@ -3,7 +3,7 @@ import {
   getBrowserStorageValue,
   setBrowserStorageValue,
   Store,
-  DEFAULT_OPTIONS,
+  DEFAULT_STORE,
   Options,
 } from '../../storage';
 import ICloudClient, {
@@ -18,7 +18,6 @@ import {
   ReservationRequestData,
   sendMessageToTab,
 } from '../../messages';
-import { PopupState } from '../Popup/stateMachine';
 import browser from 'webextension-polyfill';
 import { setupBlockingWebRequestListeners } from '../../webRequestUtils';
 import {
@@ -35,14 +34,19 @@ if ((browser as unknown as typeof chrome).declarativeNetRequest === undefined) {
 }
 
 const constructClient = async (): Promise<ICloudClient> => {
-  const clientState = (await getBrowserStorageValue('clientState')) || [];
+  const clientState = await getBrowserStorageValue('clientState');
 
-  return new ICloudClient(...clientState);
+  if (clientState === undefined) {
+    console.debug('maybeConstructClient: Using default setupUrl');
+    return new ICloudClient(DEFAULT_SETUP_URL);
+  }
+
+  return new ICloudClient(clientState.setupUrl, clientState.webservices);
 };
 
 const performDeauthSideEffects = () => {
-  setBrowserStorageValue('popupState', PopupState.SignedOut);
-  setBrowserStorageValue('clientState', []);
+  setBrowserStorageValue('popupState', DEFAULT_STORE.popupState);
+  setBrowserStorageValue('clientState', DEFAULT_STORE.clientState);
 
   browser.contextMenus
     .update(CONTEXT_MENU_ITEM_ID, {
@@ -53,7 +57,10 @@ const performDeauthSideEffects = () => {
 };
 
 const performAuthSideEffects = (client: ICloudClient) => {
-  setBrowserStorageValue('clientState', [client.setupUrl, client.webservices]);
+  setBrowserStorageValue('clientState', {
+    setupUrl: client.setupUrl,
+    webservices: client.webservices,
+  });
 
   browser.contextMenus
     .update(CONTEXT_MENU_ITEM_ID, {
@@ -110,20 +117,10 @@ browser.runtime.onMessage.addListener(async (message: Message<unknown>) => {
         const { hme, label, elementId } =
           message.data as ReservationRequestData;
         const client = await constructClient();
-
-        // TODO: Instead of re-validating the token,
-        // find a way to persist the client state between the
-        // generation and reservation events
-        const isClientAuthenticated = await client.isAuthenticated();
-        if (!isClientAuthenticated) {
-          await sendMessageToTab(MessageType.GenerateResponse, {
-            error: SIGNED_OUT_CTA_COPY,
-            elementId,
-          });
-          performDeauthSideEffects();
-          break;
-        }
-
+        // Given that the reservation step happens shortly after
+        // the generation step, it is safe to assume that the client's
+        // auth state has been recently validated. Hence, we are
+        // skipping token validation.
         try {
           const pms = new PremiumMailSettings(client);
           await pms.reserveHme(hme, label);
@@ -151,7 +148,9 @@ browser.runtime.onMessage.addListener(async (message: Message<unknown>) => {
 // "Generate and reserve Hide My Email address" rows). Hence, we create the context menu item once,
 // upon the installation of the extension.
 browser.runtime.onInstalled.addListener(async () => {
-  const options = await getBrowserStorageValue('iCloudHmeOptions');
+  const options =
+    (await getBrowserStorageValue('iCloudHmeOptions')) ||
+    DEFAULT_STORE.iCloudHmeOptions;
 
   browser.contextMenus.create(
     {
@@ -159,8 +158,7 @@ browser.runtime.onInstalled.addListener(async () => {
       title: LOADING_COPY,
       contexts: ['editable'],
       enabled: false,
-      visible:
-        options?.autofill.contextMenu || DEFAULT_OPTIONS.autofill.contextMenu,
+      visible: options.autofill.contextMenu,
     },
     async () => {
       const client = await constructClient();
@@ -203,8 +201,7 @@ browser.storage.onChanged.addListener((changes, namespace) => {
 
   browser.contextMenus
     .update(CONTEXT_MENU_ITEM_ID, {
-      visible:
-        newValue?.autofill.contextMenu || DEFAULT_OPTIONS.autofill.contextMenu,
+      visible: newValue?.autofill.contextMenu,
     })
     .catch(console.debug);
 });
@@ -327,7 +324,7 @@ browser.runtime.onInstalled.addListener(
   }
 );
 
-// Present the user with a getting started guide.
+// Present the user with a getting-started guide.
 browser.runtime.onInstalled.addListener(
   async (details: browser.Runtime.OnInstalledDetailsType) => {
     const userguideUrl = browser.runtime.getURL('userguide.html');

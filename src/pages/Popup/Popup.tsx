@@ -68,7 +68,7 @@ type TransitionCallback<T extends PopupAction> = (action: T) => void;
 // Note that the webRequest listeners may also be constructed on runtimes
 // that support declarativeNetRequest. This is fine, since these runtimes
 // will just ignore the listeners due to the lack of the respective
-// manifest permissions (webRequest and blockingWebRequest).
+// manifest permission (blockingWebRequest).
 //
 // [0] https://developer.mozilla.org/en-US/docs/Glossary/Forbidden_header_name
 // [1] https://bugzilla.mozilla.org/show_bug.cgi?id=1687755
@@ -206,14 +206,17 @@ async function performDeauthSideEffects(): Promise<void> {
     .catch(console.debug);
 }
 
-const SignOutButton = (props: { callback: TransitionCallback<'SIGN_OUT'> }) => {
-  const client = new ICloudClient();
+const SignOutButton = (props: {
+  callback: TransitionCallback<'SIGN_OUT'>;
+  client: ICloudClient;
+}) => {
   return (
     <FooterButton
       className="text-sky-400 hover:text-sky-500 focus:outline-sky-400"
       onClick={async () => {
-        await client.signOut();
-        setBrowserStorageValue('clientState', []);
+        await props.client.signOut();
+        // TODO: call the react state setter instead
+        setBrowserStorageValue('clientState', undefined);
         performDeauthSideEffects();
         props.callback('SIGN_OUT');
       }}
@@ -746,10 +749,18 @@ const HmeManager = (props: {
   );
 };
 
+const constructClient = (clientState: Store['clientState']): ICloudClient => {
+  if (clientState === undefined) {
+    throw new Error('Cannot construct client when client state is undefined');
+  }
+
+  return new ICloudClient(clientState.setupUrl, clientState.webservices);
+};
+
 const transitionToNextStateElement = (
   state: PopupState,
   setState: Dispatch<PopupState>,
-  client: ICloudClient
+  clientState: Store['clientState']
 ): ReactElement => {
   switch (state) {
     case PopupState.SignedOut: {
@@ -758,12 +769,19 @@ const transitionToNextStateElement = (
     case PopupState.Authenticated: {
       const callback = (action: AuthenticatedAction) =>
         setState(STATE_MACHINE_TRANSITIONS[state][action]);
-      return <HmeGenerator callback={callback} client={client} />;
+      return (
+        <HmeGenerator
+          callback={callback}
+          client={constructClient(clientState)}
+        />
+      );
     }
     case PopupState.AuthenticatedAndManaging: {
       const callback = (action: AuthenticatedAndManagingAction) =>
         setState(STATE_MACHINE_TRANSITIONS[state][action]);
-      return <HmeManager callback={callback} client={client} />;
+      return (
+        <HmeManager callback={callback} client={constructClient(clientState)} />
+      );
     }
     default: {
       const exhaustivenessCheck: never = state;
@@ -773,57 +791,52 @@ const transitionToNextStateElement = (
 };
 
 const Popup = () => {
-  const [state, setState] = useBrowserStorageState(
+  const [state, setState, isStateLoading] = useBrowserStorageState(
     'popupState',
     PopupState.SignedOut
   );
-  const [authStateSynced, setAuthStateSynced] = useState(false);
-  const [[setupUrl, webservices], setClientState] = useBrowserStorageState(
-    'clientState',
-    []
-  );
+
+  const [clientState, setClientState, isClientStateLoading] =
+    useBrowserStorageState('clientState', undefined);
+  const [clientAuthStateSynced, setClientAuthStateSynced] = useState(false);
 
   useEffect(() => {
-    const syncAuthState = async () => {
-      const client = new ICloudClient(setupUrl);
-      const isClientAuthenticated = await client.isAuthenticated();
-      if (isClientAuthenticated) {
+    const syncClientAuthState = async () => {
+      const isAuthenticated =
+        clientState?.setupUrl !== undefined &&
+        (await new ICloudClient(clientState.setupUrl).isAuthenticated());
+
+      if (isAuthenticated) {
         setState((prevState) =>
           prevState === PopupState.SignedOut
             ? PopupState.Authenticated
             : prevState
         );
-
-        const newClientState: Store['clientState'] = [
-          client.setupUrl,
-          client.webservices,
-        ];
-        setClientState((prevState) =>
-          isEqual(prevState, newClientState) ? prevState : newClientState
-        );
       } else {
         setState(PopupState.SignedOut);
-        setClientState((prevState) =>
-          prevState.length === 0 ? prevState : []
-        );
+        setClientState(undefined);
         performDeauthSideEffects();
       }
 
-      setAuthStateSynced(true);
+      setClientAuthStateSynced(true);
     };
 
-    !authStateSynced && syncAuthState();
-  }, [setState, setClientState, authStateSynced, setAuthStateSynced, setupUrl]);
-
-  const client = new ICloudClient(setupUrl, webservices);
+    !clientAuthStateSynced && !isClientStateLoading && syncClientAuthState();
+  }, [
+    setState,
+    setClientState,
+    clientAuthStateSynced,
+    clientState?.setupUrl,
+    isClientStateLoading,
+  ]);
 
   return (
     <div className="min-h-full flex items-center justify-center p-4">
       <div className="max-w-md w-full">
-        {authStateSynced ? (
-          transitionToNextStateElement(state, setState, client)
-        ) : (
+        {isStateLoading || !clientAuthStateSynced ? (
           <Spinner />
+        ) : (
+          transitionToNextStateElement(state, setState, clientState)
         )}
       </div>
     </div>

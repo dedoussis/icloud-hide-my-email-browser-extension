@@ -14,12 +14,14 @@ import {
 
 export function useBrowserStorageState<K extends keyof Store>(
   key: K,
-  fallback: NonNullable<Store[K]>
-): [NonNullable<Store[K]>, Dispatch<SetStateAction<NonNullable<Store[K]>>>] {
-  const [state, setState] = useState(fallback);
+  initialValue: Store[K]
+): [Store[K], Dispatch<SetStateAction<Store[K]>>, boolean] {
+  const [state, setState] = useState(initialValue);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     async function getBrowserStorageState() {
+      setIsLoading(true);
       const value = await getBrowserStorageValue(key);
 
       value !== undefined &&
@@ -28,15 +30,13 @@ export function useBrowserStorageState<K extends keyof Store>(
         );
     }
 
-    getBrowserStorageState().catch(console.error);
+    getBrowserStorageState()
+      .catch(console.error)
+      .finally(() => setIsLoading(false));
   }, [key]);
 
   const setBrowserStorageState = useCallback(
-    (
-      value:
-        | NonNullable<Store[K]>
-        | ((prevState: NonNullable<Store[K]>) => NonNullable<Store[K]>)
-    ) =>
+    (value: SetStateAction<Store[K]>) =>
       setState((prevState) => {
         const newValue = value instanceof Function ? value(prevState) : value;
         setBrowserStorageValue(key, newValue);
@@ -45,5 +45,5 @@ export function useBrowserStorageState<K extends keyof Store>(
     [key]
   );
 
-  return [state, setBrowserStorageState];
+  return [state, setBrowserStorageState, isLoading];
 }

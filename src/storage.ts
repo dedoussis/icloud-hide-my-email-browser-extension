@@ -11,23 +11,30 @@ export type Options = {
   autofill: Autofill;
 };
 
-export const DEFAULT_OPTIONS: Options = {
-  autofill: {
-    button: true,
-    contextMenu: true,
-  },
+export type Store = {
+  popupState: PopupState;
+  iCloudHmeOptions: Options; // TODO: rename key to options
+  clientState?: {
+    setupUrl: ConstructorParameters<typeof ICloudClient>[0];
+    webservices: ConstructorParameters<typeof ICloudClient>[1];
+  };
 };
 
-export type Store = {
-  popupState?: PopupState;
-  iCloudHmeOptions?: Options; // TODO: rename key to options
-  clientState?: ConstructorParameters<typeof ICloudClient>;
+export const DEFAULT_STORE = {
+  popupState: PopupState.SignedOut,
+  iCloudHmeOptions: {
+    autofill: {
+      button: true,
+      contextMenu: true,
+    },
+  },
+  clientState: undefined,
 };
 
 export async function getBrowserStorageValue<K extends keyof Store>(
   key: K
 ): Promise<Store[K] | undefined> {
-  const store: Store = await browser.storage.local.get(key);
+  const store: Partial<Store> = await browser.storage.local.get(key);
   return store[key];
 }
 
@@ -35,5 +42,9 @@ export async function setBrowserStorageValue<K extends keyof Store>(
   key: K,
   value: Store[K]
 ): Promise<void> {
-  await browser.storage.local.set({ [key]: value });
+  if (value === undefined) {
+    await browser.storage.local.remove(key);
+  } else {
+    await browser.storage.local.set({ [key]: value });
+  }
 }
