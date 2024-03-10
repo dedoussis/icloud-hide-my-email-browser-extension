@@ -17,8 +17,7 @@
     "start:mv2": "MANIFEST_VERSION=2 node utils/webserver.js",
     "lint": "eslint .",
     "prettier": "prettier --write '**/*.{js,jsx,ts,tsx,json,css,scss,md,eslintrc}'",
-    "prettier:check": "prettier --check '**/*.{js,jsx,ts,tsx,json,css,scss,md,eslintrc}'",
-    "react-devtools": "react-devtools"
+    "prettier:check": "prettier --check '**/*.{js,jsx,ts,tsx,json,css,scss,md,eslintrc}'"
   },
   "dependencies": {
     "@fortawesome/fontawesome-svg-core": "^6.2.0",
