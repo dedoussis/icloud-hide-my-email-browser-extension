@@ -28,34 +28,37 @@ const SelectFwdToForm = () => {
 
   useEffect(() => {
     const fetchHmeList = async () => {
-      if (clientState?.setupUrl === undefined) {
-        setListHmeError(SELECT_FWD_TO_SIGNED_OUT_CTA_COPY);
-        return;
-      }
-
       setListHmeError(undefined);
       setIsFetching(true);
 
+      if (clientState?.setupUrl === undefined) {
+        setListHmeError(SELECT_FWD_TO_SIGNED_OUT_CTA_COPY);
+        setIsFetching(false);
+        return;
+      }
+
       const client = new ICloudClient(clientState.setupUrl);
       const isClientAuthenticated = await client.isAuthenticated();
-
       if (!isClientAuthenticated) {
         setListHmeError(SELECT_FWD_TO_SIGNED_OUT_CTA_COPY);
-      } else {
-        try {
-          const pms = new PremiumMailSettings(client);
-          const result = await pms.listHme();
-          setFwdToEmails((prevState) =>
-            isEqual(prevState, result.forwardToEmails)
-              ? prevState
-              : result.forwardToEmails
-          );
-          setSelectedFwdToEmail(result.selectedForwardTo);
-        } catch (e) {
-          setListHmeError(e.toString());
-        }
+        setIsFetching(false);
+        return;
       }
-      setIsFetching(false);
+
+      try {
+        const pms = new PremiumMailSettings(client);
+        const result = await pms.listHme();
+        setFwdToEmails((prevState) =>
+          isEqual(prevState, result.forwardToEmails)
+            ? prevState
+            : result.forwardToEmails
+        );
+        setSelectedFwdToEmail(result.selectedForwardTo);
+      } catch (e) {
+        setListHmeError(e.toString());
+      } finally {
+        setIsFetching(false);
+      }
     };
 
     !isClientStateLoading && fetchHmeList();

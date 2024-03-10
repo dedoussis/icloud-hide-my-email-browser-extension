@@ -85,15 +85,29 @@ browser.runtime.onMessage.addListener(async (message: Message<unknown>) => {
   switch (message.type) {
     case MessageType.GenerateRequest:
       {
-        const elementId = message.data;
-        const client = await constructClient();
-        const isClientAuthenticated = await client.isAuthenticated();
-        if (!isClientAuthenticated) {
+        const deauthCallback = async () => {
           await sendMessageToTab(MessageType.GenerateResponse, {
             error: SIGNED_OUT_CTA_COPY,
             elementId,
           });
           performDeauthSideEffects();
+        };
+
+        const elementId = message.data;
+
+        const clientState = await getBrowserStorageValue('clientState');
+        if (clientState === undefined) {
+          await deauthCallback();
+          break;
+        }
+
+        const client = new ICloudClient(
+          clientState.setupUrl,
+          clientState.webservices
+        );
+        const isClientAuthenticated = await client.isAuthenticated();
+        if (!isClientAuthenticated) {
+          await deauthCallback();
           break;
         }
 
