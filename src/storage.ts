@@ -1,32 +1,50 @@
 import browser from 'webextension-polyfill';
+import ICloudClient from './iCloudClient';
+import { PopupState } from './pages/Popup/stateMachine';
 
-export const POPUP_STATE_STORAGE_KEYS = ['iCloudHmePopupState'];
-export const OPTIONS_STORAGE_KEYS = ['iCloudHmeOptions'];
+export type Autofill = {
+  button: boolean;
+  contextMenu: boolean;
+};
 
-export async function getBrowserStorageValue<T>(
-  keys: string[]
-): Promise<T | undefined> {
-  return keys.reduce((prev, curr) => {
-    if (prev === undefined) {
-      return undefined;
-    }
-    return prev[curr];
-  }, await browser.storage.local.get(keys)) as unknown as T | undefined;
+export type Options = {
+  autofill: Autofill;
+};
+
+export type Store = {
+  popupState: PopupState;
+  iCloudHmeOptions: Options; // TODO: rename key to options
+  clientState?: {
+    setupUrl: ConstructorParameters<typeof ICloudClient>[0];
+    webservices: ConstructorParameters<typeof ICloudClient>[1];
+  };
+};
+
+export const DEFAULT_STORE = {
+  popupState: PopupState.SignedOut,
+  iCloudHmeOptions: {
+    autofill: {
+      button: true,
+      contextMenu: true,
+    },
+  },
+  clientState: undefined,
+};
+
+export async function getBrowserStorageValue<K extends keyof Store>(
+  key: K
+): Promise<Store[K] | undefined> {
+  const store: Partial<Store> = await browser.storage.local.get(key);
+  return store[key];
 }
 
-export async function setBrowserStorageValue(
-  keys: string[],
-  value: unknown
+export async function setBrowserStorageValue<K extends keyof Store>(
+  key: K,
+  value: Store[K]
 ): Promise<void> {
-  const mutableKeys = [...keys];
-  const lastKey = mutableKeys.pop();
-  if (lastKey === undefined) {
-    throw Error('keys array must contain at least 1 element.');
+  if (value === undefined) {
+    await browser.storage.local.remove(key);
+  } else {
+    await browser.storage.local.set({ [key]: value });
   }
-
-  const browserStorageObj = mutableKeys
-    .reverse()
-    .reduce((prev, curr) => ({ [curr]: prev }), { [lastKey]: value });
-
-  await browser.storage.local.set(browserStorageObj);
 }

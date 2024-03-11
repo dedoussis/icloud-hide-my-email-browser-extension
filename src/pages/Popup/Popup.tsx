@@ -37,7 +37,7 @@ import {
   TitledComponent,
   Link,
 } from '../../commonComponents';
-import { POPUP_STATE_STORAGE_KEYS } from '../../storage';
+import { setBrowserStorageValue, Store } from '../../storage';
 
 import browser from 'webextension-polyfill';
 import { setupBlockingWebRequestListeners } from '../../webRequestUtils';
@@ -50,10 +50,12 @@ import {
   STATE_MACHINE_TRANSITIONS,
   AuthenticatedAndManagingAction,
 } from './stateMachine';
-import { CONTEXT_MENU_ITEM_ID, SIGNED_OUT_CTA_COPY } from '../Background';
+import {
+  CONTEXT_MENU_ITEM_ID,
+  SIGNED_OUT_CTA_COPY,
+} from '../Background/constants';
 
 type TransitionCallback<T extends PopupAction> = (action: T) => void;
-type ClientState = ConstructorParameters<typeof ICloudClient>;
 
 // The iCloud API requires the Origin and Referer HTTP headers of a request
 // to be set to https://www.icloud.com.
@@ -66,7 +68,7 @@ type ClientState = ConstructorParameters<typeof ICloudClient>;
 // Note that the webRequest listeners may also be constructed on runtimes
 // that support declarativeNetRequest. This is fine, since these runtimes
 // will just ignore the listeners due to the lack of the respective
-// manifest permissions (webRequest and blockingWebRequest).
+// manifest permission (blockingWebRequest).
 //
 // [0] https://developer.mozilla.org/en-US/docs/Glossary/Forbidden_header_name
 // [1] https://bugzilla.mozilla.org/show_bug.cgi?id=1687755
@@ -204,13 +206,17 @@ async function performDeauthSideEffects(): Promise<void> {
     .catch(console.debug);
 }
 
-const SignOutButton = (props: { callback: TransitionCallback<'SIGN_OUT'> }) => {
-  const client = new ICloudClient();
+const SignOutButton = (props: {
+  callback: TransitionCallback<'SIGN_OUT'>;
+  client: ICloudClient;
+}) => {
   return (
     <FooterButton
       className="text-sky-400 hover:text-sky-500 focus:outline-sky-400"
       onClick={async () => {
-        await client.signOut();
+        await props.client.signOut();
+        // TODO: call the react state setter instead
+        setBrowserStorageValue('clientState', undefined);
         performDeauthSideEffects();
         props.callback('SIGN_OUT');
       }}
@@ -222,7 +228,7 @@ const SignOutButton = (props: { callback: TransitionCallback<'SIGN_OUT'> }) => {
 
 const HmeGenerator = (props: {
   callback: TransitionCallback<AuthenticatedAction>;
-  clientState: ClientState;
+  client: ICloudClient;
 }) => {
   const [hmeEmail, setHmeEmail] = useState<string>();
   const [hmeError, setHmeError] = useState<string>();
@@ -242,9 +248,8 @@ const HmeGenerator = (props: {
   useEffect(() => {
     const fetchHmeList = async () => {
       setHmeError(undefined);
-      const client = new ICloudClient(...props.clientState);
       try {
-        const pms = new PremiumMailSettings(client);
+        const pms = new PremiumMailSettings(props.client);
         const result = await pms.listHme();
         setFwdToEmail(result.selectedForwardTo);
       } catch (e) {
@@ -253,15 +258,14 @@ const HmeGenerator = (props: {
     };
 
     fetchHmeList();
-  }, [props.clientState]);
+  }, [props.client]);
 
   useEffect(() => {
     const fetchHmeEmail = async () => {
       setHmeError(undefined);
       setIsEmailRefreshSubmitting(true);
-      const client = new ICloudClient(...props.clientState);
       try {
-        const pms = new PremiumMailSettings(client);
+        const pms = new PremiumMailSettings(props.client);
         setHmeEmail(await pms.generateHme());
       } catch (e) {
         setHmeError(e.toString());
@@ -271,7 +275,7 @@ const HmeGenerator = (props: {
     };
 
     fetchHmeEmail();
-  }, [props.clientState]);
+  }, [props.client]);
 
   useEffect(() => {
     const getTabHost = async () => {
@@ -295,9 +299,8 @@ const HmeGenerator = (props: {
     setReservedHme(undefined);
     setHmeError(undefined);
     setReserveError(undefined);
-    const client = new ICloudClient(...props.clientState);
     try {
-      const pms = new PremiumMailSettings(client);
+      const pms = new PremiumMailSettings(props.client);
       setHmeEmail(await pms.generateHme());
     } catch (e) {
       setHmeError(e.toString());
@@ -312,9 +315,8 @@ const HmeGenerator = (props: {
     setReserveError(undefined);
 
     if (hmeEmail !== undefined) {
-      const client = new ICloudClient(...props.clientState);
       try {
-        const pms = new PremiumMailSettings(client);
+        const pms = new PremiumMailSettings(props.client);
         setReservedHme(
           await pms.reserveHme(hmeEmail, label || tabHost, note || undefined)
         );
@@ -421,7 +423,7 @@ const HmeGenerator = (props: {
 
 const HmeDetails = (props: {
   hme: HmeEmail;
-  clientState: ClientState;
+  client: ICloudClient;
   activationCallback: () => void;
   deletionCallback: () => void;
 }) => {
@@ -439,9 +441,8 @@ const HmeDetails = (props: {
 
   const onActivationClick = async () => {
     setIsActivateSubmitting(true);
-    const client = new ICloudClient(...props.clientState);
     try {
-      const pms = new PremiumMailSettings(client);
+      const pms = new PremiumMailSettings(props.client);
       if (props.hme.isActive) {
         await pms.deactivateHme(props.hme.anonymousId);
       } else {
@@ -457,9 +458,8 @@ const HmeDetails = (props: {
 
   const onDeletionClick = async () => {
     setIsDeleteSubmitting(true);
-    const client = new ICloudClient(...props.clientState);
     try {
-      const pms = new PremiumMailSettings(client);
+      const pms = new PremiumMailSettings(props.client);
       await pms.deleteHme(props.hme.anonymousId);
       props.deletionCallback();
     } catch (e) {
@@ -584,7 +584,7 @@ const searchHmeEmails = (
 
 const HmeManager = (props: {
   callback: TransitionCallback<AuthenticatedAndManagingAction>;
-  clientState: ClientState;
+  client: ICloudClient;
 }) => {
   const [fetchedHmeEmails, setFetchedHmeEmails] = useState<HmeEmail[]>();
   const [hmeEmailsError, setHmeEmailsError] = useState<string>();
@@ -596,9 +596,8 @@ const HmeManager = (props: {
     const fetchHmeList = async () => {
       setHmeEmailsError(undefined);
       setIsFetching(true);
-      const client = new ICloudClient(...props.clientState);
       try {
-        const pms = new PremiumMailSettings(client);
+        const pms = new PremiumMailSettings(props.client);
         const result = await pms.listHme();
         setFetchedHmeEmails(
           result.hmeEmails.sort((a, b) => b.createTimestamp - a.createTimestamp)
@@ -611,7 +610,7 @@ const HmeManager = (props: {
     };
 
     fetchHmeList();
-  }, [props.clientState]);
+  }, [props.client]);
 
   const activationCallbackFactory = (hmeEmail: HmeEmail) => () => {
     const newHmeEmail = { ...hmeEmail, isActive: !hmeEmail.isActive };
@@ -695,7 +694,7 @@ const HmeManager = (props: {
         <div className="overflow-y-auto p-2 rounded-r-md border border-l-0 border-gray-200">
           {selectedHmeEmail && (
             <HmeDetails
-              clientState={props.clientState}
+              client={props.client}
               hme={selectedHmeEmail}
               activationCallback={activationCallbackFactory(selectedHmeEmail)}
               deletionCallback={deletionCallbackFactory(selectedHmeEmail)}
@@ -750,10 +749,18 @@ const HmeManager = (props: {
   );
 };
 
+const constructClient = (clientState: Store['clientState']): ICloudClient => {
+  if (clientState === undefined) {
+    throw new Error('Cannot construct client when client state is undefined');
+  }
+
+  return new ICloudClient(clientState.setupUrl, clientState.webservices);
+};
+
 const transitionToNextStateElement = (
   state: PopupState,
   setState: Dispatch<PopupState>,
-  clientState: ClientState
+  clientState: Store['clientState']
 ): ReactElement => {
   switch (state) {
     case PopupState.SignedOut: {
@@ -762,12 +769,19 @@ const transitionToNextStateElement = (
     case PopupState.Authenticated: {
       const callback = (action: AuthenticatedAction) =>
         setState(STATE_MACHINE_TRANSITIONS[state][action]);
-      return <HmeGenerator callback={callback} clientState={clientState} />;
+      return (
+        <HmeGenerator
+          callback={callback}
+          client={constructClient(clientState)}
+        />
+      );
     }
     case PopupState.AuthenticatedAndManaging: {
       const callback = (action: AuthenticatedAndManagingAction) =>
         setState(STATE_MACHINE_TRANSITIONS[state][action]);
-      return <HmeManager callback={callback} clientState={clientState} />;
+      return (
+        <HmeManager callback={callback} client={constructClient(clientState)} />
+      );
     }
     default: {
       const exhaustivenessCheck: never = state;
@@ -777,47 +791,52 @@ const transitionToNextStateElement = (
 };
 
 const Popup = () => {
-  const [state, setState] = useBrowserStorageState(
-    POPUP_STATE_STORAGE_KEYS,
+  const [state, setState, isStateLoading] = useBrowserStorageState(
+    'popupState',
     PopupState.SignedOut
   );
-  const [authStateSynced, setAuthStateSynced] = useState(false);
-  const [clientState, setClientState] = useState<ClientState>([]);
+
+  const [clientState, setClientState, isClientStateLoading] =
+    useBrowserStorageState('clientState', undefined);
+  const [clientAuthStateSynced, setClientAuthStateSynced] = useState(false);
 
   useEffect(() => {
-    const syncAuthState = async () => {
-      const client = new ICloudClient();
-      const isClientAuthenticated = await client.isAuthenticated();
-      if (isClientAuthenticated) {
-        if (state === PopupState.SignedOut) {
-          setState(PopupState.Authenticated);
-        }
+    const syncClientAuthState = async () => {
+      const isAuthenticated =
+        clientState?.setupUrl !== undefined &&
+        (await new ICloudClient(clientState.setupUrl).isAuthenticated());
 
-        setClientState((prevState) =>
-          isEqual(prevState, [client.webservices])
-            ? prevState
-            : [client.webservices]
+      if (isAuthenticated) {
+        setState((prevState) =>
+          prevState === PopupState.SignedOut
+            ? PopupState.Authenticated
+            : prevState
         );
       } else {
         setState(PopupState.SignedOut);
-        setClientState((prevState) =>
-          prevState.length === 0 ? prevState : []
-        );
+        setClientState(undefined);
         performDeauthSideEffects();
       }
-      setAuthStateSynced(true);
+
+      setClientAuthStateSynced(true);
     };
 
-    syncAuthState();
-  }, [setState, state, setClientState, setAuthStateSynced]);
+    !isClientStateLoading && !clientAuthStateSynced && syncClientAuthState();
+  }, [
+    setState,
+    setClientState,
+    clientAuthStateSynced,
+    clientState?.setupUrl,
+    isClientStateLoading,
+  ]);
 
   return (
     <div className="min-h-full flex items-center justify-center p-4">
       <div className="max-w-md w-full">
-        {authStateSynced ? (
-          transitionToNextStateElement(state, setState, clientState)
-        ) : (
+        {isStateLoading || !clientAuthStateSynced ? (
           <Spinner />
+        ) : (
+          transitionToNextStateElement(state, setState, clientState)
         )}
       </div>
     </div>

@@ -9,10 +9,12 @@ import {
   TitledComponent,
   Link,
 } from '../../commonComponents';
-import { OPTIONS_STORAGE_KEYS } from '../../storage';
-import { DEFAULT_OPTIONS, Options } from '../../options';
 import startCase from 'lodash.startcase';
 import isEqual from 'lodash.isequal';
+import { DEFAULT_STORE } from '../../storage';
+
+const SELECT_FWD_TO_SIGNED_OUT_CTA_COPY =
+  'To select a new Forward-To address, you first need to sign-in by following the instructions on the extension pop-up.';
 
 const SelectFwdToForm = () => {
   const [selectedFwdToEmail, setSelectedFwdToEmail] = useState<string>();
@@ -21,50 +23,64 @@ const SelectFwdToForm = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [listHmeError, setListHmeError] = useState<string>();
   const [updateFwdToError, setUpdateFwdToError] = useState<string>();
-  const [clientState, setClientState] = useState<
-    ConstructorParameters<typeof ICloudClient>
-  >([]);
+  const [clientState, setClientState, isClientStateLoading] =
+    useBrowserStorageState('clientState', undefined);
 
   useEffect(() => {
     const fetchHmeList = async () => {
       setListHmeError(undefined);
       setIsFetching(true);
-      const client = new ICloudClient();
-      const isClientAuthenticated = await client.isAuthenticated();
 
-      if (!isClientAuthenticated) {
-        setListHmeError(
-          'To select a new Forward-To address, you first need to sign-in by following the instructions on the extension pop-up.'
-        );
-      } else {
-        setClientState((prevState) =>
-          isEqual(prevState, [client.webservices])
-            ? prevState
-            : [client.webservices]
-        );
-        try {
-          const pms = new PremiumMailSettings(client);
-          const result = await pms.listHme();
-          setFwdToEmails(result.forwardToEmails);
-          setSelectedFwdToEmail(result.selectedForwardTo);
-        } catch (e) {
-          setListHmeError(e.toString());
-        }
+      if (clientState?.setupUrl === undefined) {
+        setListHmeError(SELECT_FWD_TO_SIGNED_OUT_CTA_COPY);
+        setIsFetching(false);
+        return;
       }
-      setIsFetching(false);
+
+      const client = new ICloudClient(clientState.setupUrl);
+      const isClientAuthenticated = await client.isAuthenticated();
+      if (!isClientAuthenticated) {
+        setListHmeError(SELECT_FWD_TO_SIGNED_OUT_CTA_COPY);
+        setIsFetching(false);
+        return;
+      }
+
+      try {
+        const pms = new PremiumMailSettings(client);
+        const result = await pms.listHme();
+        setFwdToEmails((prevState) =>
+          isEqual(prevState, result.forwardToEmails)
+            ? prevState
+            : result.forwardToEmails
+        );
+        setSelectedFwdToEmail(result.selectedForwardTo);
+      } catch (e) {
+        setListHmeError(e.toString());
+      } finally {
+        setIsFetching(false);
+      }
     };
 
-    fetchHmeList();
-  }, [setClientState]);
+    !isClientStateLoading && fetchHmeList();
+  }, [setClientState, clientState?.setupUrl, isClientStateLoading]);
 
   const onSelectedFwdToSubmit = async (
     event: React.FormEvent<HTMLFormElement>
   ) => {
     event.preventDefault();
     setIsSubmitting(true);
-    if (selectedFwdToEmail) {
-      const client = new ICloudClient(...clientState);
+    if (clientState === undefined) {
+      // Entering this branch of the control flow should not be possible
+      // as the client state is validated prior to rendering the form that
+      // triggered this event handler.
+      console.error('onSelectedFwdToSubmit: clientState is undefined');
+      setUpdateFwdToError(SELECT_FWD_TO_SIGNED_OUT_CTA_COPY);
+    } else if (selectedFwdToEmail) {
       try {
+        const client = new ICloudClient(
+          clientState.setupUrl,
+          clientState.webservices
+        );
         const pms = new PremiumMailSettings(client);
         await pms.updateForwardToHme(selectedFwdToEmail);
       } catch (e) {
@@ -138,9 +154,9 @@ const Disclaimer = () => {
 };
 
 const AutofillForm = () => {
-  const [options, setOptions] = useBrowserStorageState<Options>(
-    OPTIONS_STORAGE_KEYS,
-    DEFAULT_OPTIONS
+  const [options, setOptions] = useBrowserStorageState(
+    'iCloudHmeOptions',
+    DEFAULT_STORE.iCloudHmeOptions
   );
 
   return (

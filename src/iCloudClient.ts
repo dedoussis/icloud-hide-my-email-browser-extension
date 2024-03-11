@@ -2,16 +2,14 @@ export class UnsuccessfulRequestError extends Error {}
 
 type ServiceName = 'premiummailsettings';
 
+export const DEFAULT_SETUP_URL = 'https://setup.icloud.com/setup/ws/1';
+export const CN_SETUP_URL = 'https://setup.icloud.com.cn/setup/ws/1';
+
 class ICloudClient {
-  public webservices?: Record<ServiceName, { url: string; status: string }>;
-
-  constructor(webservices?: ICloudClient['webservices']) {
-    this.webservices = webservices;
-  }
-
-  static get setupUrl() {
-    return 'https://setup.icloud.com/setup/ws/1';
-  }
+  constructor(
+    readonly setupUrl: typeof DEFAULT_SETUP_URL | typeof CN_SETUP_URL,
+    public webservices?: Record<ServiceName, { url: string; status: string }>
+  ) {}
 
   public async request(
     method: 'GET' | 'POST',
@@ -57,7 +55,7 @@ class ICloudClient {
   public async validateToken(): Promise<void> {
     const { webservices } = (await this.request(
       'POST',
-      `${ICloudClient.setupUrl}/validate`
+      `${this.setupUrl}/validate`
     )) as {
       webservices: ICloudClient['webservices'];
     };
@@ -71,7 +69,7 @@ class ICloudClient {
     options: { trust: boolean } = { trust: false }
   ): Promise<void> {
     const { trust } = options;
-    await this.request('POST', `${ICloudClient.setupUrl}/logout`, {
+    await this.request('POST', `${this.setupUrl}/logout`, {
       data: {
         trustBrowsers: trust,
         allBrowsers: trust,

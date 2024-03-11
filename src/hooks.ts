@@ -1,16 +1,28 @@
-import { Dispatch, useEffect, useState } from 'react';
+import {
+  Dispatch,
+  useEffect,
+  useState,
+  SetStateAction,
+  useCallback,
+} from 'react';
 import isEqual from 'lodash.isequal';
-import { getBrowserStorageValue, setBrowserStorageValue } from './storage';
+import {
+  getBrowserStorageValue,
+  setBrowserStorageValue,
+  Store,
+} from './storage';
 
-export function useBrowserStorageState<T>(
-  keys: string[],
-  fallback: T
-): [T, Dispatch<T>] {
-  const [state, setState] = useState(fallback);
+export function useBrowserStorageState<K extends keyof Store>(
+  key: K,
+  initialValue: Store[K]
+): [Store[K], Dispatch<SetStateAction<Store[K]>>, boolean] {
+  const [state, setState] = useState(initialValue);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     async function getBrowserStorageState() {
-      const value = await getBrowserStorageValue<T>(keys);
+      setIsLoading(true);
+      const value = await getBrowserStorageValue(key);
 
       value !== undefined &&
         setState((prevState) =>
@@ -18,13 +30,20 @@ export function useBrowserStorageState<T>(
         );
     }
 
-    getBrowserStorageState().catch(console.error);
-  }, [keys]);
+    getBrowserStorageState()
+      .catch(console.error)
+      .finally(() => setIsLoading(false));
+  }, [key]);
 
-  const setBrowserStorageState = async (value: T) => {
-    setState(value);
-    await setBrowserStorageValue(keys, value);
-  };
+  const setBrowserStorageState = useCallback(
+    (value: SetStateAction<Store[K]>) =>
+      setState((prevState) => {
+        const newValue = value instanceof Function ? value(prevState) : value;
+        setBrowserStorageValue(key, newValue);
+        return newValue;
+      }),
+    [key]
+  );
 
-  return [state, setBrowserStorageState];
+  return [state, setBrowserStorageState, isLoading];
 }
