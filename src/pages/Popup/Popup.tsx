@@ -821,7 +821,7 @@ const Popup = () => {
       setClientAuthStateSynced(true);
     };
 
-    !clientAuthStateSynced && !isClientStateLoading && syncClientAuthState();
+    !isClientStateLoading && !clientAuthStateSynced && syncClientAuthState();
   }, [
     setState,
     setClientState,
