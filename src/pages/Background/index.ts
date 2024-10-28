@@ -29,15 +29,11 @@ import {
   SIGNED_OUT_CTA_COPY,
 } from './constants';
 
-if ((browser as unknown as typeof chrome).declarativeNetRequest === undefined) {
-  setupBlockingWebRequestListeners();
-}
-
 const constructClient = async (): Promise<ICloudClient> => {
   const clientState = await getBrowserStorageValue('clientState');
 
   if (clientState === undefined) {
-    console.debug('maybeConstructClient: Using default setupUrl');
+    console.debug('constructClient: Using default setupUrl');
     return new ICloudClient(DEFAULT_SETUP_URL);
   }
 
@@ -157,11 +153,7 @@ browser.runtime.onMessage.addListener(async (message: Message<unknown>) => {
 
 // ===== Context menu =====
 
-// At any given time, there should be 1 created context menu item. We want to prevent
-// the creation of multiple items that serve the same purpose (i.e. the context menu having multiple
-// "Generate and reserve Hide My Email address" rows). Hence, we create the context menu item once,
-// upon the installation of the extension.
-browser.runtime.onInstalled.addListener(async () => {
+const setupContextMenu = async () => {
   const options =
     (await getBrowserStorageValue('iCloudHmeOptions')) ||
     DEFAULT_STORE.iCloudHmeOptions;
@@ -176,21 +168,25 @@ browser.runtime.onInstalled.addListener(async () => {
     },
     async () => {
       const client = await constructClient();
-      const isClientAuthenticated = await client.isAuthenticated();
-      if (!isClientAuthenticated) {
+      const isAuthenticated = await client.isAuthenticated();
+      if (isAuthenticated) {
+        performAuthSideEffects(client);
+      } else {
         performDeauthSideEffects();
-        return;
       }
-
-      browser.contextMenus
-        .update(CONTEXT_MENU_ITEM_ID, {
-          title: SIGNED_IN_CTA_COPY,
-          enabled: true,
-        })
-        .catch(console.debug);
     }
   );
-});
+};
+
+// At any given time, there should be 1 created context menu item. We want to prevent
+// the creation of multiple items that serve the same purpose (i.e. the context menu having multiple
+// "Generate and reserve Hide My Email address" rows). We also want to prevent the lack of creation of one.
+// Chromium persists the context menu state across browser restarts. Hence in Chromium, the context menu item is
+// created once in the lifecycle of the extenstion's installation.
+// On Firefox though, the context menu state is not persisted across browser restarts, meaning that the menu item
+// will disappear once the user exits their browser session. For this reason, on Firefox, we create the context
+// menu item each time the background script is loaded.
+browser.runtime.onInstalled.addListener(setupContextMenu);
 
 // The following callback detects changes in the autofill config of the user
 // and acts accordingly. In particular:
@@ -348,3 +344,11 @@ browser.runtime.onInstalled.addListener(
     }
   }
 );
+
+if ((browser as unknown as typeof chrome).declarativeNetRequest === undefined) {
+  setupBlockingWebRequestListeners();
+  // On Firefox the context menu state is not persisted across browser restarts, meaning that the menu item
+  // will disappear once the user quits their browser. Hence on Firefox, we create the context
+  // menu item each time the background script is loaded.
+  setupContextMenu();
+}
