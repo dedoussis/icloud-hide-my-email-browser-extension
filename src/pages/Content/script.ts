@@ -66,14 +66,6 @@ const enableButton = (
   btn.classList.add(className(cursorClass));
 };
 
-function removeItem<T>(arr: Array<T>, value: T): Array<T> {
-  const index = arr.indexOf(value);
-  if (index > -1) {
-    arr.splice(index, 1);
-  }
-  return arr;
-}
-
 const makeButtonSupport = (
   inputElement: HTMLInputElement
 ): AutofillableInputElement['buttonSupport'] => {
@@ -122,6 +114,17 @@ const makeButtonSupport = (
     inputOnBlurCallback,
     btnOnMousedownCallback,
   };
+};
+
+const removeButtonSupport = (
+  inputElement: HTMLInputElement,
+  buttonSupport: NonNullable<AutofillableInputElement['buttonSupport']>
+): void => {
+  const { btnElement, inputOnFocusCallback, inputOnBlurCallback } =
+    buttonSupport;
+  inputElement.removeEventListener('focus', inputOnFocusCallback);
+  inputElement.removeEventListener('blur', inputOnBlurCallback);
+  btnElement.remove();
 };
 
 export default async function main(): Promise<void> {
@@ -174,11 +177,14 @@ export default async function main(): Promise<void> {
           EMAIL_INPUT_QUERY_STRING
         );
         removedElements.forEach((el) => {
-          const foundElement = autofillableInputElements.find((item) =>
+          const foundIndex = autofillableInputElements.findIndex((item) =>
             el.isEqualNode(item.inputElement)
           );
-          if (foundElement) {
-            removeItem(autofillableInputElements, foundElement);
+          if (foundIndex !== -1) {
+            const [{ inputElement, buttonSupport }] =
+              autofillableInputElements.splice(foundIndex, 1);
+
+            buttonSupport && removeButtonSupport(inputElement, buttonSupport);
           }
         });
       });
@@ -198,14 +204,7 @@ export default async function main(): Promise<void> {
         autofillableInputElements.forEach(({ inputElement, buttonSupport }) => {
           inputElement.value = message.data as string;
           inputElement.dispatchEvent(new Event('input', { bubbles: true }));
-
-          if (buttonSupport) {
-            const { btnElement, inputOnFocusCallback, inputOnBlurCallback } =
-              buttonSupport;
-            inputElement.removeEventListener('focus', inputOnFocusCallback);
-            inputElement.removeEventListener('blur', inputOnBlurCallback);
-            btnElement.remove();
-          }
+          buttonSupport && removeButtonSupport(inputElement, buttonSupport);
         });
         break;
       case MessageType.GenerateResponse:
@@ -260,15 +259,8 @@ export default async function main(): Promise<void> {
           inputElement.value = hme;
           inputElement.dispatchEvent(new Event('input', { bubbles: true }));
           inputElement.dispatchEvent(new Event('change', { bubbles: true }));
-          btnElement.remove();
 
-          if (!buttonSupport) {
-            return;
-          }
-
-          const { inputOnFocusCallback, inputOnBlurCallback } = buttonSupport;
-          inputElement.removeEventListener('focus', inputOnFocusCallback);
-          inputElement.removeEventListener('blur', inputOnBlurCallback);
+          buttonSupport && removeButtonSupport(inputElement, buttonSupport);
         }
         break;
       case MessageType.ActiveInputElementWrite:
@@ -285,6 +277,14 @@ export default async function main(): Promise<void> {
           activeElement.dispatchEvent(new Event('input', { bubbles: true }));
           activeElement.dispatchEvent(new Event('change', { bubbles: true }));
           copyToClipboard && navigator.clipboard.writeText(text);
+
+          // Remove button if it exists. This should rarely happen as context menu
+          // users are expected to have turned off button support.
+          const found = autofillableInputElements.find((ael) =>
+            ael.inputElement.isEqualNode(activeElement)
+          );
+          found?.buttonSupport &&
+            removeButtonSupport(activeElement, found.buttonSupport);
         }
         break;
       default:
