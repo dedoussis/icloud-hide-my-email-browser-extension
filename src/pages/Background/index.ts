@@ -19,7 +19,6 @@ import {
   sendMessageToTab,
 } from '../../messages';
 import browser from 'webextension-polyfill';
-import { setupBlockingWebRequestListeners } from '../../webRequestUtils';
 import {
   CONTEXT_MENU_ITEM_ID,
   LOADING_COPY,
@@ -28,6 +27,7 @@ import {
   SIGNED_IN_CTA_COPY,
   SIGNED_OUT_CTA_COPY,
 } from './constants';
+import { isFirefox } from '../../browserUtils';
 
 const constructClient = async (): Promise<ICloudClient> => {
   const clientState = await getBrowserStorageValue('clientState');
@@ -77,7 +77,9 @@ const performAuthSideEffects = (client: ICloudClient) => {
 
 // ===== Message handling =====
 
-browser.runtime.onMessage.addListener(async (message: Message<unknown>) => {
+browser.runtime.onMessage.addListener(async (uncastedMessage: unknown) => {
+  const message = uncastedMessage as Message<unknown>;
+
   switch (message.type) {
     case MessageType.GenerateRequest:
       {
@@ -188,6 +190,12 @@ const setupContextMenu = async () => {
 // menu item each time the background script is loaded.
 browser.runtime.onInstalled.addListener(setupContextMenu);
 
+type OptionsStorageChange = {
+  [K in keyof browser.Storage.StorageChange]: browser.Storage.StorageChange[K] extends unknown
+    ? Options
+    : browser.Storage.StorageChange[K];
+};
+
 // The following callback detects changes in the autofill config of the user
 // and acts accordingly. In particular:
 // * it hides the context menu item when the user un-checks the context menu option.
@@ -198,10 +206,7 @@ browser.storage.onChanged.addListener((changes, namespace) => {
     return;
   }
 
-  const {
-    oldValue,
-    newValue,
-  }: browser.Storage.StorageChange<Options, Options> = iCloudHmeOptions;
+  const { oldValue, newValue } = iCloudHmeOptions as OptionsStorageChange;
 
   if (oldValue?.autofill.contextMenu === newValue?.autofill.contextMenu) {
     // No change has been made to the context menu autofilling config.
@@ -345,10 +350,7 @@ browser.runtime.onInstalled.addListener(
   }
 );
 
-if ((browser as unknown as typeof chrome).declarativeNetRequest === undefined) {
-  setupBlockingWebRequestListeners();
-  // On Firefox the context menu state is not persisted across browser restarts, meaning that the menu item
-  // will disappear once the user quits their browser. Hence on Firefox, we create the context
-  // menu item each time the background script is loaded.
-  setupContextMenu();
-}
+// On Firefox the context menu state is not persisted across browser restarts, meaning that the menu item
+// will disappear once the user quits their browser. Hence on Firefox, we create the context
+// menu item each time the background script is loaded.
+isFirefox && setupContextMenu();

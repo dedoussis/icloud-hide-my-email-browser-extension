@@ -1,6 +1,6 @@
 {
   "name": "icloud-hide-my-email-browser-extension",
-  "version": "1.2.7",
+  "version": "1.2.8",
   "description": "Cross-browser extension enabling the usage of iCloud's Hide My Email service.",
   "license": "MIT",
   "author": "dedoussis",
@@ -11,10 +11,10 @@
   "scripts": {
     "prebuild": "rm -rf build",
     "build": "node utils/build.js",
-    "prebuild:mv2": "rm -rf build",
-    "build:mv2": "MANIFEST_VERSION=2 node utils/build.js",
+    "prebuild:firefox": "rm -rf build",
+    "build:firefox": "FIREFOX=true node utils/build.js",
     "start": "node utils/webserver.js",
-    "start:mv2": "MANIFEST_VERSION=2 node utils/webserver.js",
+    "start:firefox": "FIREFOX=true node utils/webserver.js",
     "lint": "eslint .",
     "prettier": "prettier --write '**/*.{js,jsx,ts,tsx,json,css,scss,md,eslintrc}'",
     "prettier:check": "prettier --check '**/*.{js,jsx,ts,tsx,json,css,scss,md,eslintrc}'"
@@ -29,7 +29,8 @@
     "lodash.startcase": "^4.4.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "uuid": "^8.3.2"
+    "uuid": "^8.3.2",
+    "webextension-polyfill": "^0.12.0"
   },
   "devDependencies": {
     "@types/chrome": "^0.0.243",
@@ -38,7 +39,7 @@
     "@types/react": "^17.0.39",
     "@types/react-dom": "^18.2.18",
     "@types/uuid": "^8.3.4",
-    "@types/webextension-polyfill": "^0.9.2",
+    "@types/webextension-polyfill": "^0.12.1",
     "@typescript-eslint/eslint-plugin": "^5.47.1",
     "@typescript-eslint/parser": "^5.47.1",
     "autoprefixer": "^10.4.8",
@@ -53,7 +54,6 @@
     "file-loader": "^6.2.0",
     "html-loader": "^3.1.0",
     "html-webpack-plugin": "^5.5.0",
-    "lodash.pick": "^3.1.0",
     "mini-css-extract-plugin": "^2.6.1",
     "node-sass": "^8.0.0",
     "postcss": "^8.4.16",
@@ -65,7 +65,6 @@
     "terser-webpack-plugin": "^5.3.1",
     "ts-loader": "^9.2.6",
     "typescript": "^5.0.2",
-    "webextension-polyfill": "^0.10.0",
     "webpack": "^5.68.0",
     "webpack-cli": "^4.9.2",
     "webpack-dev-server": "^4.7.4"

@@ -198,7 +198,9 @@ export default async function main(): Promise<void> {
     subtree: true,
   });
 
-  browser.runtime.onMessage.addListener((message: Message<unknown>) => {
+  browser.runtime.onMessage.addListener((uncastedMessage: unknown) => {
+    const message = uncastedMessage as Message<unknown>;
+
     switch (message.type) {
       case MessageType.Autofill:
         autofillableInputElements.forEach(({ inputElement, buttonSupport }) => {
@@ -215,15 +217,16 @@ export default async function main(): Promise<void> {
           const element = document.getElementById(elementId);
 
           if (!element || !(element instanceof HTMLButtonElement)) {
-            return;
+            break;
           }
 
           if (error) {
-            return disableButton(element, 'cursor-not-allowed', error);
+            disableButton(element, 'cursor-not-allowed', error);
+            break;
           }
 
           if (!hme) {
-            return;
+            break;
           }
 
           enableButton(element, 'cursor-pointer', hme);
@@ -237,22 +240,23 @@ export default async function main(): Promise<void> {
           const btnElement = document.getElementById(elementId);
 
           if (!btnElement || !(btnElement instanceof HTMLButtonElement)) {
-            return;
+            break;
           }
 
           if (error) {
-            return disableButton(btnElement, 'cursor-not-allowed', error);
+            disableButton(btnElement, 'cursor-not-allowed', error);
+            break;
           }
 
           if (!hme) {
-            return;
+            break;
           }
 
           const found = autofillableInputElements.find(
             (ael) => ael.buttonSupport?.btnElement.id === btnElement.id
           );
           if (!found) {
-            return;
+            break;
           }
 
           const { inputElement, buttonSupport } = found;
@@ -267,7 +271,7 @@ export default async function main(): Promise<void> {
         {
           const { activeElement } = document;
           if (!activeElement || !(activeElement instanceof HTMLInputElement)) {
-            return;
+            break;
           }
 
           const {
@@ -290,5 +294,7 @@ export default async function main(): Promise<void> {
       default:
         break;
     }
+
+    return undefined;
   });
 }
