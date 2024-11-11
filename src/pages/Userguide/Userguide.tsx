@@ -1,16 +1,33 @@
 import React, { InputHTMLAttributes, useState } from 'react';
 import { TitledComponent, Link } from '../../commonComponents';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faInfoCircle, faCheckCircle } from '@fortawesome/free-solid-svg-icons';
+import {
+  faInfoCircle,
+  faCheckCircle,
+  faWarning,
+} from '@fortawesome/free-solid-svg-icons';
+import { isFirefox } from '../../browserUtils';
 
-const Notice = (props: { title: string; children: React.ReactNode }) => {
-  const { title, children } = props;
+const Notice = (props: {
+  title: string;
+  children: React.ReactNode;
+  isAlert?: boolean;
+}) => {
+  const { title, children, isAlert = false } = props;
+
+  const colourPalette = isAlert
+    ? 'bg-yellow-50 border-yellow-400 text-yellow-600'
+    : 'text-gray-600 bg-gray-50';
+
   return (
     <div
-      className="flex p-3 text-sm border text-gray-600 rounded-lg bg-gray-50"
-      role="alert"
+      className={`flex p-3 text-sm border rounded-lg ${colourPalette}`}
+      role={isAlert ? 'alert' : 'info'}
     >
-      <FontAwesomeIcon icon={faInfoCircle} className="mr-2 mt-1" />
+      <FontAwesomeIcon
+        icon={isAlert ? faWarning : faInfoCircle}
+        className="mr-2 mt-1"
+      />
       <span className="sr-only">Info</span>
       <div className="space-y-1">
         <p className="font-semibold">{title}</p>
@@ -50,6 +67,17 @@ const SignInInstructions = () => {
           <span className="font-semibold">HideMyEmail</span> address! ✨
         </p>
       </div>
+      {isFirefox && (
+        <Notice title="Using Firefox Multi-Account Containers?" isAlert>
+          <p>
+            The extension won&apos;t work if you log-in to icloud.com from a tab
+            within a container. Instead, you need to log-in from a{' '}
+            <i>default</i> tab that is not part of any container. Once logged
+            in, the extension will work in any tab, whether it&apos;s part of a
+            container or not.
+          </p>
+        </Notice>
+      )}
       <Notice title="Already signed-in?">
         <p>No further action needed. The extension is ready to use!</p>
       </Notice>

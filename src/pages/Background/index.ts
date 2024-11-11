@@ -52,7 +52,12 @@ const performDeauthSideEffects = () => {
     .catch(console.debug);
 };
 
-const performAuthSideEffects = (client: ICloudClient) => {
+const performAuthSideEffects = (
+  client: ICloudClient,
+  options: { notification?: boolean } = {}
+) => {
+  const { notification = false } = options;
+
   setBrowserStorageValue('clientState', {
     setupUrl: client.setupUrl,
     webservices: client.webservices,
@@ -65,14 +70,15 @@ const performAuthSideEffects = (client: ICloudClient) => {
     })
     .catch(console.debug);
 
-  browser.notifications
-    .create({
-      type: 'basic',
-      title: NOTIFICATION_TITLE_COPY,
-      message: NOTIFICATION_MESSAGE_COPY,
-      iconUrl: 'icon-128.png',
-    })
-    .catch(console.debug);
+  notification &&
+    browser.notifications
+      .create({
+        type: 'basic',
+        title: NOTIFICATION_TITLE_COPY,
+        message: NOTIFICATION_MESSAGE_COPY,
+        iconUrl: 'icon-128.png',
+      })
+      .catch(console.debug);
 };
 
 // ===== Message handling =====
@@ -290,7 +296,7 @@ browser.webRequest.onResponseStarted.addListener(
     const client = new ICloudClient(setupUrl);
     const isAuthenticated = await client.isAuthenticated();
     if (isAuthenticated) {
-      performAuthSideEffects(client);
+      performAuthSideEffects(client, { notification: true });
     }
   },
   {
@@ -331,7 +337,7 @@ browser.runtime.onInstalled.addListener(
       const client = await constructClient();
       const isAuthenticated = await client.isAuthenticated();
       if (isAuthenticated) {
-        performAuthSideEffects(client);
+        performAuthSideEffects(client, { notification: true });
       } else {
         performDeauthSideEffects();
       }
