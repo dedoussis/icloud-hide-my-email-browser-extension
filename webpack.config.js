@@ -36,7 +36,7 @@ const applyFirefoxManifestTransformations = (manifest) => {
     ...{
       browser_specific_settings: {
         gecko: {
-          ...(isDev ? { id: 'id@temporary-addon' } : {}),
+          id: '{5f2806a5-f66d-40c6-8fb2-6018753b5626}',
           // Minimum version of Firefox that supports declarativeNetRequest:
           // https://blog.mozilla.org/addons/2023/05/17/declarativenetrequest-available-in-firefox/
           strict_min_version: '113.0',
