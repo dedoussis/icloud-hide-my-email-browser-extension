@@ -40,7 +40,6 @@ import {
 import { setBrowserStorageValue, Store } from '../../storage';
 
 import browser from 'webextension-polyfill';
-import { setupBlockingWebRequestListeners } from '../../webRequestUtils';
 import Fuse from 'fuse.js';
 import isEqual from 'lodash.isequal';
 import {
@@ -56,25 +55,6 @@ import {
 } from '../Background/constants';
 
 type TransitionCallback<T extends PopupAction> = (action: T) => void;
-
-// The iCloud API requires the Origin and Referer HTTP headers of a request
-// to be set to https://www.icloud.com.
-// Since both of these header names are forbidden [0],
-// the extension relies on the declarativeNetRequest API to inject/modify their
-// values.
-// However, Firefox does not currently support the declarativeNetRequest API [1].
-// In firefox, the extension resorts to the legacy blocking webRequest API of MV2.
-//
-// Note that the webRequest listeners may also be constructed on runtimes
-// that support declarativeNetRequest. This is fine, since these runtimes
-// will just ignore the listeners due to the lack of the respective
-// manifest permission (blockingWebRequest).
-//
-// [0] https://developer.mozilla.org/en-US/docs/Glossary/Forbidden_header_name
-// [1] https://bugzilla.mozilla.org/show_bug.cgi?id=1687755
-if ((browser as unknown as typeof chrome).declarativeNetRequest === undefined) {
-  setupBlockingWebRequestListeners();
-}
 
 const SignInInstructions = () => {
   const userguideUrl = browser.runtime.getURL('userguide.html');

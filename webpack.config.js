@@ -1,13 +1,12 @@
 const webpack = require('webpack'),
   path = require('path'),
-  pick = require('lodash.pick'),
   CopyWebpackPlugin = require('copy-webpack-plugin'),
   HtmlWebpackPlugin = require('html-webpack-plugin'),
   TerserPlugin = require('terser-webpack-plugin'),
   MiniCssExtractPlugin = require('mini-css-extract-plugin'),
   { CleanWebpackPlugin } = require('clean-webpack-plugin'),
   ASSET_PATH = process.env.ASSET_PATH || '/',
-  MANIFEST_VERSION = parseInt(process.env.MANIFEST_VERSION || '3');
+  FIREFOX = process.env.FIREFOX === 'true';
 
 const isDev = process.env.NODE_ENV !== 'production';
 
@@ -24,42 +23,26 @@ const fileExtensions = [
   'woff2',
 ];
 
-const makeManifestV2 = (mv3) => {
-  const transformedV3Keys = [
-    'manifest_version',
-    'background',
-    'action',
-    'permissions',
-    'host_permissions',
-    'options_page',
-    'declarative_net_request',
-    'description',
-  ];
-  const commonKeys = Object.keys(mv3).filter(
-    (k) => !transformedV3Keys.includes(k)
-  );
-  const innerJoin = pick(mv3, commonKeys);
+const applyFirefoxManifestTransformations = (manifest) => {
+  const {
+    background: { service_worker },
+  } = manifest;
 
   return {
-    ...innerJoin,
-    manifest_version: 2,
-    description: "Use iCloud's Hide My Email service on Firefox.",
-    background: { scripts: [mv3.background.service_worker] },
-    browser_action: mv3.action,
-    browser_specific_settings: {
-      gecko: {
-        ...(isDev ? { id: 'id@temporary-addon' } : {}),
-        strict_min_version: '88.0',
+    ...manifest,
+    background: {
+      scripts: [service_worker],
+    },
+    ...{
+      browser_specific_settings: {
+        gecko: {
+          ...(isDev ? { id: 'id@temporary-addon' } : {}),
+          // Minimum version of Firefox that supports declarativeNetRequest:
+          // https://blog.mozilla.org/addons/2023/05/17/declarativenetrequest-available-in-firefox/
+          strict_min_version: '113.0',
+        },
       },
     },
-    options_ui: {
-      page: mv3.options_page,
-    },
-    permissions: [
-      ...mv3.host_permissions,
-      ...mv3.permissions.filter((p) => p !== 'declarativeNetRequest'),
-      'webRequestBlocking',
-    ],
   };
 };
 
@@ -141,13 +124,14 @@ const options = {
           force: true,
           transform: function (content) {
             // generates the manifest file using the package.json information
-            const mv3 = JSON.parse(content.toString());
-            const manifest = MANIFEST_VERSION === 3 ? mv3 : makeManifestV2(mv3);
+            const manifest = JSON.parse(content.toString());
 
             return Buffer.from(
               JSON.stringify({
                 version: process.env.npm_package_version,
-                ...manifest,
+                ...(!FIREFOX
+                  ? manifest
+                  : applyFirefoxManifestTransformations(manifest)),
               })
             );
           },
