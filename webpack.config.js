@@ -24,12 +24,14 @@ const fileExtensions = [
 ];
 
 const applyFirefoxManifestTransformations = (manifest) => {
-  const { background } = manifest;
+  const {
+    background: { service_worker },
+  } = manifest;
 
   return {
     ...manifest,
     background: {
-      scripts: [background.service_worker],
+      scripts: [service_worker],
     },
     ...{
       browser_specific_settings: {
