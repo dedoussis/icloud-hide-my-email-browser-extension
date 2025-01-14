@@ -1,8 +1,10 @@
 import { faFirefoxBrowser } from '@fortawesome/free-brands-svg-icons';
 import {
+  faArrowLeft,
   faBan,
   faCheck,
   faClipboard,
+  faCog,
   faExternalLink,
   faInfoCircle,
   faList,
@@ -37,6 +39,7 @@ import ICloudClient, {
 } from '../../iCloudClient';
 import { MessageType, sendMessageToTab } from '../../messages';
 import {
+  DEFAULT_STORE,
   getBrowserStorageValue,
   setBrowserStorageValue,
   Store,
@@ -45,6 +48,7 @@ import './Popup.css';
 
 import Fuse from 'fuse.js';
 import isEqual from 'lodash.isequal';
+import startCase from 'lodash.startcase';
 import browser from 'webextension-polyfill';
 import { isFirefox } from '../../browserUtils';
 import { useBrowserStorageState } from '../../hooks';
@@ -421,31 +425,22 @@ const HmeGenerator = (props: {
           {reservedHme && <ReservationResult hme={reservedHme} />}
         </div>
       )}
-      <div className="grid grid-cols-3">
-        <div>
-          <FooterButton
-            onClick={() => props.callback('MANAGE')}
-            icon={faList}
-            label="Manage emails"
-          />
-        </div>
-        <div className="text-center">
-          <a
-            href={browser.runtime.getURL('userguide.html')}
-            target="_blank"
-            rel="noreferrer"
-            className="text-primary-light dark:text-primary-dark hover:opacity-80 focus:outline-primary-light dark:focus:outline-primary-dark inline-flex items-center"
-          >
-            <FontAwesomeIcon icon={faQuestionCircle} className="mr-1" />
-            Help
-          </a>
-        </div>
-        <div className="text-right">
-          <SignOutButton
-            callback={props.signOutCallback}
-            client={props.client}
-          />
-        </div>
+      <div className="flex justify-evenly items-center">
+        <FooterButton
+          onClick={() => props.callback('MANAGE')}
+          icon={faList}
+          label="Manage emails"
+        />
+        <a
+          href={browser.runtime.getURL('userguide.html')}
+          target="_blank"
+          rel="noreferrer"
+          className="text-primary-light dark:text-primary-dark hover:opacity-80 focus:outline-primary-light dark:focus:outline-primary-dark inline-flex items-center"
+        >
+          <FontAwesomeIcon icon={faQuestionCircle} className="mr-1" />
+          Help
+        </a>
+        <SignOutButton callback={props.signOutCallback} client={props.client} />
       </div>
     </TitledComponent>
   );
@@ -774,31 +769,22 @@ const HmeManager = (props: {
       subtitle="Manage your HideMyEmail addresses"
     >
       {resolveMainChildComponent()}
-      <div className="flex justify-between">
-        <div>
-          <FooterButton
-            onClick={() => props.callback('GENERATE')}
-            icon={faPlus}
-            label="Generate new email"
-          />
-        </div>
-        <div className="text-center">
-          <a
-            href={browser.runtime.getURL('userguide.html')}
-            target="_blank"
-            rel="noreferrer"
-            className="text-primary-light dark:text-primary-dark hover:opacity-80 focus:outline-primary-light dark:focus:outline-primary-dark inline-flex items-center"
-          >
-            <FontAwesomeIcon icon={faQuestionCircle} className="mr-1" />
-            Help
-          </a>
-        </div>
-        <div className="text-right">
-          <SignOutButton
-            callback={props.signOutCallback}
-            client={props.client}
-          />
-        </div>
+      <div className="flex justify-evenly items-center">
+        <FooterButton
+          onClick={() => props.callback('GENERATE')}
+          icon={faPlus}
+          label="Generate new email"
+        />
+        <a
+          href={browser.runtime.getURL('userguide.html')}
+          target="_blank"
+          rel="noreferrer"
+          className="text-primary-light dark:text-primary-dark hover:opacity-80 focus:outline-primary-light dark:focus:outline-primary-dark inline-flex items-center"
+        >
+          <FontAwesomeIcon icon={faQuestionCircle} className="mr-1" />
+          Help
+        </a>
+        <SignOutButton callback={props.signOutCallback} client={props.client} />
       </div>
     </TitledComponent>
   );
@@ -854,11 +840,203 @@ const transitionToNextStateElement = (
   }
 };
 
+const Disclaimer = () => {
+  return (
+    <div className="text-text-light dark:text-text-dark text-sm">
+      <p>
+        This extension is not endorsed by, directly affiliated with, maintained,
+        authorized, or sponsored by Apple.
+      </p>
+      <p>
+        It is developed independently by{' '}
+        <Link href="https://twitter.com/dedoussis">Dimitrios Dedoussis</Link>.
+      </p>
+      <p>
+        The source code is publicly available at{' '}
+        <Link href="https://github.com/dedoussis/icloud-hide-my-email-browser-extension">
+          GitHub
+        </Link>{' '}
+        under the MIT license.
+      </p>
+      <p>
+        The extension itself is licensed under the same license as the source
+        code.
+      </p>
+    </div>
+  );
+};
+
+const SELECT_FWD_TO_SIGNED_OUT_CTA_COPY =
+  'To select a new Forward-To address, you first need to sign-in by following the instructions on the extension pop-up.';
+
+const SelectFwdToForm = () => {
+  const [selectedFwdToEmail, setSelectedFwdToEmail] = useState<string>();
+  const [fwdToEmails, setFwdToEmails] = useState<string[]>();
+  const [isFetching, setIsFetching] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [listHmeError, setListHmeError] = useState<string>();
+  const [updateFwdToError, setUpdateFwdToError] = useState<string>();
+  const [clientState, setClientState, isClientStateLoading] =
+    useBrowserStorageState('clientState', undefined);
+
+  useEffect(() => {
+    const fetchHmeList = async () => {
+      setListHmeError(undefined);
+      setIsFetching(true);
+
+      if (clientState?.setupUrl === undefined) {
+        setListHmeError(SELECT_FWD_TO_SIGNED_OUT_CTA_COPY);
+        setIsFetching(false);
+        return;
+      }
+
+      const client = new ICloudClient(clientState.setupUrl);
+      const isClientAuthenticated = await client.isAuthenticated();
+      if (!isClientAuthenticated) {
+        setListHmeError(SELECT_FWD_TO_SIGNED_OUT_CTA_COPY);
+        setIsFetching(false);
+        return;
+      }
+
+      try {
+        const pms = new PremiumMailSettings(client);
+        const result = await pms.listHme();
+        setFwdToEmails((prevState) =>
+          isEqual(prevState, result.forwardToEmails)
+            ? prevState
+            : result.forwardToEmails
+        );
+        setSelectedFwdToEmail(result.selectedForwardTo);
+      } catch (e) {
+        setListHmeError(e.toString());
+      } finally {
+        setIsFetching(false);
+      }
+    };
+
+    !isClientStateLoading && fetchHmeList();
+  }, [setClientState, clientState?.setupUrl, isClientStateLoading]);
+
+  const onSelectedFwdToSubmit = async (
+    event: React.FormEvent<HTMLFormElement>
+  ) => {
+    event.preventDefault();
+    setIsSubmitting(true);
+    if (clientState === undefined) {
+      console.error('onSelectedFwdToSubmit: clientState is undefined');
+      setUpdateFwdToError(SELECT_FWD_TO_SIGNED_OUT_CTA_COPY);
+    } else if (selectedFwdToEmail) {
+      try {
+        const client = new ICloudClient(
+          clientState.setupUrl,
+          clientState.webservices
+        );
+        const pms = new PremiumMailSettings(client);
+        await pms.updateForwardToHme(selectedFwdToEmail);
+      } catch (e) {
+        setUpdateFwdToError(e.toString());
+      }
+    } else {
+      setUpdateFwdToError('No Forward To address has been selected.');
+    }
+    setIsSubmitting(false);
+  };
+
+  if (isFetching) {
+    return <Spinner />;
+  }
+
+  if (listHmeError !== undefined) {
+    return <ErrorMessage>{listHmeError}</ErrorMessage>;
+  }
+
+  return (
+    <form className="space-y-3" onSubmit={onSelectedFwdToSubmit}>
+      {fwdToEmails?.map((fwdToEmail, key) => (
+        <div className="flex items-center mb-3" key={key}>
+          <input
+            onChange={() => setSelectedFwdToEmail(fwdToEmail)}
+            checked={fwdToEmail === selectedFwdToEmail}
+            id={`radio-${key}`}
+            type="radio"
+            disabled={isSubmitting}
+            name={`fwdto-radio-${key}`}
+            className="cursor-pointer w-4 h-4 accent-gray-900 hover:accent-gray-500"
+          />
+          <label
+            htmlFor={`radio-${key}`}
+            className="cursor-pointer ml-2 text-text-light dark:text-text-dark"
+          >
+            {fwdToEmail}
+          </label>
+        </div>
+      ))}
+      <LoadingButton loading={isSubmitting}>Update</LoadingButton>
+      {updateFwdToError && <ErrorMessage>{updateFwdToError}</ErrorMessage>}
+    </form>
+  );
+};
+
+const AutofillForm = () => {
+  const [options, setOptions] = useBrowserStorageState(
+    'iCloudHmeOptions',
+    DEFAULT_STORE.iCloudHmeOptions
+  );
+
+  return (
+    <form className="space-y-3">
+      {Object.entries(options.autofill).map(([key, value]) => (
+        <div className="flex items-center mb-3" key={key}>
+          <input
+            onChange={() =>
+              setOptions({
+                ...options,
+                autofill: { ...options.autofill, [key]: !value },
+              })
+            }
+            checked={value}
+            id={`checkbox-${key}`}
+            type="checkbox"
+            name={`checkbox-${key}`}
+            className="cursor-pointer w-4 h-4 accent-gray-900 hover:accent-gray-500"
+          />
+          <label
+            htmlFor={`checkbox-${key}`}
+            className="cursor-pointer ml-2 text-text-light dark:text-text-dark"
+          >
+            {startCase(key)}
+          </label>
+        </div>
+      ))}
+    </form>
+  );
+};
+
+const Options = () => {
+  return (
+    <TitledComponent title="Hide My Email" subtitle="Settings">
+      <div>
+        <h3 className="font-bold text-lg mb-3">Disclaimer</h3>
+        <Disclaimer />
+      </div>
+      <div>
+        <h3 className="font-bold text-lg mb-3">Forward To Address</h3>
+        <SelectFwdToForm />
+      </div>
+      <div>
+        <h3 className="font-bold text-lg mb-3">Autofill</h3>
+        <AutofillForm />
+      </div>
+    </TitledComponent>
+  );
+};
+
 const Popup = () => {
   const [state, setState, isStateLoading] = useBrowserStorageState(
     'popupState',
     PopupState.SignedOut
   );
+  const [showOptions, setShowOptions] = useState(false);
 
   const [clientState, setClientState, isClientStateLoading] =
     useBrowserStorageState('clientState', undefined);
@@ -914,11 +1092,26 @@ const Popup = () => {
 
   return (
     <div className="min-h-full bg-background-light dark:bg-background-dark text-text-light dark:text-text-dark">
-      <div className="flex justify-end p-2">
+      <div className="flex justify-between p-2">
+        <button
+          onClick={() => setShowOptions(!showOptions)}
+          className="p-2 rounded-lg text-text-light dark:text-text-dark hover:bg-surface-light dark:hover:bg-surface-dark"
+          title={showOptions ? 'Back' : 'Settings'}
+          aria-label={showOptions ? 'Back' : 'Settings'}
+        >
+          <FontAwesomeIcon
+            icon={showOptions ? faArrowLeft : faCog}
+            className="text-lg"
+          />
+        </button>
         <ThemeSwitch />
       </div>
       <div className="p-4">
-        {transitionToNextStateElement(currentState, setState, clientState)}
+        {showOptions ? (
+          <Options />
+        ) : (
+          transitionToNextStateElement(currentState, setState, clientState)
+        )}
       </div>
     </div>
   );

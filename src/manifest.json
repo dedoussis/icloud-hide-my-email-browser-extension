@@ -14,7 +14,6 @@
       "css": ["contentScript.css"]
     }
   ],
-  "options_page": "options.html",
   "declarative_net_request": {
     "rule_resources": [
       {
