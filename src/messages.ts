@@ -7,6 +7,7 @@ export enum MessageType {
   ReservationRequest,
   ReservationResponse,
   ActiveInputElementWrite,
+  StoreXPath,
 }
 
 export type Message<T> = {
@@ -14,10 +15,16 @@ export type Message<T> = {
   data: T;
 };
 
+export type AutofillData = {
+  data: string;
+  inputElementXPath?: string;
+};
+
 export type ReservationRequestData = {
   hme: string;
   label: string;
   elementId: string;
+  inputElementXPath: string;
 };
 
 export type GenerationResponseData = {
@@ -29,9 +36,17 @@ export type GenerationResponseData = {
 export type ActiveInputElementWriteData = {
   text: string;
   copyToClipboard: boolean;
+  targetElementXPath?: string;
 };
 
-export type ReservationResponseData = GenerationResponseData;
+export type ReservationResponseData = GenerationResponseData & {
+  inputElementXPath?: string;
+};
+
+export type StoreXPathData = {
+  hme: string;
+  xpath: string;
+};
 
 export const sendMessageToTab = async (
   type: MessageType,

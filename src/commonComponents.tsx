@@ -1,6 +1,6 @@
-import React, { ButtonHTMLAttributes, DetailedHTMLProps } from 'react';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faSpinner } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import React, { ButtonHTMLAttributes, DetailedHTMLProps } from 'react';
 
 export const Spinner = () => {
   return (

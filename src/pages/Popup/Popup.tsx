@@ -1,60 +1,64 @@
+import { faFirefoxBrowser } from '@fortawesome/free-brands-svg-icons';
+import {
+  faBan,
+  faCheck,
+  faClipboard,
+  faExternalLink,
+  faInfoCircle,
+  faList,
+  faPlus,
+  faQuestionCircle,
+  faRefresh,
+  faSearch,
+  faSignOut,
+  faTrashAlt,
+  IconDefinition,
+} from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import React, {
-  useState,
-  Dispatch,
-  useEffect,
   ButtonHTMLAttributes,
   DetailedHTMLProps,
-  ReactNode,
+  Dispatch,
   ReactElement,
+  ReactNode,
+  useEffect,
+  useState,
 } from 'react';
-import ICloudClient, {
-  PremiumMailSettings,
-  HmeEmail,
-} from '../../iCloudClient';
-import './Popup.css';
-import { useBrowserStorageState } from '../../hooks';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import {
-  faRefresh,
-  faClipboard,
-  faCheck,
-  faList,
-  faSignOut,
-  IconDefinition,
-  faPlus,
-  faTrashAlt,
-  faBan,
-  faSearch,
-  faInfoCircle,
-  faExternalLink,
-  faQuestionCircle,
-} from '@fortawesome/free-solid-svg-icons';
-import { faFirefoxBrowser } from '@fortawesome/free-brands-svg-icons';
-import { MessageType, sendMessageToTab } from '../../messages';
 import {
   ErrorMessage,
+  Link,
   LoadingButton,
   Spinner,
   TitledComponent,
-  Link,
 } from '../../commonComponents';
-import { setBrowserStorageValue, Store } from '../../storage';
+import { useBrowserStorageState } from '../../hooks';
+import ICloudClient, {
+  HmeEmail,
+  PremiumMailSettings,
+} from '../../iCloudClient';
+import { MessageType, sendMessageToTab } from '../../messages';
+import {
+  getBrowserStorageValue,
+  setBrowserStorageValue,
+  Store,
+} from '../../storage';
+import './Popup.css';
 
-import browser from 'webextension-polyfill';
 import Fuse from 'fuse.js';
 import isEqual from 'lodash.isequal';
-import {
-  PopupAction,
-  PopupState,
-  AuthenticatedAction,
-  STATE_MACHINE_TRANSITIONS,
-  AuthenticatedAndManagingAction,
-} from './stateMachine';
+import browser from 'webextension-polyfill';
+import { isFirefox } from '../../browserUtils';
 import {
   CONTEXT_MENU_ITEM_ID,
   SIGNED_OUT_CTA_COPY,
 } from '../Background/constants';
-import { isFirefox } from '../../browserUtils';
+import {
+  AuthenticatedAction,
+  AuthenticatedAndManagingAction,
+  PopupAction,
+  PopupState,
+  STATE_MACHINE_TRANSITIONS,
+} from './stateMachine';
 
 type TransitionCallback<T extends PopupAction> = (action: T) => void;
 
@@ -146,7 +150,10 @@ const ReservationResult = (props: { hme: HmeEmail }) => {
   };
 
   const onAutofillClick = async () => {
-    await sendMessageToTab(MessageType.Autofill, props.hme.hme);
+    await sendMessageToTab(MessageType.Autofill, {
+      data: props.hme.hme,
+      inputElementXPath: props.hme.inputElementXPath,
+    });
   };
 
   const btnClassName =
@@ -431,7 +438,7 @@ const HmeDetails = (props: {
 }) => {
   const [isActivateSubmitting, setIsActivateSubmitting] = useState(false);
   const [isDeleteSubmitting, setIsDeleteSubmitting] = useState(false);
-
+  const [storedXPath, setStoredXPath] = useState<string>();
   const [error, setError] = useState<string>();
 
   // Reset the error and the loaders when a new HME prop is passed to this component
@@ -439,6 +446,7 @@ const HmeDetails = (props: {
     setError(undefined);
     setIsActivateSubmitting(false);
     setIsDeleteSubmitting(false);
+    getBrowserStorageValue(`hme_xpath_${props.hme.hme}`).then(setStoredXPath);
   }, [props.hme]);
 
   const onActivationClick = async () => {
@@ -476,7 +484,10 @@ const HmeDetails = (props: {
   };
 
   const onAutofillClick = async () => {
-    await sendMessageToTab(MessageType.Autofill, props.hme.hme);
+    await sendMessageToTab(MessageType.Autofill, {
+      data: props.hme.hme,
+      inputElementXPath: storedXPath,
+    });
   };
 
   const btnClassName =

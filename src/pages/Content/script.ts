@@ -1,15 +1,16 @@
+import { v4 as uuidv4 } from 'uuid';
+import browser from 'webextension-polyfill';
 import {
   ActiveInputElementWriteData,
+  AutofillData,
   GenerationResponseData,
   Message,
   MessageType,
   ReservationRequestData,
   ReservationResponseData,
 } from '../../messages';
-import { v4 as uuidv4 } from 'uuid';
+import { getBrowserStorageValue, setBrowserStorageValue } from '../../storage';
 import './index.css';
-import browser from 'webextension-polyfill';
-import { getBrowserStorageValue } from '../../storage';
 
 const EMAIL_INPUT_QUERY_STRING =
   'input[type="email"], input[name="email"], input[id="email"]';
@@ -102,7 +103,12 @@ const makeButtonSupport = (
     disableButton(btnElement, 'cursor-progress', LOADING_COPY);
     await browser.runtime.sendMessage({
       type: MessageType.ReservationRequest,
-      data: { hme, label: window.location.host, elementId: btnElement.id },
+      data: {
+        hme,
+        label: window.location.host,
+        elementId: btnElement.id,
+        inputElementXPath: getXPath(inputElement),
+      },
     } as Message<ReservationRequestData>);
   };
 
@@ -127,12 +133,56 @@ const removeButtonSupport = (
   btnElement.remove();
 };
 
+const getXPath = (element: Element): string => {
+  if (!element.parentNode) return '';
+
+  const siblings = Array.from(element.parentNode.children);
+  const index = siblings.indexOf(element) + 1;
+  const tagName = element.tagName.toLowerCase();
+  const path = `${getXPath(
+    element.parentNode as Element
+  )}/${tagName}[${index}]`;
+
+  return path.replace(/^\/+/, '');
+};
+
+const getElementByXPath = (xpath: string): Element | null => {
+  try {
+    const result = document.evaluate(
+      xpath,
+      document,
+      null,
+      XPathResult.FIRST_ORDERED_NODE_TYPE,
+      null
+    );
+    return result.singleNodeValue as Element;
+  } catch (e) {
+    console.error('Error finding element by XPath:', e);
+    return null;
+  }
+};
+
 export default async function main(): Promise<void> {
   const emailInputElements = document.querySelectorAll<HTMLInputElement>(
     EMAIL_INPUT_QUERY_STRING
   );
 
   const options = await getBrowserStorageValue('iCloudHmeOptions');
+
+  // Store the last right-clicked input element's XPath
+  document.addEventListener('contextmenu', async (event) => {
+    const target = event.target as Element;
+    if (target instanceof HTMLInputElement) {
+      // Generate a unique ID if the element doesn't have one
+      if (!target.id) {
+        target.id = `hme-input-${uuidv4()}`;
+      }
+      await setBrowserStorageValue(
+        `hme_target_${browser.runtime.id}`,
+        target.id as string
+      );
+    }
+  });
 
   const makeAutofillableInputElement = (
     inputElement: HTMLInputElement
@@ -202,12 +252,92 @@ export default async function main(): Promise<void> {
     const message = uncastedMessage as Message<unknown>;
 
     switch (message.type) {
+      case MessageType.ActiveInputElementWrite:
+        {
+          const {
+            data: { text, copyToClipboard },
+          } = message as Message<ActiveInputElementWriteData>;
+
+          (async () => {
+            let targetElement: HTMLInputElement | null = null;
+
+            // Try to get the stored XPath
+            const storageKey = `hme_xpath_${browser.runtime.id}`;
+            const xpath = await getBrowserStorageValue(storageKey);
+
+            if (xpath) {
+              const element = getElementByXPath(xpath as string);
+              if (element && element instanceof HTMLInputElement) {
+                targetElement = element;
+              }
+              // Clear the stored XPath after using it
+              await browser.storage.local.remove(storageKey);
+            }
+
+            if (!targetElement) {
+              // Fallback to active element if no right-clicked element is found
+              const { activeElement } = document;
+              if (
+                !activeElement ||
+                !(activeElement instanceof HTMLInputElement)
+              ) {
+                return;
+              }
+              targetElement = activeElement;
+            }
+
+            targetElement.value = text;
+            targetElement.dispatchEvent(new Event('input', { bubbles: true }));
+            targetElement.dispatchEvent(new Event('change', { bubbles: true }));
+
+            if (copyToClipboard) {
+              await navigator.clipboard.writeText(text);
+            }
+
+            // Remove button if it exists
+            const found = autofillableInputElements.find((ael) =>
+              ael.inputElement.isEqualNode(targetElement)
+            );
+            found?.buttonSupport &&
+              removeButtonSupport(targetElement, found.buttonSupport);
+          })().catch(console.error);
+        }
+        break;
       case MessageType.Autofill:
-        autofillableInputElements.forEach(({ inputElement, buttonSupport }) => {
-          inputElement.value = message.data as string;
-          inputElement.dispatchEvent(new Event('input', { bubbles: true }));
-          buttonSupport && removeButtonSupport(inputElement, buttonSupport);
-        });
+        {
+          const { data: text } = message.data as AutofillData;
+
+          (async () => {
+            // Get the stored target element ID
+            const targetId = await getBrowserStorageValue(
+              `hme_target_${browser.runtime.id}`
+            );
+            if (!targetId) return;
+
+            const targetElement = document.getElementById(targetId);
+            if (!targetElement || !(targetElement instanceof HTMLInputElement))
+              return;
+
+            targetElement.focus();
+
+            targetElement.value = text;
+            targetElement.dispatchEvent(new Event('input', { bubbles: true }));
+            targetElement.dispatchEvent(new Event('change', { bubbles: true }));
+
+            // Only copy to clipboard and remove button if this is a successful email generation
+            if (text.includes('@privaterelay.appleid.com')) {
+              // Copy to clipboard for convenience
+              navigator.clipboard.writeText(text).catch(console.error);
+
+              // Remove button if it exists
+              const found = autofillableInputElements.find((ael) =>
+                ael.inputElement.isEqualNode(targetElement)
+              );
+              found?.buttonSupport &&
+                removeButtonSupport(targetElement, found.buttonSupport);
+            }
+          })().catch(console.error);
+        }
         break;
       case MessageType.GenerateResponse:
         {
@@ -234,7 +364,7 @@ export default async function main(): Promise<void> {
         break;
       case MessageType.ReservationResponse:
         {
-          const { hme, error, elementId } =
+          const { hme, error, elementId, inputElementXPath } =
             message.data as ReservationResponseData;
 
           const btnElement = document.getElementById(elementId);
@@ -248,8 +378,15 @@ export default async function main(): Promise<void> {
             break;
           }
 
-          if (!hme) {
+          if (!hme || !inputElementXPath) {
             break;
+          }
+
+          const inputElement = getElementByXPath(inputElementXPath);
+          if (inputElement && inputElement instanceof HTMLInputElement) {
+            inputElement.value = hme;
+            inputElement.dispatchEvent(new Event('input', { bubbles: true }));
+            inputElement.dispatchEvent(new Event('change', { bubbles: true }));
           }
 
           const found = autofillableInputElements.find(
@@ -259,36 +396,9 @@ export default async function main(): Promise<void> {
             break;
           }
 
-          const { inputElement, buttonSupport } = found;
-          inputElement.value = hme;
-          inputElement.dispatchEvent(new Event('input', { bubbles: true }));
-          inputElement.dispatchEvent(new Event('change', { bubbles: true }));
-
-          buttonSupport && removeButtonSupport(inputElement, buttonSupport);
-        }
-        break;
-      case MessageType.ActiveInputElementWrite:
-        {
-          const { activeElement } = document;
-          if (!activeElement || !(activeElement instanceof HTMLInputElement)) {
-            break;
-          }
-
-          const {
-            data: { text, copyToClipboard },
-          } = message as Message<ActiveInputElementWriteData>;
-          activeElement.value = text;
-          activeElement.dispatchEvent(new Event('input', { bubbles: true }));
-          activeElement.dispatchEvent(new Event('change', { bubbles: true }));
-          copyToClipboard && navigator.clipboard.writeText(text);
-
-          // Remove button if it exists. This should rarely happen as context menu
-          // users are expected to have turned off button support.
-          const found = autofillableInputElements.find((ael) =>
-            ael.inputElement.isEqualNode(activeElement)
-          );
-          found?.buttonSupport &&
-            removeButtonSupport(activeElement, found.buttonSupport);
+          const { buttonSupport } = found;
+          buttonSupport &&
+            removeButtonSupport(found.inputElement, buttonSupport);
         }
         break;
       default:

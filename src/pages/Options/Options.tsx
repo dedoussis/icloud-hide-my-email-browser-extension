@@ -1,17 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import './Options.css';
+import isEqual from 'lodash.isequal';
+import startCase from 'lodash.startcase';
+import React, { useEffect, useState } from 'react';
+import {
+  ErrorMessage,
+  Link,
+  LoadingButton,
+  Spinner,
+  TitledComponent,
+} from '../../commonComponents';
 import { useBrowserStorageState } from '../../hooks';
 import ICloudClient, { PremiumMailSettings } from '../../iCloudClient';
-import {
-  Spinner,
-  LoadingButton,
-  ErrorMessage,
-  TitledComponent,
-  Link,
-} from '../../commonComponents';
-import startCase from 'lodash.startcase';
-import isEqual from 'lodash.isequal';
 import { DEFAULT_STORE } from '../../storage';
+import './Options.css';
 
 const SELECT_FWD_TO_SIGNED_OUT_CTA_COPY =
   'To select a new Forward-To address, you first need to sign-in by following the instructions on the extension pop-up.';
