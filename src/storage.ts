@@ -9,6 +9,7 @@ export type Autofill = {
 
 export type Options = {
   autofill: Autofill;
+  theme?: 'light' | 'dark' | 'system';
 };
 
 export type Store = {
@@ -18,6 +19,7 @@ export type Store = {
     webservices?: ICloudClient['webservices'];
   };
   iCloudHmeOptions: Options;
+  theme: 'light' | 'dark' | 'system';
 } & {
   [K in `hme_xpath_${string}`]?: string;
 } & {
@@ -34,6 +36,7 @@ export const DEFAULT_STORE = {
       contextMenu: true,
     },
   },
+  theme: 'system',
   clientState: undefined,
 };
 

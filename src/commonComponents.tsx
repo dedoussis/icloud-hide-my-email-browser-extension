@@ -1,6 +1,16 @@
-import { faSpinner } from '@fortawesome/free-solid-svg-icons';
+import {
+  faDesktop,
+  faMoon,
+  faSpinner,
+  faSun,
+} from '@fortawesome/free-solid-svg-icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import React, { ButtonHTMLAttributes, DetailedHTMLProps } from 'react';
+import React, {
+  ButtonHTMLAttributes,
+  DetailedHTMLProps,
+  useEffect,
+} from 'react';
+import { useBrowserStorageState } from './hooks';
 
 export const Spinner = () => {
   return (
@@ -8,7 +18,7 @@ export const Spinner = () => {
       <FontAwesomeIcon
         icon={faSpinner}
         spin={true}
-        className="text-3xl text-sky-400"
+        className="text-3xl text-primary-light dark:text-primary-dark"
       />
     </div>
   );
@@ -25,12 +35,12 @@ export const LoadingButton = (
   const { loading, disabled, ...btnHtmlAttrs } = props;
 
   const defaultClassName =
-    'w-full justify-center text-white bg-sky-400 hover:bg-sky-500 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg px-5 py-2.5 text-center mr-2 inline-flex items-center';
+    'w-full justify-center text-white bg-primary-light hover:opacity-90 dark:bg-primary-dark focus:ring-4 focus:outline-none focus:ring-primary-light/30 dark:focus:ring-primary-dark/30 font-medium rounded-lg px-5 py-2.5 text-center mr-2 inline-flex items-center';
 
-  const diabledClassName =
+  const disabledClassName =
     'w-full justify-center text-white bg-gray-400 font-medium rounded-lg px-5 py-2.5 text-center mr-2 inline-flex items-center';
 
-  const btnClassName = disabled ? diabledClassName : defaultClassName;
+  const btnClassName = disabled ? disabledClassName : defaultClassName;
 
   return (
     <button
@@ -50,7 +60,7 @@ export const LoadingButton = (
 export const ErrorMessage = (props: { children?: React.ReactNode }) => {
   return (
     <div
-      className="p-2 text-sm text-red-700 bg-red-100 rounded-lg"
+      className="p-2 text-sm text-red-700 dark:text-red-400 bg-red-100 dark:bg-red-900/30 rounded-lg"
       role="alert"
     >
       {props.children}
@@ -69,14 +79,16 @@ export const TitledComponent = (props: {
   return (
     <div className="text-base space-y-3">
       <div className="text-center">
-        <h1 className="text-3xl font-bold text-gray-900">{props.title}</h1>
+        <h1 className="text-3xl font-bold text-text-light dark:text-text-dark">
+          {props.title}
+        </h1>
         <h2 className="font-medium text-gray-400">{props.subtitle}</h2>
       </div>
       {children?.map((child, key) => {
         return (
           child && (
             <React.Fragment key={key}>
-              <hr />
+              <hr className="border-gray-200 dark:border-gray-700" />
               {child}
             </React.Fragment>
           )
@@ -97,12 +109,78 @@ export const Link = (
   const { className, children, ...restProps } = props;
   return (
     <a
-      className={`text-sky-400 hover:text-sky-500 ${className}`}
+      className={`text-primary-light dark:text-primary-dark hover:opacity-80 ${className}`}
       target="_blank"
       rel="noreferrer"
       {...restProps}
     >
       {children}
     </a>
+  );
+};
+
+export const ThemeSwitch = () => {
+  const [theme, setTheme] = useBrowserStorageState('theme', 'system');
+
+  const updateTheme = (isDark: boolean) => {
+    const elements = [
+      document.documentElement,
+      document.body,
+      document.getElementById('app-container'),
+    ];
+    elements.forEach((el) => el?.classList.toggle('dark', isDark));
+  };
+
+  const getSystemTheme = () =>
+    window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+  // Initialize theme on mount
+  useEffect(() => {
+    if (theme === 'system') {
+      updateTheme(getSystemTheme());
+    } else {
+      updateTheme(theme === 'dark');
+    }
+  }, [theme]);
+
+  // Listen for system theme changes
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleChange = () => {
+      if (theme === 'system') {
+        updateTheme(mediaQuery.matches);
+      }
+    };
+    mediaQuery.addEventListener('change', handleChange);
+    return () => mediaQuery.removeEventListener('change', handleChange);
+  }, [theme]);
+
+  const themeIcons = {
+    light: faSun,
+    dark: faMoon,
+    system: faDesktop,
+  } as const;
+
+  const nextTheme = {
+    light: 'dark',
+    dark: 'system',
+    system: 'light',
+  } as const;
+
+  const themeLabels = {
+    light: 'Light theme',
+    dark: 'Dark theme',
+    system: 'System theme',
+  } as const;
+
+  return (
+    <button
+      onClick={() => setTheme(nextTheme[theme])}
+      className="p-2 rounded-lg text-text-light dark:text-text-dark hover:bg-surface-light dark:hover:bg-surface-dark"
+      title={themeLabels[theme]}
+      aria-label={themeLabels[theme]}
+    >
+      <FontAwesomeIcon icon={themeIcons[theme]} className="text-lg" />
+    </button>
   );
 };
