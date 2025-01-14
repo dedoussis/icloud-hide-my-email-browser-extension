@@ -16,8 +16,8 @@
     "start": "node utils/webserver.js",
     "start:firefox": "FIREFOX=true node utils/webserver.js",
     "lint": "eslint .",
-    "prettier": "prettier --write '**/*.{js,jsx,ts,tsx,json,css,scss,md,eslintrc}'",
-    "prettier:check": "prettier --check '**/*.{js,jsx,ts,tsx,json,css,scss,md,eslintrc}'"
+    "prettier": "prettier --write \"**/*.{js,jsx,ts,tsx,json,css,scss,md,eslintrc}\"",
+    "prettier:check": "prettier --check \"**/*.{js,jsx,ts,tsx,json,css,scss,md,eslintrc}\""
   },
   "dependencies": {
     "@fortawesome/fontawesome-svg-core": "^6.6.0",

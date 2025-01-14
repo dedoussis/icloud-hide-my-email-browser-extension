@@ -20,8 +20,8 @@ module.exports = {
         text: {
           light: '#111827',
           dark: '#F9FAFB',
-        }
-      }
+        },
+      },
     },
   },
   plugins: [],
