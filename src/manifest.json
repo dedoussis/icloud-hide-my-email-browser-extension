@@ -11,10 +11,10 @@
     {
       "matches": ["http://*/*", "https://*/*", "<all_urls>"],
       "js": ["contentScript.bundle.js"],
-      "css": ["contentScript.css"]
+      "css": ["contentScript.css"],
+      "all_frames": true
     }
   ],
-  "options_page": "options.html",
   "declarative_net_request": {
     "rule_resources": [
       {

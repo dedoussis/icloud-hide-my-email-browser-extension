@@ -1,24 +1,26 @@
 import 'regenerator-runtime/runtime.js';
-import {
-  getBrowserStorageValue,
-  setBrowserStorageValue,
-  Store,
-  DEFAULT_STORE,
-  Options,
-} from '../../storage';
+import browser from 'webextension-polyfill';
+import { isFirefox } from '../../browserUtils';
 import ICloudClient, {
-  PremiumMailSettings,
-  DEFAULT_SETUP_URL,
   CN_SETUP_URL,
+  DEFAULT_SETUP_URL,
+  PremiumMailSettings,
 } from '../../iCloudClient';
 import {
-  ActiveInputElementWriteData,
+  AutofillData,
   Message,
   MessageType,
   ReservationRequestData,
   sendMessageToTab,
+  StoreXPathData,
 } from '../../messages';
-import browser from 'webextension-polyfill';
+import {
+  DEFAULT_STORE,
+  getBrowserStorageValue,
+  Options,
+  setBrowserStorageValue,
+  Store,
+} from '../../storage';
 import {
   CONTEXT_MENU_ITEM_ID,
   LOADING_COPY,
@@ -27,7 +29,6 @@ import {
   SIGNED_IN_CTA_COPY,
   SIGNED_OUT_CTA_COPY,
 } from './constants';
-import { isFirefox } from '../../browserUtils';
 
 const constructClient = async (): Promise<ICloudClient> => {
   const clientState = await getBrowserStorageValue('clientState');
@@ -132,7 +133,7 @@ browser.runtime.onMessage.addListener(async (uncastedMessage: unknown) => {
       break;
     case MessageType.ReservationRequest:
       {
-        const { hme, label, elementId } =
+        const { hme, label, elementId, inputElementXPath } =
           message.data as ReservationRequestData;
         const client = await constructClient();
         // Given that the reservation step happens shortly after
@@ -141,17 +142,29 @@ browser.runtime.onMessage.addListener(async (uncastedMessage: unknown) => {
         // skipping token validation.
         try {
           const pms = new PremiumMailSettings(client);
-          await pms.reserveHme(hme, label);
+          const reservedHme = await pms.reserveHme(hme, label);
           await sendMessageToTab(MessageType.ReservationResponse, {
             hme,
             elementId,
+            inputElementXPath,
           });
+          // Store the XPath in the HmeEmail object for later use
+          await setBrowserStorageValue(
+            `hme_xpath_${reservedHme.hme}`,
+            inputElementXPath
+          );
         } catch (e) {
           await sendMessageToTab(MessageType.ReservationResponse, {
             error: e.toString(),
             elementId,
           });
         }
+      }
+      break;
+    case MessageType.StoreXPath:
+      {
+        const { hme, xpath } = message.data as StoreXPathData;
+        await setBrowserStorageValue(`hme_xpath_${hme}`, xpath);
       }
       break;
     default:
@@ -233,9 +246,12 @@ browser.contextMenus.onClicked.addListener(async (info, tab) => {
     return;
   }
 
+  // Show loading state in the right input
   sendMessageToTab(
-    MessageType.ActiveInputElementWrite,
-    { text: LOADING_COPY } as ActiveInputElementWriteData,
+    MessageType.Autofill,
+    {
+      data: LOADING_COPY,
+    } as AutofillData,
     tab
   );
 
@@ -247,11 +263,10 @@ browser.contextMenus.onClicked.addListener(async (info, tab) => {
 
   if (!isClientAuthenticated) {
     sendMessageToTab(
-      MessageType.ActiveInputElementWrite,
+      MessageType.Autofill,
       {
-        text: SIGNED_OUT_CTA_COPY,
-        copyToClipboard: false,
-      } as ActiveInputElementWriteData,
+        data: SIGNED_OUT_CTA_COPY,
+      } as AutofillData,
       tab
     );
     performDeauthSideEffects();
@@ -262,18 +277,21 @@ browser.contextMenus.onClicked.addListener(async (info, tab) => {
     const pms = new PremiumMailSettings(client);
     const hme = await pms.generateHme();
     await pms.reserveHme(hme, hostname);
+
+    // Send the generated email to the same input
     await sendMessageToTab(
-      MessageType.ActiveInputElementWrite,
-      { text: hme, copyToClipboard: true } as ActiveInputElementWriteData,
+      MessageType.Autofill,
+      {
+        data: hme,
+      } as AutofillData,
       tab
     );
   } catch (e) {
     sendMessageToTab(
-      MessageType.ActiveInputElementWrite,
+      MessageType.Autofill,
       {
-        text: e.toString(),
-        copyToClipboard: false,
-      } as ActiveInputElementWriteData,
+        data: e.toString(),
+      } as AutofillData,
       tab
     );
   }

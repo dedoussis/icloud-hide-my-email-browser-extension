@@ -1,12 +1,12 @@
-import React, { InputHTMLAttributes, useState } from 'react';
-import { TitledComponent, Link } from '../../commonComponents';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
-  faInfoCircle,
   faCheckCircle,
+  faInfoCircle,
   faWarning,
 } from '@fortawesome/free-solid-svg-icons';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import React, { InputHTMLAttributes, useState } from 'react';
 import { isFirefox } from '../../browserUtils';
+import { Link, TitledComponent } from '../../commonComponents';
 
 const Notice = (props: {
   title: string;
@@ -16,8 +16,8 @@ const Notice = (props: {
   const { title, children, isAlert = false } = props;
 
   const colourPalette = isAlert
-    ? 'bg-yellow-50 border-yellow-400 text-yellow-600'
-    : 'text-gray-600 bg-gray-50';
+    ? 'bg-yellow-50 dark:bg-yellow-900/50 border-yellow-400 text-yellow-600 dark:text-yellow-200'
+    : 'text-text-light dark:text-text-dark bg-surface-light dark:bg-surface-dark border-gray-200 dark:border-gray-600';
 
   return (
     <div
@@ -111,7 +111,7 @@ const AutofillableDemoInput = (props: {
     <div className="space-y-2">
       <label
         htmlFor={props.inputAttributes.id}
-        className="block font-semibold text-gray-600"
+        className="block font-semibold text-text-light dark:text-text-dark"
       >
         {props.label}{' '}
         {autofillableInputValue?.endsWith('@icloud.com') && (
@@ -122,7 +122,7 @@ const AutofillableDemoInput = (props: {
         )}
       </label>
       <input
-        className="block w-full rounded-md relative px-3 py-2 border border-gray-300 placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-sky-400 focus:border-sky-400 focus:z-10 sm:text-sm"
+        className="block w-full rounded-md relative px-3 py-2 border border-gray-200 dark:border-gray-600 placeholder-gray-400 dark:placeholder-gray-500 text-text-light dark:text-text-dark bg-background-light dark:bg-background-dark focus:outline-none focus:ring-sky-400 focus:border-sky-400 focus:z-10 sm:text-sm"
         defaultValue={autofillableInputValue}
         onInput={(e) =>
           setAutoFillableInputValue((e.target as HTMLInputElement).value)
@@ -155,7 +155,7 @@ const UsageInstructions = () => {
       </div>
       <div className="space-y-2">
         <p>Try it yourself:</p>
-        <div className="w-full max-w-md p-3 border rounded-lg bg-gray-50">
+        <div className="w-full max-w-md p-3 border rounded-lg bg-surface-light dark:bg-surface-dark border-gray-200 dark:border-gray-600">
           <form className="space-y-2">
             <AutofillableDemoInput
               label="Autofill via button"
@@ -252,7 +252,7 @@ const TechnicalOverview = () => {
 
 const Userguide = () => {
   return (
-    <div className="w-9/12 m-auto mt-3 mb-24">
+    <div className="w-9/12 m-auto mt-3 mb-24 text-text-light dark:text-text-dark bg-background-light dark:bg-background-dark">
       <TitledComponent title="Hide My Email" subtitle="Quickstart guide">
         <div>
           <h3 className="font-bold text-lg mb-3">Sign-in to iCloud</h3>

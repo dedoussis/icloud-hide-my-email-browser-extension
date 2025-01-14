@@ -89,6 +89,7 @@ export type HmeEmail = {
   note: string;
   createTimestamp: number;
   recipientMailId: string;
+  inputElementXPath?: string;
 };
 
 export type ListHmeResult = {

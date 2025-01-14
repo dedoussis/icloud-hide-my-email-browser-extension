@@ -3,6 +3,25 @@
   <head>
     <meta charset="UTF-8" />
     <title>Quickstart</title>
+    <style>
+      :root {
+        --bg-color: var(--background-light, #ffffff);
+      }
+      :root.dark {
+        --bg-color: var(--background-dark, #1f2937);
+      }
+      :root {
+        --background-light: #ffffff;
+        --background-dark: #1f2937;
+      }
+      html,
+      body,
+      #app-container {
+        background-color: var(--bg-color);
+        min-height: 100vh;
+        margin: 0;
+      }
+    </style>
   </head>
 
   <body>
@@ -23,5 +42,33 @@
       />
     </a>
     <div id="app-container"></div>
+    <script>
+      // Initialize theme before React loads to prevent flash
+      (async function initTheme() {
+        try {
+          const storage = await (chrome.storage || browser.storage).local.get(
+            'theme'
+          );
+          const theme = storage.theme || 'system';
+          const isDark =
+            theme === 'dark' ||
+            (theme === 'system' &&
+              window.matchMedia('(prefers-color-scheme: dark)').matches);
+
+          const elements = [
+            document.documentElement,
+            document.body,
+            document.getElementById('app-container'),
+          ];
+          if (isDark) {
+            elements.forEach((el) => el?.classList.add('dark'));
+          } else {
+            elements.forEach((el) => el?.classList.remove('dark'));
+          }
+        } catch (e) {
+          console.error('Failed to initialize theme:', e);
+        }
+      })();
+    </script>
   </body>
 </html>
