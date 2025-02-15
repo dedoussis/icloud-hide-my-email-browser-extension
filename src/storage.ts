@@ -9,6 +9,7 @@ export type Autofill = {
 
 export type Options = {
   autofill: Autofill;
+  useEmailOnGenerate: boolean;
 };
 
 export type Store = {
@@ -27,6 +28,7 @@ export const DEFAULT_STORE = {
       button: true,
       contextMenu: true,
     },
+    useEmailOnGenerate: false
   },
   clientState: undefined,
 };
