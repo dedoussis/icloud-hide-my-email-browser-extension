@@ -38,7 +38,7 @@ import {
   TitledComponent,
   Link,
 } from '../../commonComponents';
-import { setBrowserStorageValue, Store } from '../../storage';
+import { DEFAULT_STORE, setBrowserStorageValue, Store } from '../../storage';
 
 import browser from 'webextension-polyfill';
 import Fuse from 'fuse.js';
@@ -247,6 +247,11 @@ const HmeGenerator = (props: {
   const [note, setNote] = useState<string>();
   const [label, setLabel] = useState<string>();
 
+  const [options] = useBrowserStorageState(
+    'iCloudHmeOptions',
+    DEFAULT_STORE.iCloudHmeOptions
+  );
+
   useEffect(() => {
     const fetchHmeList = async () => {
       setHmeError(undefined);
@@ -296,6 +301,34 @@ const HmeGenerator = (props: {
     getTabHost().catch(console.error);
   }, []);
 
+  useEffect(() => {
+    const autoReserve = async () => {
+      if (hmeEmail && tabHost && options.useEmailOnGenerate && !reservedHme) {
+        await reserveEmail(hmeEmail, tabHost);
+      }
+    };
+
+    autoReserve();
+  }, [hmeEmail, tabHost]);
+
+  const reserveEmail = async (emailToReserve: string, labelText: string, noteText?: string) => {
+    setIsUseSubmitting(true);
+    setReservedHme(undefined);
+    setReserveError(undefined);
+
+    try {
+      const pms = new PremiumMailSettings(props.client);
+      setReservedHme(
+        await pms.reserveHme(emailToReserve, labelText, noteText)
+      );
+      setLabel(undefined);
+      setNote(undefined);
+    } catch (e) {
+      setReserveError(e.toString());
+    }
+    setIsUseSubmitting(false);
+  };
+
   const onEmailRefreshClick = async () => {
     setIsEmailRefreshSubmitting(true);
     setReservedHme(undefined);
@@ -312,23 +345,9 @@ const HmeGenerator = (props: {
 
   const onUseSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setIsUseSubmitting(true);
-    setReservedHme(undefined);
-    setReserveError(undefined);
-
     if (hmeEmail !== undefined) {
-      try {
-        const pms = new PremiumMailSettings(props.client);
-        setReservedHme(
-          await pms.reserveHme(hmeEmail, label || tabHost, note || undefined)
-        );
-        setLabel(undefined);
-        setNote(undefined);
-      } catch (e) {
-        setReserveError(e.toString());
+      await reserveEmail(hmeEmail, label || tabHost, note);
       }
-    }
-    setIsUseSubmitting(false);
   };
 
   const isReservationFormDisabled =

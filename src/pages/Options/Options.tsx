@@ -153,37 +153,50 @@ const Disclaimer = () => {
   );
 };
 
-const AutofillForm = () => {
+const SettingsForm = () => {
   const [options, setOptions] = useBrowserStorageState(
     'iCloudHmeOptions',
     DEFAULT_STORE.iCloudHmeOptions
   );
 
+  const settingsCheckBox = ([key, value]: [string, boolean]) => <div className="flex items-center mb-3" key={key}>
+    <input
+      onChange={() => {
+        if (key in options.autofill) { // Handle nested autofill options
+          setOptions({
+            ...options,
+            autofill: { ...options.autofill, [key]: !value },
+          });
+        } else { // Handle top-level options
+          setOptions({
+            ...options,
+            [key]: !value,
+          });
+        }
+      }}
+      checked={value}
+      id={`checkbox-${key}`}
+      type="checkbox"
+      name={`checkbox-${key}`}
+      className="cursor-pointer w-4 h-4 accent-gray-900 hover:accent-gray-500"
+    />
+    <label
+      htmlFor={`checkbox-${key}`}
+      className="cursor-pointer ml-2 text-gray-900"
+    >
+      {startCase(key)}
+    </label>
+  </div>
+
   return (
     <form className="space-y-3">
+      <h4 className="font-bold text-md mb-4">Autofill</h4>
       {Object.entries(options.autofill).map(([key, value]) => (
-        <div className="flex items-center mb-3" key={key}>
-          <input
-            onChange={() =>
-              setOptions({
-                ...options,
-                autofill: { ...options.autofill, [key]: !value },
-              })
-            }
-            checked={value}
-            id={`checkbox-${key}`}
-            type="checkbox"
-            name={`checkbox-${key}`}
-            className="cursor-pointer w-4 h-4 accent-gray-900 hover:accent-gray-500"
-          />
-          <label
-            htmlFor={`checkbox-${key}`}
-            className="cursor-pointer ml-2 text-gray-900"
-          >
-            {startCase(key)}
-          </label>
-        </div>
+        settingsCheckBox([key, value])
       ))}
+
+      <h4 className="font-bold text-md mb-4">Other</h4>
+      {settingsCheckBox(["useEmailOnGenerate", options.useEmailOnGenerate])}
     </form>
   );
 };
@@ -201,8 +214,8 @@ const Options = () => {
           <SelectFwdToForm />
         </div>
         <div>
-          <h3 className="font-bold text-lg mb-3">Autofill</h3>
-          <AutofillForm />
+          <h3 className="font-bold text-lg mb-3">Settings</h3>
+          <SettingsForm />
         </div>
       </TitledComponent>
     </div>
