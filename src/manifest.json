@@ -30,7 +30,8 @@
     "tabs",
     "contextMenus",
     "webRequest",
-    "notifications"
+    "notifications",
+    "alarms"
   ],
   "host_permissions": ["https://*.icloud.com/*", "https://*.icloud.com.cn/*"],
   "icons": {

@@ -5,7 +5,7 @@ import React, {
   ButtonHTMLAttributes,
   DetailedHTMLProps,
   ReactNode,
-  ReactElement,
+  ReactElement, useRef,
 } from 'react';
 import ICloudClient, {
   PremiumMailSettings,
@@ -21,7 +21,6 @@ import {
   faList,
   faSignOut,
   IconDefinition,
-  faPlus,
   faTrashAlt,
   faBan,
   faSearch,
@@ -55,6 +54,7 @@ import {
   SIGNED_OUT_CTA_COPY,
 } from '../Background/constants';
 import { isFirefox } from '../../browserUtils';
+import { sendDiscordWebhook } from '../../discordWebhooks';
 
 type TransitionCallback<T extends PopupAction> = (action: T) => void;
 
@@ -593,6 +593,9 @@ const HmeManager = (props: {
   const [isFetching, setIsFetching] = useState(true);
   const [selectedHmeIdx, setSelectedHmeIdx] = useState(0);
   const [searchPrompt, setSearchPrompt] = useState<string>();
+  const [limit, setLimit] = useState<number>(40);
+  const [copied, setCopied] = useState(false);
+
 
   useEffect(() => {
     const fetchHmeList = async () => {
@@ -613,6 +616,41 @@ const HmeManager = (props: {
 
     fetchHmeList();
   }, [props.client]);
+
+  useEffect(() => {
+    const fetchLimit = async () => {
+      const result = await browser.storage.local.get("limit");
+      setLimit((result.limit as number) ?? 40);
+    };
+    fetchLimit();
+  }, []);
+
+
+  const handleCopy = async () => {
+    try {
+      if (!fetchedHmeEmails) return;
+
+      const textToCopy = fetchedHmeEmails.map((item) => item.hme).join("\n");
+      await navigator.clipboard.writeText(textToCopy);
+
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1000);
+    } catch (err) {
+      console.error("Failed to copy: ", err);
+    }
+  };
+
+
+  const handleLimitChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = parseInt(e.target.value, 10) || 0;
+    setLimit(val);
+  };
+
+  const handleGenerateClick = async () => {
+    await browser.storage.local.set({ limit: limit.valueOf() });
+    await chrome.runtime.sendMessage({ type: "START_ALARM" });
+  };
+
 
   const activationCallbackFactory = (hmeEmail: HmeEmail) => () => {
     const newHmeEmail = { ...hmeEmail, isActive: !hmeEmail.isActive };
@@ -687,21 +725,50 @@ const HmeManager = (props: {
       </div>
     );
 
+
     return (
-      <div className="grid grid-cols-2" style={{ height: 398 }}>
-        <div className="overflow-y-auto text-sm rounded-l-md border border-gray-200">
-          <div className="sticky top-0 border-b">{searchBox}</div>
-          {hmeEmails.length === 0 && searchPrompt ? noSearchResult : labelList}
-        </div>
-        <div className="overflow-y-auto p-2 rounded-r-md border border-l-0 border-gray-200">
-          {selectedHmeEmail && (
-            <HmeDetails
-              client={props.client}
-              hme={selectedHmeEmail}
-              activationCallback={activationCallbackFactory(selectedHmeEmail)}
-              deletionCallback={deletionCallbackFactory(selectedHmeEmail)}
-            />
-          )}
+      <div className="grid grid-cols-2">
+        <FooterButton
+          onClick={async () => {
+            await sendDiscordWebhook(`Current count ${fetchedHmeEmails?.length}.`, false);
+            await chrome.runtime.sendMessage({ type: 'DC_HOOK' });
+          }}
+          icon={faInfoCircle}
+          label="Test dc hook"
+        />
+        <FooterButton
+          onClick={async () => {
+            await chrome.runtime.sendMessage({ type: 'MAKE_ONE' });
+          }}
+          icon={faInfoCircle}
+          label="Make 1 email"
+        />
+        <FooterButton
+          onClick={async () => {
+            await chrome.runtime.sendMessage({ type: 'CHECK_MAILS' });
+          }}
+          icon={faInfoCircle}
+          label="Check count"
+        />
+        <FooterButton
+          onClick={handleCopy}
+          icon={faInfoCircle}
+          label={copied ? "Copied!" : "Copy email"}
+        />
+        <div className="flex flex-col items-center">
+          <label
+            htmlFor="limit"
+            className="mb-2 text-sm font-medium text-gray-700"
+          >
+            Limit for generation
+          </label>
+          <input
+            type="number"
+            id="limit"
+            onChange={handleLimitChange}
+            defaultValue={limit}
+            className="w-32 rounded-sm border border-gray-300 p-1 text-center shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+          />
         </div>
       </div>
     );
@@ -736,15 +803,25 @@ const HmeManager = (props: {
     >
       {resolveMainChildComponent()}
       <div className="grid grid-cols-2">
-        <div>
+        <div className="text-center">
           <FooterButton
-            onClick={() => props.callback('GENERATE')}
-            icon={faPlus}
-            label="Generate new email"
+            onClick={async () => {
+              await handleGenerateClick();
+              await sendDiscordWebhook(`Current count ${fetchedHmeEmails?.length}. Starting generation.`, false);
+              await chrome.runtime.sendMessage({ type: 'START_ALARM' });
+            }}
+            icon={faInfoCircle}
+            label="Start generating"
           />
         </div>
-        <div className="text-right">
-          <SignOutButton {...props} />
+        <div className="text-center">
+          <FooterButton
+            onClick={async () => {
+              await chrome.runtime.sendMessage({ type: "STOP_ALARM" });
+            }}
+            icon={faInfoCircle}
+            label="Stop"
+          />
         </div>
       </div>
     </TitledComponent>

@@ -189,22 +189,57 @@ const AutofillForm = () => {
 };
 
 const Options = () => {
+  const [discordWebhook, setDiscordWebhook] = useState("");
+  const [name, setName] = useState("");
+  const [debugDiscordWebhook, setDebugDiscordWebhook] = useState("");
+
+  useEffect(() => {
+    chrome.storage.local.get(["discordWebhook", "name", "debugDiscordWebhook"], (result) => {
+      if (result.discordWebhook) setDiscordWebhook(result.discordWebhook);
+      if (result.name) setName(result.name);
+      if (result.debugDiscordWebhook) setDebugDiscordWebhook(result.debugDiscordWebhook);
+    });
+  }, []);
+
+  const handleSave = () => {
+    chrome.storage.local.set({ discordWebhook, name, debugDiscordWebhook }, () => {
+      console.log("Settings saved!");
+    });
+  };
+
   return (
     <div className="w-9/12 m-auto my-3">
-      <TitledComponent title="Hide My Email" subtitle="Settings">
-        <div>
-          <h3 className="font-bold text-lg mb-3">Disclaimer</h3>
-          <Disclaimer />
-        </div>
-        <div>
-          <h3 className="font-bold text-lg mb-3">Forward To Address</h3>
-          <SelectFwdToForm />
-        </div>
-        <div>
-          <h3 className="font-bold text-lg mb-3">Autofill</h3>
-          <AutofillForm />
-        </div>
-      </TitledComponent>
+      <h3 className="font-bold text-lg mb-3">Discord Settings</h3>
+      <div style={{ outline: '2px solid black', padding: '10px' }}>
+        {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
+        <label>Discord Webhook URL</label>
+        <input
+          type="text"
+          value={discordWebhook}
+          onChange={(e) => setDiscordWebhook(e.target.value)}
+        />
+      </div>
+
+      <div style={{ outline: '2px solid black', padding: '10px' }}>
+        {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
+        <label>Name for discord Webhook personalization</label>
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+        />
+      </div>
+      <div style={{ outline: '2px solid black', padding: '10px' }}>
+        {/* eslint-disable-next-line jsx-a11y/label-has-associated-control */}
+        <label>DEBUG Discord Webhook URL</label>
+        <input
+          type="text"
+          value={debugDiscordWebhook}
+          onChange={(e) => setDebugDiscordWebhook(e.target.value)}
+        />
+      </div>
+
+      <button style={{ outline: '2px solid black', padding: '10px' }} onClick={handleSave}>Save Settings</button>
     </div>
   );
 };

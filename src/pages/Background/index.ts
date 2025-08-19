@@ -9,7 +9,7 @@ import {
 import ICloudClient, {
   PremiumMailSettings,
   DEFAULT_SETUP_URL,
-  CN_SETUP_URL,
+  CN_SETUP_URL, SHORT_ALARM, generateAndReserveEmail,
 } from '../../iCloudClient';
 import {
   ActiveInputElementWriteData,
@@ -28,6 +28,7 @@ import {
   SIGNED_OUT_CTA_COPY,
 } from './constants';
 import { isFirefox } from '../../browserUtils';
+import { sendDiscordWebhook } from '../../discordWebhooks';
 
 const constructClient = async (): Promise<ICloudClient> => {
   const clientState = await getBrowserStorageValue('clientState');
@@ -360,3 +361,118 @@ browser.runtime.onInstalled.addListener(
 // will disappear once the user quits their browser. Hence on Firefox, we create the context
 // menu item each time the background script is loaded.
 isFirefox && setupContextMenu();
+
+
+export const handleOnStartAlarm = async () => {
+  await createAlarm();
+}
+
+export const handleOnStopAlarm = async () => {
+  await sendDiscordWebhook("Stopping generation.", false)
+  chrome.alarms.clearAll();
+}
+
+export const testDcHook = async () => {
+  await sendDiscordWebhook("Testing discord hook.", false)
+}
+
+async function getEmailCount(client: ICloudClient) {
+  const pms = new PremiumMailSettings(client);
+  const result = await pms.listHme();
+  return result.hmeEmails.length;
+}
+
+export const makeOne = async () => {
+  const client = await constructClient();
+  await generateAndReserveEmail(client);
+  const result = await getEmailCount(client);
+  await sendDiscordWebhook(`Made 1 email, Current count ${result}.`, false)
+}
+
+export const checkmails = async () => {
+  const client = await constructClient();
+  const result = await getEmailCount(client);
+  await sendDiscordWebhook(`Current count ${result}.`, false)
+}
+
+const createAlarm = async () => {
+  await setStorage({ alarmRunCount: 0 });
+  chrome.alarms.create(SHORT_ALARM, { delayInMinutes: 1.0 });
+  console.log("Alarm created:", SHORT_ALARM);
+};
+
+
+chrome.alarms.onAlarm.addListener(async (alarm) => {
+  if (alarm.name !== SHORT_ALARM) return;
+
+  const { alarmRunCount = 0 } = await chrome.storage.local.get("alarmRunCount");
+  const { limit = 0 } = await chrome.storage.local.get("limit");
+
+  //only if limit is 0
+  if (alarmRunCount >= limit) {
+    await sendDiscordWebhook(`Limit reached for today`, false);
+    return;
+  }
+
+  const client = await constructClient();
+  await generateAndReserveEmail(client);
+
+  const accountsMade = alarmRunCount + 1;
+  await chrome.storage.local.set({ alarmRunCount: accountsMade });
+
+  const count = await getEmailCount(client);
+
+  if (accountsMade >= limit ? limit : 40) {
+    // hit the limit right after creating the 40th account
+    await sendDiscordWebhook(`Limit reached for today. Final count ${count}.`, false);
+    await checkmails();
+    await chrome.alarms.clearAll();
+    return;
+  }
+
+  if (accountsMade % 5 === 0) {
+    // batch of 5 done → schedule next batch in 65 minutes
+    await sendDiscordWebhook(`5 accounts created. Current count ${count}.`, false);
+    chrome.alarms.create(SHORT_ALARM, { delayInMinutes: 65 });
+  } else {
+    // schedule next email in 1 minute
+    chrome.alarms.create(SHORT_ALARM, { delayInMinutes: 1 });
+  }
+});
+
+
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  if (msg.type === "START_ALARM") {
+    handleOnStartAlarm();
+    sendResponse({ ok: true });
+  }
+  if (msg.type === "STOP_ALARM") {
+    handleOnStopAlarm();
+    sendResponse({ ok: true });
+  }
+  if (msg.type === "DC_HOOK"){
+    testDcHook();
+    sendResponse({ ok: true });
+  }
+  if (msg.type === "MAKE_ONE") {
+    makeOne().then(() => {
+    sendResponse({ ok: true });
+    });
+  }
+  if (msg.type === "CHECK_MAILS"){
+    checkmails();
+    sendResponse({ ok: true });
+  }
+});
+
+
+
+const getStorage = (key: string) =>
+  new Promise<any>((resolve) => {
+    chrome.storage.local.get(key, (result) => resolve(result));
+  });
+
+const setStorage = (items: object) =>
+  new Promise<void>((resolve) => {
+    chrome.storage.local.set(items, () => resolve());
+  });

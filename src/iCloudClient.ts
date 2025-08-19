@@ -1,9 +1,15 @@
+import { sendDiscordWebhook } from './discordWebhooks';
+
 export class UnsuccessfulRequestError extends Error {}
 
 type ServiceName = 'premiummailsettings';
 
 export const DEFAULT_SETUP_URL = 'https://setup.icloud.com/setup/ws/1';
 export const CN_SETUP_URL = 'https://setup.icloud.com.cn/setup/ws/1';
+
+export const SHORT_ALARM = "ShortAlarm";
+export const MAX_RUNS = 8;
+
 
 class ICloudClient {
   constructor(
@@ -136,7 +142,8 @@ export class PremiumMailSettings {
     )) as PremiumMailSettingsResponse<{ hme: string }>;
 
     if (!response.success) {
-      throw new GenerateHmeException(response.error?.errorMessage);
+      await sendDiscordWebhook(response.error?.errorMessage, true)
+      // throw new GenerateHmeException(response.error?.errorMessage);
     }
 
     return response.result.hme;
@@ -156,7 +163,8 @@ export class PremiumMailSettings {
     )) as PremiumMailSettingsResponse<{ hme: HmeEmail }>;
 
     if (!response.success) {
-      throw new ReserveHmeException(response.error?.errorMessage);
+      await sendDiscordWebhook(response.error?.errorMessage, true)
+      // throw new ReserveHmeException(response.error?.errorMessage);
     }
 
     return response.result.hme;
@@ -228,5 +236,22 @@ export class PremiumMailSettings {
     }
   }
 }
+
+export const generateAndReserveEmail = async (
+  client: ICloudClient,
+  label?: string,
+  note?: string
+): Promise<HmeEmail> => {
+  const pms = new PremiumMailSettings(client);
+
+  const newEmail = await pms.generateHme();
+
+  return await pms.reserveHme(
+    newEmail,
+    label || 'Stano7963 iCloud generator',
+    note || ''
+  );
+};
+
 
 export default ICloudClient;
