@@ -2,9 +2,9 @@
 
 [![Tests Status](https://github.com/dedoussis/icloud-hide-my-email-browser-extension/workflows/tests/badge.svg)](https://github.com/dedoussis/icloud-hide-my-email-browser-extension/actions/workflows/tests.yml)
 
-This fork serves as an automatic generator for iCloud hide my email addresses, you can start it in the morning
+**This fork serves as an automatic generator for iCloud hide my email addresses, you can start it in the morning
 and every 70 minutes it will generate 5 emails until limit you specify. With options you can also add the discord hooks
-URLs so you will get updates if something goes wrong (or right).
+URLs so you will get updates if something goes wrong (or right).**
 
 [Hide My Email](https://support.apple.com/en-us/HT210425) is a premium privacy service of iCloud. Safari offers a native integration with Hide My Email, whereby users are prompted to generate a Hide My Email address upon registration to any website. This extension aims to bring a similar UX into a wider variety of browsers. In particular, it has been explicitly tested to work on:
 
