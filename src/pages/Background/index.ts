@@ -422,7 +422,7 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
 
   const count = await getEmailCount(client);
 
-  if (accountsMade >= limit ? limit : 40) {
+  if (accountsMade >= limit) {
     // hit the limit right after creating the 40th account
     await sendDiscordWebhook(`Limit reached for today. Final count ${count}.`, false);
     await checkmails();

@@ -2,7 +2,7 @@
 
 [![Tests Status](https://github.com/dedoussis/icloud-hide-my-email-browser-extension/workflows/tests/badge.svg)](https://github.com/dedoussis/icloud-hide-my-email-browser-extension/actions/workflows/tests.yml)
 
-This fork serves as an automatic generator for iCloud hide my email addresses, you can start it in the morning
+[This fork](https://github.com/Stano963/icloud-hide-my-email-generator) serves as an automatic generator for iCloud hide my email addresses, you can start it in the morning
 and every 70 minutes it will generate 5 emails until limit you specify. With options you can also add the discord hooks
 URLs so you will get updates if something goes wrong (or right).
 
