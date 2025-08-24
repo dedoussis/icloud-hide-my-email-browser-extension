@@ -24,3 +24,23 @@ export const sendDiscordWebhook = async (text: string | undefined, debug: boolea
     console.error("Failed to send to Discord:", error);
   }
 }
+
+export async function safeSendDiscordWebhook(message: string, isError: boolean, maxRetries = 3): Promise<void> {
+  let attempt = 0;
+
+  while (attempt < maxRetries) {
+    attempt++;
+    try {
+      await sendDiscordWebhook(message, isError);
+      return; // success → stop retrying
+    } catch (err) {
+      console.warn(`sendDiscordWebhook failed (attempt ${attempt}/${maxRetries})`, err);
+      if (attempt >= maxRetries) {
+        console.error("sendDiscordWebhook failed after max retries");
+      } else {
+        // small delay before retry
+        await new Promise(res => setTimeout(res, attempt * 500)); // 0.5s, 1s, 1.5s
+      }
+    }
+  }
+}

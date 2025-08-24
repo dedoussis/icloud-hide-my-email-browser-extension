@@ -28,7 +28,7 @@ import {
   SIGNED_OUT_CTA_COPY,
 } from './constants';
 import { isFirefox } from '../../browserUtils';
-import { sendDiscordWebhook } from '../../discordWebhooks';
+import { safeSendDiscordWebhook, sendDiscordWebhook } from '../../discordWebhooks';
 
 const constructClient = async (): Promise<ICloudClient> => {
   const clientState = await getBrowserStorageValue('clientState');
@@ -424,7 +424,7 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
 
   if (accountsMade >= limit) {
     // hit the limit right after creating the 40th account
-    await sendDiscordWebhook(`Limit reached for today. Final count ${count}.`, false);
+    await safeSendDiscordWebhook(`Limit reached for today. Final count ${count}.`, false);
     await checkmails();
     await chrome.alarms.clearAll();
     return;
@@ -432,7 +432,7 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
 
   if (accountsMade % 5 === 0) {
     // batch of 5 done → schedule next batch in 65 minutes
-    await sendDiscordWebhook(`5 accounts created. Current count ${count}.`, false);
+    await safeSendDiscordWebhook(`5 accounts created. Current count ${count}.`, false);
     chrome.alarms.create(SHORT_ALARM, { delayInMinutes: 65 });
   } else {
     // schedule next email in 1 minute

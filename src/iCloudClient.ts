@@ -135,22 +135,41 @@ export class PremiumMailSettings {
     return result;
   }
 
-  async generateHme(): Promise<string> {
-    const response = (await this.client.request(
-      'POST',
-      `${this.baseUrl}/hme/generate`
-    )) as PremiumMailSettingsResponse<{ hme: string }>;
+  async generateHme(): Promise<string | undefined> {
+    const maxRetries = 5;
+    let attempt = 0;
 
-    if (!response.success) {
-      await sendDiscordWebhook(response.error?.errorMessage, true)
-      // throw new GenerateHmeException(response.error?.errorMessage);
+    while (attempt < maxRetries) {
+      attempt++;
+
+      try {
+        const response = await this.client.request(
+          "POST",
+          `${this.baseUrl}/hme/generate`
+        ) as PremiumMailSettingsResponse<{ hme: string }>;
+
+        if (response.success && response.result?.hme) {
+          return response.result.hme;
+        }
+
+        console.warn(`generateHme attempt ${attempt} failed:`, response.error?.errorMessage);
+
+      } catch (err) {
+        console.warn(`generateHme attempt ${attempt} failed with exception:`, err);
+      }
+
+      // Small delay before retrying (e.g. exponential backoff)
+      await new Promise(res => setTimeout(res, attempt * 500)); // 0.5s, 1s, 1.5s, ...
     }
 
-    return response.result.hme;
+    // All attempts failed → notify
+    await sendDiscordWebhook("Failed to generate HME after 5 attempts", true);
+    return undefined;
   }
 
+
   async reserveHme(
-    hme: string,
+    hme: string | undefined,
     label: string,
     note:
       | string
@@ -241,10 +260,12 @@ export const generateAndReserveEmail = async (
   client: ICloudClient,
   label?: string,
   note?: string
-): Promise<HmeEmail> => {
+): Promise<HmeEmail | undefined> => {
   const pms = new PremiumMailSettings(client);
 
   const newEmail = await pms.generateHme();
+
+  if (newEmail === undefined) return;
 
   return await pms.reserveHme(
     newEmail,
