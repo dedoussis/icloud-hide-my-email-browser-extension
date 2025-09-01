@@ -372,6 +372,16 @@ export const handleOnStopAlarm = async () => {
   chrome.alarms.clearAll();
 }
 
+export const continueGeneration = async() => {
+  const { alarmRunCount } = await chrome.storage.local.get("alarmRunCount");
+  const roundedUp = alarmRunCount + (5 - (alarmRunCount % 5)) % 5;
+  await chrome.storage.local.set({ alarmRunCount: roundedUp });
+  const client = await constructClient();
+  const count = await getEmailCount(client);
+  await safeSendDiscordWebhook(`5 accounts created. Current count ${count}.`, false);
+  chrome.alarms.create(SHORT_ALARM, { delayInMinutes: 61 });
+}
+
 export const testDcHook = async () => {
   await sendDiscordWebhook("Testing discord hook.", false)
 }
@@ -461,6 +471,10 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   }
   if (msg.type === "CHECK_MAILS"){
     checkmails();
+    sendResponse({ ok: true });
+  }
+  if (msg.type === "CONTINUE"){
+    continueGeneration();
     sendResponse({ ok: true });
   }
 });

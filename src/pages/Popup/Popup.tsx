@@ -770,6 +770,13 @@ const HmeManager = (props: {
             className="w-32 rounded-sm border border-gray-300 p-1 text-center shadow-sm focus:border-blue-500 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
           />
         </div>
+        <FooterButton
+          onClick={async () => {
+            await chrome.runtime.sendMessage({ type: 'CONTINUE' });
+          }}
+          icon={faInfoCircle}
+          label="Continue generation"
+        />
       </div>
     );
   };
