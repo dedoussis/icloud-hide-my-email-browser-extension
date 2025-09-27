@@ -21,5 +21,5 @@
 # secrets
 secrets.*.js
 
-# IDE
-.vscode
+# Debug Profile
+.brave-debug-profile

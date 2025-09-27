@@ -1,9 +1,6 @@
 name: tests
 
 on:
-  push:
-    branches:
-      - "*"
   pull_request:
     branches:
       - main
@@ -12,22 +9,17 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v5
       - name: Use Node.js 18.x
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v5
         with:
           node-version: 18
-      - uses: actions/cache@v3
-        id: npm-cache
-        with:
-          path: node_modules
-          key: ${{ runner.os }}-nodejs-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-nodejs-
+          cache: 'npm'
       - name: Install npm deps
-        if: steps.npm-cache.outputs.cache-hit != 'true'
         run: npm ci
       - name: Prettier formatting
         run: npm run prettier:check
-      - name: Linting
+      - name: Lint
         run: npm run lint
+      - name: Build extension
+        run: npm run build

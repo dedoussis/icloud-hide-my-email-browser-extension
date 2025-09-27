@@ -1,0 +1,28 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Brave Extension: Launch",
+      "type": "chrome",
+      "request": "launch",
+      "preLaunchTask": "build:chrome-extension",
+      "runtimeArgs": [
+        "--disable-extensions-except=${workspaceFolder}/build",
+        "--load-extension=${workspaceFolder}/build",
+        "--auto-open-devtools-for-tabs"
+      ],
+      "url": "chrome://extensions",
+      "webRoot": "${workspaceFolder}/src",
+      "userDataDir": "${workspaceFolder}/.brave-debug-profile",
+      "osx": {
+        "runtimeExecutable": "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser"
+      },
+      "windows": {
+        "runtimeExecutable": "${env:PROGRAMFILES}\\BraveSoftware\\Brave-Browser\\Application\\brave.exe"
+      },
+      "linux": {
+        "runtimeExecutable": "/usr/bin/brave-browser"
+      }
+    }
+  ]
+}
