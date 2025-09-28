@@ -1,19 +1,23 @@
-.d1691f0f-b8f0-495e-9ffb-fe4e6f84b518-button {
-  @apply bg-sky-400 text-white w-full rounded p-2 my-1 font-sans font-medium;
-}
+@import 'tailwindcss';
 
-.d1691f0f-b8f0-495e-9ffb-fe4e6f84b518-hover-button {
-  @apply hover:bg-sky-500;
-}
+@layer components {
+  .d1691f0f-b8f0-495e-9ffb-fe4e6f84b518-button {
+    @apply bg-sky-400 text-white w-full rounded p-2 my-1 font-sans font-medium;
+  }
 
-.d1691f0f-b8f0-495e-9ffb-fe4e6f84b518-cursor-not-allowed {
-  @apply cursor-not-allowed;
-}
+  .d1691f0f-b8f0-495e-9ffb-fe4e6f84b518-hover-button {
+    @apply hover:bg-sky-500;
+  }
 
-.d1691f0f-b8f0-495e-9ffb-fe4e6f84b518-cursor-progress {
-  @apply cursor-progress;
-}
+  .d1691f0f-b8f0-495e-9ffb-fe4e6f84b518-cursor-not-allowed {
+    @apply cursor-not-allowed;
+  }
 
-.d1691f0f-b8f0-495e-9ffb-fe4e6f84b518-cursor-pointer {
-  @apply cursor-pointer;
+  .d1691f0f-b8f0-495e-9ffb-fe4e6f84b518-cursor-progress {
+    @apply cursor-progress;
+  }
+
+  .d1691f0f-b8f0-495e-9ffb-fe4e6f84b518-cursor-pointer {
+    @apply cursor-pointer;
+  }
 }
