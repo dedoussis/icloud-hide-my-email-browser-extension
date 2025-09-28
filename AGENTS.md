@@ -23,7 +23,7 @@
 
 ## Tooling & Environment
 
-- Target Node.js 18+; repository ships a Dockerfile in the README for reproducible builds.
+- Target Node.js 22 LTS.
 - TypeScript compiler runs in strict mode with JSX transpiled via webpack + `ts-loader`.
 - Styling is authored with Tailwind CSS utilities; global CSS lives beside each page entry (`index.css`).
 - Webpack builds multiple entry points and relies on `webextension-polyfill` for cross-browser APIs.
