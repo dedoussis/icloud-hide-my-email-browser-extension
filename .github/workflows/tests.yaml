@@ -6,6 +6,22 @@ on:
       - main
 
 jobs:
+  detect-license-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      licenses: ${{ steps.filter.outputs.licenses }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            licenses:
+              - 'package.json'
+              - 'package-lock.json'
+
   build:
     runs-on: ubuntu-latest
     steps:
@@ -23,3 +39,41 @@ jobs:
         run: npm run lint
       - name: Build extension
         run: npm run build
+
+  license-audit:
+    needs: detect-license-changes
+    if: needs.detect-license-changes.outputs.licenses == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Use Node.js 22.x
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: 'npm'
+      - name: Install npm deps
+        run: npm ci
+      - name: Check dependency licenses
+        run: npm run check:licenses -- --verbose
+
+  attribution-check:
+    needs: detect-license-changes
+    if: needs.detect-license-changes.outputs.licenses == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Use Node.js 22.x
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: 'npm'
+      - name: Install npm deps
+        run: npm ci
+      - name: Ensure ATTRIBUTIONS.md is up to date
+        run: |
+          npm run report:licenses
+          if ! git diff --quiet ATTRIBUTIONS.md; then
+            echo "::error::ATTRIBUTIONS.md is out of date. Run 'npm run report:licenses' and commit the result.";
+            git diff -- ATTRIBUTIONS.md;
+            exit 1;
+          fi

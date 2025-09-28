@@ -17,7 +17,9 @@
     "start:firefox": "FIREFOX=true node utils/webserver.js",
     "lint": "eslint .",
     "prettier": "prettier --write '**/*.{js,jsx,ts,tsx,json,css,scss,md,eslintrc}'",
-    "prettier:check": "prettier --check '**/*.{js,jsx,ts,tsx,json,css,scss,md,eslintrc}'"
+    "prettier:check": "prettier --check '**/*.{js,jsx,ts,tsx,json,css,scss,md,eslintrc}'",
+    "check:licenses": "node utils/checkLicenses.mjs",
+    "report:licenses": "node utils/generateLicenseTable.mjs > ATTRIBUTIONS.md && npx prettier --write ATTRIBUTIONS.md"
   },
   "dependencies": {
     "@fortawesome/fontawesome-svg-core": "^7.0.1",
@@ -53,12 +55,14 @@
     "eslint-plugin-react-hooks": "^5.2.0",
     "html-loader": "^5.1.0",
     "html-webpack-plugin": "^5.6.4",
+    "license-checker-rseidelsohn": "^4.4.2",
     "mini-css-extract-plugin": "^2.9.4",
     "postcss": "^8.5.6",
     "postcss-loader": "^8.2.0",
     "prettier": "^3.6.2",
     "sass-embedded": "^1.93.2",
     "sass-loader": "^16.0.5",
+    "spdx-expression-parse": "^4.0.0",
     "tailwindcss": "^4.1.13",
     "terser-webpack-plugin": "^5.3.14",
     "ts-loader": "^9.5.4",
