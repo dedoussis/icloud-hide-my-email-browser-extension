@@ -46,6 +46,26 @@ const applyFirefoxManifestTransformations = (manifest) => {
   };
 };
 
+const htmlPages = [
+  {
+    chunk: 'popup',
+    filename: 'popup.html',
+    templatePath: ['Popup', 'index.html'],
+  },
+  {
+    chunk: 'options',
+    filename: 'options.html',
+    templatePath: ['Options', 'index.html'],
+  },
+  {
+    chunk: 'userguide',
+    filename: 'userguide.html',
+    templatePath: ['Userguide', 'index.html'],
+  },
+];
+
+const htmlEntryNames = htmlPages.map(({ chunk }) => chunk);
+
 const options = {
   mode: isDev ? 'development' : 'production',
   entry: {
@@ -168,23 +188,18 @@ const options = {
         },
       ],
     }),
-    new HtmlWebpackPlugin({
-      template: path.join(__dirname, 'src', 'pages', 'Popup', 'index.html'),
-      filename: 'popup.html',
-      chunks: ['popup'],
-      cache: false,
-    }),
-    new HtmlWebpackPlugin({
-      template: path.join(__dirname, 'src', 'pages', 'Options', 'index.html'),
-      filename: 'options.html',
-      chunks: ['options'],
-      cache: false,
-    }),
-    new HtmlWebpackPlugin({
-      template: path.join(__dirname, 'src', 'pages', 'Userguide', 'index.html'),
-      filename: 'userguide.html',
-      chunks: ['userguide'],
-      cache: false,
+    ...htmlPages.map(({ chunk, filename, templatePath }) => {
+      const excludedChunks = ['background', 'contentScript'].concat(
+        htmlEntryNames.filter((entry) => entry !== chunk)
+      );
+
+      return new HtmlWebpackPlugin({
+        template: path.join(__dirname, 'src', 'pages', ...templatePath),
+        filename,
+        chunks: 'all',
+        excludeChunks: excludedChunks,
+        cache: false,
+      });
     }),
   ],
   infrastructureLogging: {
@@ -192,10 +207,31 @@ const options = {
   },
 };
 
+options.optimization = {
+  splitChunks: {
+    cacheGroups: {
+      vendor: {
+        name: 'vendor',
+        test: /[\\/]node_modules[\\/]/,
+        chunks(chunk) {
+          return chunk.name ? htmlEntryNames.includes(chunk.name) : false;
+        },
+        minChunks: 2,
+      },
+    },
+  },
+};
+
+options.performance = {
+  maxAssetSize: 400 * 1024,
+  maxEntrypointSize: 400 * 1024,
+};
+
 if (isDev) {
   options.devtool = 'cheap-module-source-map';
 } else {
   options.optimization = {
+    ...options.optimization,
     minimize: true,
     minimizer: [
       new TerserPlugin({
