@@ -1,8 +1,10 @@
-# iCloud Hide My Email Browser Extension
+# Hide My Email+ Browser Extension
 
-[![Tests Status](https://github.com/dedoussis/icloud-hide-my-email-browser-extension/workflows/tests/badge.svg)](https://github.com/dedoussis/icloud-hide-my-email-browser-extension/actions/workflows/tests.yml)
+This is a fork of the [icloud-hide-my-email-browser-extension](https://github.com/dedoussis/icloud-hide-my-email-browser-extension) by Dimitrios Dedoussis, with some modifications by Sachit Vithaldas.
 
-[Hide My Email](https://support.apple.com/en-us/HT210425) is a premium privacy service of iCloud. Safari offers a native integration with Hide My Email, whereby users are prompted to generate a Hide My Email address upon registration to any website. This extension aims to bring a similar UX into a wider variety of browsers. In particular, it has been explicitly tested to work on:
+[![Tests Status](https://github.com/sachitv/icloud-hide-my-email-browser-extension/workflows/tests/badge.svg)](https://github.com/sachitv/icloud-hide-my-email-browser-extension/actions/workflows/tests.yml)
+
+Hide My Email+ builds on iCloud's [Hide My Email](https://support.apple.com/en-us/HT210425) privacy service. Safari offers a native integration with Hide My Email, whereby users are prompted to generate a Hide My Email address upon registration to any website. This extension aims to bring a similar UX into a wider variety of browsers. In particular, it has been explicitly tested to work on:
 
 - [Chrome](https://chrome.google.com/webstore/detail/icloud-hide-my-email/omiaekblhgfopjkjnenhahfgcgnbohlk)
 - [Firefox](https://addons.mozilla.org/en-US/firefox/addon/icloud-hide-my-email/)
@@ -23,10 +25,10 @@ _Disclaimer: This extension is not endorsed by, directly affiliated with, mainta
 
 ## Features
 
-- Simple pop-up UI for generating and reserving new Hide My Email addresses
-- Ability to manage existing Hide My Email addresses (including deactivation, reactivation, and deletion)
+- Simple pop-up UI for generating and reserving new Hide My Email+ aliases
+- Ability to manage existing Hide My Email+ aliases (including deactivation, reactivation, and deletion)
 - Autofilling on any HTML input element that is relevant to email
-- Quick configuration of Hide My Email settings, such as the Forward-To address, through the Options page of the extension
+- Quick configuration of Hide My Email+ settings, such as the Forward-To address, through the Options page of the extension
 
 ## Options
 
@@ -38,7 +40,7 @@ The extension can be configured to
 2. show a context menu item when right-clicking on input fields
 
 <p align="center">
-<img src="./src/assets/img/readme-button-autofilling.png" alt="Autofilling button on input field focus" width="400" height="auto"/>
+<img src="./src/assets/img/readme-button-autofilling.gif" alt="Autofilling button on input field focus" width="400" height="auto"/>
 </p>
 
 <p align="center">

@@ -1,6 +1,6 @@
 {
-  "name": "iCloud Hide My Email",
-  "description": "Use iCloud's Hide My Email service on Chrome.",
+  "name": "Hide My Email+",
+  "description": "Use iCloud's Hide My Email service in your browser with Hide My Email+.",
   "manifest_version": 3,
   "background": { "service_worker": "background.bundle.js" },
   "action": {

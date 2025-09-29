@@ -62,77 +62,80 @@ const SignInInstructions = () => {
   const userguideUrl = browser.runtime.getURL('userguide.html');
 
   return (
-    <TitledComponent title="Hide My Email" subtitle="Sign in to iCloud">
-      <div className="space-y-4">
-        <div className="text-sm space-y-2">
+    <TitledComponent title="Hide My Email+" subtitle="Sign in to iCloud">
+      <div className="space-y-6 text-slate-100">
+        <div className="space-y-3 text-sm leading-relaxed text-slate-200/95">
           <p>
             To use this extension, sign in to your iCloud account on{' '}
-            <Link
-              href="https://icloud.com"
-              className="font-semibold"
-              aria-label="Go to iCloud.com"
-            >
+            <Link href="https://icloud.com" aria-label="Go to iCloud.com">
               icloud.com
             </Link>
+            . Complete the flow, including{' '}
+            <span className="font-semibold text-white">
+              two-factor authentication
+            </span>{' '}
+            and{' '}
+            <span className="font-semibold text-white">Trust This Browser</span>
             .
-          </p>
-          <p>
-            Complete the full sign-in process, including{' '}
-            <span className="font-semibold">two-factor authentication</span> and{' '}
-            <span className="font-semibold">Trust This Browser</span>.
           </p>
         </div>
         <div
-          className="flex p-3 text-sm border text-gray-600 rounded-lg bg-gray-50"
+          className="flex items-start gap-3 rounded-2xl border border-rainbow-blue/40 bg-rainbow-blue/10 px-4 py-3 text-sm text-slate-100"
           role="alert"
         >
-          <FontAwesomeIcon icon={faInfoCircle} className="mr-2 mt-1" />
-          <span className="sr-only">Info</span>
+          <FontAwesomeIcon
+            icon={faInfoCircle}
+            className="mt-1 text-rainbow-blue"
+          />
           <div>
-            <span className="font-semibold">Pro-tip:</span> Tick the{' '}
-            <span className="font-semibold">Keep me signed in</span> box
+            <p className="font-semibold text-white">Pro tip</p>
+            <p>
+              Tick the{' '}
+              <span className="font-semibold text-white">
+                Keep me signed in
+              </span>{' '}
+              box so the extension stays connected.
+            </p>
           </div>
         </div>
         {isFirefox && (
           <div
-            className="flex p-3 text-sm border text-gray-600 rounded-lg bg-gray-50"
+            className="flex items-start gap-3 rounded-2xl border border-rainbow-orange/50 bg-rainbow-orange/10 px-4 py-3 text-sm text-amber-100"
             role="alert"
           >
-            <FontAwesomeIcon icon={faFirefoxBrowser} className="mr-2 mt-1" />
-            <span className="sr-only">Info</span>
+            <FontAwesomeIcon icon={faFirefoxBrowser} className="mt-1" />
             <div>
-              If using{' '}
+              If you use{' '}
               <Link
                 href="https://support.mozilla.org/en-US/kb/containers"
-                className="font-semibold"
                 aria-label="Firefox Multi-Account Containers docs"
               >
                 Firefox Containers
               </Link>
-              , sign in to iCloud from a tab outside of a container.
+              , sign in to iCloud from a tab outside of any container.
             </div>
           </div>
         )}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid gap-3 sm:grid-cols-2">
           <a
             href={userguideUrl}
             target="_blank"
             rel="noreferrer"
-            className="w-full justify-center text-white bg-sky-400 hover:bg-sky-500 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg px-5 py-2.5 text-center mr-2 inline-flex items-center"
+            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#34a853] via-success to-[#4285f4] px-5 py-3 text-sm font-semibold text-slate-900 shadow-[0_18px_35px_-18px_rgba(52,211,153,0.7)] transition hover:-translate-y-0.5 hover:shadow-[0_24px_46px_-18px_rgba(37,211,174,0.75)] focus:outline-none focus:ring-2 focus:ring-emerald-200/70"
             aria-label="Help"
           >
-            <FontAwesomeIcon icon={faQuestionCircle} className="mr-1" />
+            <FontAwesomeIcon icon={faQuestionCircle} />
             Help
           </a>
           <a
             href="https://icloud.com"
             target="_blank"
             rel="noreferrer"
-            className="w-full justify-center text-white bg-sky-400 hover:bg-sky-500 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg px-5 py-2.5 text-center mr-2 inline-flex items-center"
+            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-amber-200 via-rose-200 to-pink-300 px-5 py-3 text-sm font-semibold text-slate-900 shadow-[0_18px_35px_-18px_rgba(249,168,212,0.75)] transition hover:-translate-y-0.5 hover:shadow-[0_24px_46px_-18px_rgba(249,168,212,0.85)] focus:outline-none focus:ring-2 focus:ring-amber-200/70"
             aria-label="Go to iCloud.com"
           >
-            <FontAwesomeIcon icon={faExternalLink} className="mr-1" /> Go to
-            icloud.com
+            <FontAwesomeIcon icon={faExternalLink} />
+            Open icloud.com
           </a>
         </div>
       </div>
@@ -150,15 +153,18 @@ const ReservationResult = (props: { hme: HmeEmail }) => {
   };
 
   const btnClassName =
-    'focus:outline-none text-white bg-green-700 hover:bg-green-800 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 block w-full';
+    'inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-500 px-5 py-3 text-sm font-semibold text-white shadow-[0_12px_28px_-16px_rgba(16,185,129,0.75)] transition hover:-translate-y-0.5 hover:bg-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-200/80 focus:ring-offset-2 focus:ring-offset-slate-950';
 
   return (
     <div
-      className="space-y-2 p-2 text-sm text-green-700 bg-green-100 rounded-lg"
+      className="space-y-3 rounded-2xl border border-rainbow-green/40 bg-rainbow-green/10 p-4 text-sm text-emerald-50"
       role="alert"
     >
-      <p>
-        <strong>{props.hme.hme}</strong> has successfully been reserved!
+      <p className="text-xs font-semibold uppercase tracking-[0.3em] text-emerald-200/90">
+        Reserved address
+      </p>
+      <p className="break-all text-base font-semibold text-white">
+        {props.hme.hme}
       </p>
       <div className="grid grid-cols-2 gap-2">
         <button
@@ -188,13 +194,16 @@ const FooterButton = (
     HTMLButtonElement
   >
 ) => {
+  const { label, icon, className, ...rest } = props;
+  const baseClassName =
+    'inline-flex items-center gap-2 rounded-full bg-slate-800/70 px-4 py-2 text-sm font-semibold text-slate-200 transition hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-500/70 focus:ring-offset-2 focus:ring-offset-slate-950';
+  const composedClassName = [baseClassName, className]
+    .filter(Boolean)
+    .join(' ');
   return (
-    <button
-      className="text-sky-400 hover:text-sky-500 focus:outline-sky-400"
-      {...props}
-    >
-      <FontAwesomeIcon icon={props.icon} className="mr-1" />
-      {props.label}
+    <button className={composedClassName} {...rest}>
+      <FontAwesomeIcon icon={icon} />
+      {label}
     </button>
   );
 };
@@ -214,7 +223,7 @@ const SignOutButton = (props: {
 }) => {
   return (
     <FooterButton
-      className="text-sky-400 hover:text-sky-500 focus:outline-sky-400"
+      className="bg-transparent text-rose-300 hover:bg-rose-500/10 hover:text-rose-200 focus:ring-rose-300/60"
       onClick={async () => {
         await props.client.signOut();
         // TODO: call the react state setter instead
@@ -335,89 +344,121 @@ const HmeGenerator = (props: {
     isEmailRefreshSubmitting || hmeEmail == reservedHme?.hme;
 
   const reservationFormInputClassName =
-    'appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-400 text-gray-900 focus:outline-none focus:border-sky-400 focus:z-10 sm:text-sm';
+    'w-full rounded-2xl border border-slate-800/70 bg-slate-950/70 px-3 py-2 text-sm text-slate-100 placeholder-slate-500 transition focus:border-rainbow-purple focus:outline-none focus:ring-2 focus:ring-rainbow-purple/70';
 
   return (
-    <TitledComponent
-      title="Hide My Email"
-      subtitle={`Create an address for '${tabHost}'`}
-    >
-      <div className="text-center space-y-1">
-        <div>
-          <span className="text-2xl">
-            <button className="mr-2" onClick={onEmailRefreshClick}>
+    <TitledComponent hideHeader>
+      <div className="space-y-5">
+        <div className="flex flex-col items-center gap-3 text-center">
+          <div className="inline-flex items-center gap-3 rounded-full border border-rainbow-purple/50 bg-slate-900/70 px-5 py-2 text-lg font-semibold text-white shadow-inner shadow-rainbow-purple/20">
+            <button
+              className="rounded-full bg-rainbow-purple/20 px-2 py-2 text-rainbow-purple transition hover:bg-rainbow-purple/40 focus:outline-none focus:ring-2 focus:ring-rainbow-purple/70"
+              onClick={onEmailRefreshClick}
+              aria-label="Refresh email"
+            >
               <FontAwesomeIcon
-                className="text-sky-400 hover:text-sky-500 align-text-bottom"
+                className="align-middle"
                 icon={faRefresh}
                 spin={isEmailRefreshSubmitting}
               />
             </button>
-            {hmeEmail}
-          </span>
+            <span className="max-w-[260px] break-all text-left">
+              {hmeEmail}
+            </span>
+          </div>
           {fwdToEmail !== undefined && (
-            <p className="text-gray-400">Forward to: {fwdToEmail}</p>
+            <p className="text-sm text-slate-300">
+              Forwarding to: {fwdToEmail}
+            </p>
           )}
+          {hmeError && <ErrorMessage>{hmeError}</ErrorMessage>}
         </div>
-        {hmeError && <ErrorMessage>{hmeError}</ErrorMessage>}
-      </div>
-      {hmeEmail && (
-        <div className="space-y-3">
-          <form
-            className={`space-y-3 ${
-              isReservationFormDisabled ? 'opacity-70' : ''
-            }`}
-            onSubmit={onUseSubmit}
-          >
-            <div>
-              <label htmlFor="label" className="block font-medium">
-                Label
-              </label>
-              <input
-                id="label"
-                placeholder={tabHost}
-                required
-                value={label || ''}
-                onChange={(e) => setLabel(e.target.value)}
-                className={reservationFormInputClassName}
-                disabled={isReservationFormDisabled}
-              />
-            </div>
-            <div>
-              <label htmlFor="note" className="block font-medium">
-                Note
-              </label>
-              <textarea
-                id="note"
-                rows={1}
-                className={reservationFormInputClassName}
-                placeholder="Make a note (optional)"
-                value={note || ''}
-                onChange={(e) => setNote(e.target.value)}
-                disabled={isReservationFormDisabled}
-              ></textarea>
-            </div>
-            <LoadingButton
-              loading={isUseSubmitting}
-              disabled={isReservationFormDisabled}
+        {hmeEmail && (
+          <div className="space-y-4">
+            <form
+              className={`space-y-4 rounded-3xl border border-slate-800/70 bg-slate-950/50 p-4 shadow-inner shadow-slate-900/40 transition ${
+                isReservationFormDisabled ? 'opacity-60' : ''
+              }`}
+              onSubmit={onUseSubmit}
             >
-              Use
-            </LoadingButton>
-            {reserveError && <ErrorMessage>{reserveError}</ErrorMessage>}
-          </form>
-          {reservedHme && <ReservationResult hme={reservedHme} />}
-        </div>
-      )}
-      <div className="grid grid-cols-2">
+              <div className="space-y-2">
+                <label
+                  htmlFor="label"
+                  className="block text-xs font-semibold uppercase tracking-[0.32em] text-slate-400"
+                >
+                  Label
+                </label>
+                <input
+                  id="label"
+                  placeholder={tabHost}
+                  required
+                  value={label || ''}
+                  onChange={(e) => setLabel(e.target.value)}
+                  className={reservationFormInputClassName}
+                  disabled={isReservationFormDisabled}
+                />
+              </div>
+              <div className="space-y-2">
+                <label
+                  htmlFor="note"
+                  className="block text-xs font-semibold uppercase tracking-[0.32em] text-slate-400"
+                >
+                  Note
+                </label>
+                <textarea
+                  id="note"
+                  rows={2}
+                  className={reservationFormInputClassName}
+                  placeholder="Add a short reminder (optional)"
+                  value={note || ''}
+                  onChange={(e) => setNote(e.target.value)}
+                  disabled={isReservationFormDisabled}
+                ></textarea>
+              </div>
+              <LoadingButton
+                loading={isUseSubmitting}
+                disabled={isReservationFormDisabled}
+              >
+                Use this email
+              </LoadingButton>
+              {reserveError && <ErrorMessage>{reserveError}</ErrorMessage>}
+            </form>
+            {reservedHme && <ReservationResult hme={reservedHme} />}
+          </div>
+        )}
+      </div>
+      <div className="grid grid-cols-2 pt-4">
         <div>
           <FooterButton
             onClick={() => props.callback('MANAGE')}
             icon={faList}
             label="Manage emails"
+            className="bg-slate-800/80 text-slate-200 hover:bg-slate-700"
           />
         </div>
         <div className="text-right">
           <SignOutButton {...props} />
         </div>
+      </div>
+      <div className="pt-4 text-xs text-slate-400">
+        <p className="text-center">
+          Made by <Link href="https://sachit.dev">Sachit Vithaldas</Link>.
+        </p>
+        <p className="text-center">
+          Forked from{' '}
+          <Link href="https://github.com/dedoussis/icloud-hide-my-email-browser-extension">
+            icloud-hide-my-email-browser-extension
+          </Link>{' '}
+          by{' '}
+          <Link href="https://twitter.com/dedoussis">Dimitrios Dedoussis</Link>.
+        </p>
+        <p className="text-center">
+          The source code is available on{' '}
+          <Link href="https://github.com/sachitv/icloud-hide-my-email-browser-extension">
+            Github
+          </Link>
+          .
+        </p>
       </div>
     </TitledComponent>
   );
@@ -479,13 +520,15 @@ const HmeDetails = (props: {
     await sendMessageToTab(MessageType.Autofill, props.hme.hme);
   };
 
-  const btnClassName =
-    'w-full justify-center text-white focus:ring-4 focus:outline-none font-medium rounded-lg px-2 py-3 text-center inline-flex items-center';
-  const labelClassName = 'font-bold';
-  const valueClassName = 'text-gray-500 truncate';
+  const buttonBaseClass =
+    'inline-flex items-center justify-center gap-2 rounded-2xl px-3 py-3 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-950';
+  const labelClassName =
+    'text-xs font-semibold uppercase tracking-[0.3em] text-slate-400';
+  const valueClassName =
+    'mt-1 rounded-xl border border-slate-800/70 bg-slate-950/60 px-3 py-2 text-sm font-medium text-slate-100 truncate';
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-4 text-slate-100">
       <div>
         <p className={labelClassName}>Email</p>
         <p title={props.hme.hme} className={valueClassName}>
@@ -493,7 +536,7 @@ const HmeDetails = (props: {
             <FontAwesomeIcon
               title="Deactivated"
               icon={faBan}
-              className="text-red-500 mr-1"
+              className="mr-2 text-rainbow-red"
             />
           )}
           {props.hme.hme}
@@ -506,13 +549,13 @@ const HmeDetails = (props: {
         </p>
       </div>
       <div>
-        <p className={labelClassName}>Forward To</p>
+        <p className={labelClassName}>Forward to</p>
         <p title={props.hme.forwardToEmail} className={valueClassName}>
           {props.hme.forwardToEmail}
         </p>
       </div>
       <div>
-        <p className={labelClassName}>Created at</p>
+        <p className={labelClassName}>Created</p>
         <p className={valueClassName}>
           {new Date(props.hme.createTimestamp).toLocaleString()}
         </p>
@@ -529,24 +572,24 @@ const HmeDetails = (props: {
       <div className="grid grid-cols-3 gap-2">
         <button
           title="Copy"
-          className={`${btnClassName} bg-sky-400 hover:bg-sky-500 focus:ring-blue-300`}
+          className={`${buttonBaseClass} bg-slate-800 text-white hover:bg-slate-700 focus:ring-slate-500`}
           onClick={onCopyClick}
         >
           <FontAwesomeIcon icon={faClipboard} />
         </button>
         <button
           title="Autofill"
-          className={`${btnClassName} bg-sky-400 hover:bg-sky-500 focus:ring-blue-300`}
+          className={`${buttonBaseClass} bg-emerald-500 text-white hover:bg-emerald-400 focus:ring-emerald-300`}
           onClick={onAutofillClick}
         >
           <FontAwesomeIcon icon={faCheck} />
         </button>
         <LoadingButton
           title={props.hme.isActive ? 'Deactivate' : 'Reactivate'}
-          className={`${btnClassName} ${
+          className={`${buttonBaseClass} ${
             props.hme.isActive
-              ? 'bg-red-500 hover:bg-red-600 focus:ring-red-300'
-              : 'bg-sky-400 hover:bg-sky-500 focus:ring-blue-300'
+              ? 'bg-red-500 text-white hover:bg-red-400 focus:ring-red-300'
+              : 'bg-indigo-500 text-white hover:bg-indigo-400 focus:ring-indigo-300'
           }`}
           onClick={onActivationClick}
           loading={isActivateSubmitting}
@@ -556,7 +599,7 @@ const HmeDetails = (props: {
         {!props.hme.isActive && (
           <LoadingButton
             title="Delete"
-            className={`${btnClassName} bg-red-500 hover:bg-red-600 focus:ring-red-300 col-span-3`}
+            className={`${buttonBaseClass} col-span-3 bg-red-500 text-white hover:bg-red-400 focus:ring-red-300`}
             onClick={onDeletionClick}
             loading={isDeleteSubmitting}
           >
@@ -640,15 +683,15 @@ const HmeManager = (props: {
     const selectedHmeEmail = hmeEmails[selectedHmeIdx];
 
     const searchBox = (
-      <div className="relative p-2 rounded-tl-md bg-gray-100">
-        <div className="absolute inset-y-0 flex items-center pl-3 pointer-events-none">
-          <FontAwesomeIcon className="text-gray-400" icon={faSearch} />
+      <div className="relative p-3 rounded-tl-3xl border-b border-slate-800/60 bg-slate-950">
+        <div className="pointer-events-none absolute inset-y-0 flex items-center pl-3">
+          <FontAwesomeIcon className="text-slate-500" icon={faSearch} />
         </div>
         <input
           type="search"
-          className="pl-9 p-2 w-full rounded placeholder-gray-400 border border-gray-200 focus:outline-none focus:border-sky-400"
+          className="w-full rounded-2xl border border-slate-700 bg-slate-900 py-2 pl-10 pr-3 text-sm text-slate-100 placeholder-slate-500 focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-400/60"
           placeholder="Search"
-          aria-label="Search through your HideMyEmail addresses"
+          aria-label="Search through your HideMyEmail+ aliases"
           onChange={(e) => {
             setSearchPrompt(e.target.value);
             setSelectedHmeIdx(0);
@@ -658,9 +701,9 @@ const HmeManager = (props: {
     );
 
     const btnBaseClassName =
-      'p-2 w-full text-left border-b last:border-b-0 cursor-pointer truncate focus:outline-sky-400';
-    const btnClassName = `${btnBaseClassName} hover:bg-gray-100`;
-    const selectedBtnClassName = `${btnBaseClassName} text-white bg-sky-400 font-medium`;
+      'w-full truncate border-b border-slate-800/50 bg-slate-950/40 px-3 py-3 text-left text-sm font-medium text-slate-200 transition focus:outline-none focus:ring-2 focus:ring-rainbow-purple/60';
+    const btnClassName = `${btnBaseClassName} hover:bg-slate-900/80`;
+    const selectedBtnClassName = `${btnBaseClassName} bg-gradient-to-r from-[rgba(139,92,246,0.4)] via-[rgba(79,70,229,0.4)] to-[rgba(66,133,244,0.4)] text-white shadow-[inset_0_0_0_1px_rgba(129,140,248,0.4)]`;
 
     const labelList = hmeEmails.map((hme, idx) => (
       <button
@@ -674,7 +717,7 @@ const HmeManager = (props: {
           hme.label
         ) : (
           <div title="Deactivated">
-            <FontAwesomeIcon icon={faBan} className="text-red-500 mr-1" />
+            <FontAwesomeIcon icon={faBan} className="text-rainbow-red mr-1" />
             {hme.label}
           </div>
         )}
@@ -682,18 +725,21 @@ const HmeManager = (props: {
     ));
 
     const noSearchResult = (
-      <div className="p-3 break-words text-center text-gray-400">
+      <div className="break-words p-4 text-center text-slate-500">
         No results for &quot;{searchPrompt}&quot;
       </div>
     );
 
     return (
-      <div className="grid grid-cols-2" style={{ height: 398 }}>
-        <div className="overflow-y-auto text-sm rounded-l-md border border-gray-200">
-          <div className="sticky top-0 border-b">{searchBox}</div>
+      <div
+        className="flex rounded-3xl border border-slate-800/80 bg-slate-950/50 shadow-inner shadow-slate-900/50"
+        style={{ height: 450 }}
+      >
+        <div className="w-[30%] min-w-[220px] max-w-[30%] shrink-0 overflow-y-auto rounded-l-3xl bg-slate-950/70">
+          <div className="sticky top-0 z-10">{searchBox}</div>
           {hmeEmails.length === 0 && searchPrompt ? noSearchResult : labelList}
         </div>
-        <div className="overflow-y-auto p-2 rounded-r-md border border-l-0 border-gray-200">
+        <div className="basis-[70%] grow overflow-y-auto rounded-r-3xl border-l border-slate-800/60 bg-slate-950/30 p-4">
           {selectedHmeEmail && (
             <HmeDetails
               client={props.client}
@@ -708,7 +754,7 @@ const HmeManager = (props: {
   };
 
   const emptyState = (
-    <div className="text-center text-lg text-gray-400">
+    <div className="text-center text-lg text-slate-500">
       There are no emails to list
     </div>
   );
@@ -730,17 +776,15 @@ const HmeManager = (props: {
   };
 
   return (
-    <TitledComponent
-      title="Hide My Email"
-      subtitle="Manage your HideMyEmail addresses"
-    >
+    <TitledComponent hideHeader>
       {resolveMainChildComponent()}
-      <div className="grid grid-cols-2">
+      <div className="grid grid-cols-2 pt-3">
         <div>
           <FooterButton
             onClick={() => props.callback('GENERATE')}
             icon={faPlus}
             label="Generate new email"
+            className="bg-slate-800/80 text-slate-200 hover:bg-slate-700"
           />
         </div>
         <div className="text-right">
@@ -833,8 +877,8 @@ const Popup = () => {
   ]);
 
   return (
-    <div className="min-h-full flex items-center justify-center p-4">
-      <div className="max-w-md w-full">
+    <div className="flex items-start justify-center px-4 py-4 text-slate-100">
+      <div className="w-full max-w-[960px]">
         {isStateLoading || !clientAuthStateSynced ? (
           <Spinner />
         ) : (

@@ -188,7 +188,7 @@ const setupContextMenu = async () => {
 
 // At any given time, there should be 1 created context menu item. We want to prevent
 // the creation of multiple items that serve the same purpose (i.e. the context menu having multiple
-// "Generate and reserve Hide My Email address" rows). We also want to prevent the lack of creation of one.
+// "Generate and reserve a Hide My Email+ alias" rows). We also want to prevent the lack of creation of one.
 // Chromium persists the context menu state across browser restarts. Hence in Chromium, the context menu item is
 // created once in the lifecycle of the extenstion's installation.
 // On Firefox though, the context menu state is not persisted across browser restarts, meaning that the menu item

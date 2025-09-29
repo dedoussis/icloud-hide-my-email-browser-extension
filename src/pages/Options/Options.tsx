@@ -101,9 +101,12 @@ const SelectFwdToForm = () => {
   }
 
   return (
-    <form className="space-y-3" onSubmit={onSelectedFwdToSubmit}>
+    <form className="space-y-4" onSubmit={onSelectedFwdToSubmit}>
       {fwdToEmails?.map((fwdToEmail, key) => (
-        <div className="flex items-center mb-3" key={key}>
+        <div
+          className="flex items-center gap-3 rounded-2xl border border-slate-800/60 bg-slate-950/50 px-4 py-3 shadow-inner shadow-slate-900/30"
+          key={key}
+        >
           <input
             onChange={() => setSelectedFwdToEmail(fwdToEmail)}
             checked={fwdToEmail === selectedFwdToEmail}
@@ -111,17 +114,17 @@ const SelectFwdToForm = () => {
             type="radio"
             disabled={isSubmitting}
             name={`fwdto-radio-${key}`}
-            className="cursor-pointer w-4 h-4 accent-gray-900 hover:accent-gray-500"
+            className="h-4 w-4 cursor-pointer accent-rainbow-purple"
           />
           <label
             htmlFor={`radio-${key}`}
-            className="cursor-pointer ml-2 text-gray-900"
+            className="cursor-pointer text-sm font-medium text-slate-100"
           >
             {fwdToEmail}
           </label>
         </div>
       ))}
-      <LoadingButton loading={isSubmitting}>Update</LoadingButton>
+      <LoadingButton loading={isSubmitting}>Update forwarding</LoadingButton>
       {updateFwdToError && <ErrorMessage>{updateFwdToError}</ErrorMessage>}
     </form>
   );
@@ -129,21 +132,28 @@ const SelectFwdToForm = () => {
 
 const Disclaimer = () => {
   return (
-    <div>
+    <div className="space-y-2 text-sm leading-relaxed text-slate-200/90">
       <p>
         This extension is not endorsed by, directly affiliated with, maintained,
         authorized, or sponsored by Apple.
       </p>
-      <p>
-        It is developed independently by{' '}
-        <Link href="https://twitter.com/dedoussis">Dimitrios Dedoussis</Link>.
+      <p className="text-center">
+        Made by <Link href="https://sachit.me">Sachit Vithaldas</Link>.
       </p>
-      <p>
-        The source code is publicly available at{' '}
+      <p className="text-center">
+        Forked from{' '}
         <Link href="https://github.com/dedoussis/icloud-hide-my-email-browser-extension">
-          GitHub
+          icloud-hide-my-email-browser-extension
         </Link>{' '}
-        under the MIT license.
+        by <Link href="https://twitter.com/dedoussis">Dimitrios Dedoussis</Link>
+        .
+      </p>
+      <p className="text-center">
+        The source code is available at{' '}
+        <Link href="https://github.com/sachitv/icloud-hide-my-email-browser-extension">
+          Github
+        </Link>
+        .
       </p>
       <p>
         The extension itself is licensed under the same license as the source
@@ -162,7 +172,10 @@ const AutofillForm = () => {
   return (
     <form className="space-y-3">
       {Object.entries(options.autofill).map(([key, value]) => (
-        <div className="flex items-center mb-3" key={key}>
+        <div
+          className="flex items-center gap-3 rounded-2xl border border-slate-800/60 bg-slate-950/50 px-4 py-3 shadow-inner shadow-slate-900/25"
+          key={key}
+        >
           <input
             onChange={() =>
               setOptions({
@@ -174,11 +187,11 @@ const AutofillForm = () => {
             id={`checkbox-${key}`}
             type="checkbox"
             name={`checkbox-${key}`}
-            className="cursor-pointer w-4 h-4 accent-gray-900 hover:accent-gray-500"
+            className="h-4 w-4 cursor-pointer accent-rainbow-green"
           />
           <label
             htmlFor={`checkbox-${key}`}
-            className="cursor-pointer ml-2 text-gray-900"
+            className="cursor-pointer text-sm font-medium text-slate-100"
           >
             {startCase(key)}
           </label>
@@ -190,21 +203,25 @@ const AutofillForm = () => {
 
 const Options = () => {
   return (
-    <div className="w-9/12 m-auto my-3">
-      <TitledComponent title="Hide My Email" subtitle="Settings">
-        <div>
-          <h3 className="font-bold text-lg mb-3">Disclaimer</h3>
-          <Disclaimer />
-        </div>
-        <div>
-          <h3 className="font-bold text-lg mb-3">Forward To Address</h3>
-          <SelectFwdToForm />
-        </div>
-        <div>
-          <h3 className="font-bold text-lg mb-3">Autofill</h3>
-          <AutofillForm />
-        </div>
-      </TitledComponent>
+    <div className="min-h-screen px-4 py-10 text-slate-100">
+      <div className="mx-auto flex max-w-3xl flex-col gap-10">
+        <TitledComponent title="Control Center" subtitle="Tune your experience">
+          <div className="space-y-3">
+            <h3 className="text-lg font-semibold text-white">Disclaimer</h3>
+            <Disclaimer />
+          </div>
+          <div className="space-y-3">
+            <h3 className="text-lg font-semibold text-white">
+              Forward To Address
+            </h3>
+            <SelectFwdToForm />
+          </div>
+          <div className="space-y-3">
+            <h3 className="text-lg font-semibold text-white">Autofill</h3>
+            <AutofillForm />
+          </div>
+        </TitledComponent>
+      </div>
     </div>
   );
 };

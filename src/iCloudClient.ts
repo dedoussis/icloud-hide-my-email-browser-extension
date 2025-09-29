@@ -147,7 +147,7 @@ export class PremiumMailSettings {
     label: string,
     note:
       | string
-      | undefined = 'Generated through the iCloud Hide My Email browser extension'
+      | undefined = 'Generated through the Hide My Email+ browser extension'
   ): Promise<HmeEmail> {
     const response = (await this.client.request(
       'POST',

@@ -2,22 +2,38 @@
 
 @layer components {
   .d1691f0f-b8f0-495e-9ffb-fe4e6f84b518-button {
-    @apply bg-sky-400 text-white w-full rounded p-2 my-1 font-sans font-medium;
+    @apply w-full rounded-2xl my-1 px-4 py-2.5 font-sans font-semibold text-white bg-[rgb(13,12,38)] border border-white/10 shadow-[0_14px_28px_-18px_rgba(66,133,244,0.35)] transition-transform duration-150 text-center backdrop-blur;
+    animation: d1691f0f-b8f0-495e-9ffb-fe4e6f84b518-rainbow 2.5s linear infinite;
   }
 
   .d1691f0f-b8f0-495e-9ffb-fe4e6f84b518-hover-button {
-    @apply hover:bg-sky-500;
+    @apply hover:-translate-y-0.5 hover:shadow-[0_20px_35px_-18px_rgba(236,72,153,0.45)];
   }
 
   .d1691f0f-b8f0-495e-9ffb-fe4e6f84b518-cursor-not-allowed {
-    @apply cursor-not-allowed;
+    @apply cursor-not-allowed bg-[rgb(13,12,38)] text-white/70 shadow-none hover:translate-y-0;
   }
 
   .d1691f0f-b8f0-495e-9ffb-fe4e6f84b518-cursor-progress {
-    @apply cursor-progress;
+    @apply cursor-progress opacity-80 bg-[rgb(13,12,38)];
   }
 
   .d1691f0f-b8f0-495e-9ffb-fe4e6f84b518-cursor-pointer {
     @apply cursor-pointer;
+  }
+}
+
+@keyframes d1691f0f-b8f0-495e-9ffb-fe4e6f84b518-rainbow {
+  0% {
+    color: #4285f4d9;
+  }
+  33% {
+    color: #8b5cf6d9;
+  }
+  66% {
+    color: #ec4899d9;
+  }
+  100% {
+    color: #4285f4d9;
   }
 }
