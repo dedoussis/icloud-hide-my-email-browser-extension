@@ -42,7 +42,7 @@ import { setBrowserStorageValue, Store } from '../../storage';
 
 import browser from 'webextension-polyfill';
 import Fuse from 'fuse.js';
-import isEqual from 'lodash.isequal';
+import { deepEqual } from '../../utils/deepEqual';
 import {
   PopupAction,
   PopupState,
@@ -661,14 +661,14 @@ const HmeManager = (props: {
     const newHmeEmail = { ...hmeEmail, isActive: !hmeEmail.isActive };
     setFetchedHmeEmails((prevFetchedHmeEmails) =>
       prevFetchedHmeEmails?.map((item) =>
-        isEqual(item, hmeEmail) ? newHmeEmail : item
+        deepEqual(item, hmeEmail) ? newHmeEmail : item
       )
     );
   };
 
   const deletionCallbackFactory = (hmeEmail: HmeEmail) => () => {
     setFetchedHmeEmails((prevFetchedHmeEmails) =>
-      prevFetchedHmeEmails?.filter((item) => !isEqual(item, hmeEmail))
+      prevFetchedHmeEmails?.filter((item) => !deepEqual(item, hmeEmail))
     );
   };
 

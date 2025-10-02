@@ -1,4 +1,3 @@
-import 'regenerator-runtime/runtime.js';
 import {
   getBrowserStorageValue,
   setBrowserStorageValue,

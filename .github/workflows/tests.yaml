@@ -24,7 +24,7 @@ jobs:
               - 'package.json'
               - 'package-lock.json'
 
-  build:
+  format:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -37,10 +37,70 @@ jobs:
         run: npm ci
       - name: Prettier formatting
         run: npm run prettier:check
+
+  lint:
+    runs-on: ubuntu-latest
+    needs: format
+    steps:
+      - uses: actions/checkout@v5
+      - name: Use Node.js 22.x
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: 'npm'
+      - name: Install npm deps
+        run: npm ci
       - name: Lint
         run: npm run lint
-      - name: Build extension
+
+  build-chrome:
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v5
+      - name: Use Node.js 22.x
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: 'npm'
+      - name: Install npm deps
+        run: npm ci
+      - name: Build extension for Chrome
         run: npm run build
+      - name: Zip Chrome build output
+        run: |
+          cd build
+          zip -r ../icloud-hide-my-email-chrome-extension.zip .
+      - name: Upload Chrome artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: icloud-hide-my-email-chrome-extension
+          path: icloud-hide-my-email-chrome-extension.zip
+
+  build-firefox:
+    runs-on: ubuntu-latest
+    needs: build-chrome
+    steps:
+      - uses: actions/checkout@v5
+      - name: Use Node.js 22.x
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: 'npm'
+      - name: Install npm deps
+        run: npm ci
+      - name: Build extension for Firefox
+        # This also lints the Firefox build using web-ext.
+        # In the future add -w to the lint to treat warnings as errors.
+        run: |
+          npm run build:firefox
+          npx web-ext lint --source-dir build
+          npx web-ext build --source-dir build --artifacts-dir . --filename icloud-hide-my-email-firefox-extension.zip
+      - name: Upload Firefox artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: icloud-hide-my-email-firefox-extension
+          path: icloud-hide-my-email-firefox-extension.zip
 
   license-audit:
     needs: detect-license-changes

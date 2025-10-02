@@ -9,9 +9,9 @@ import {
   TitledComponent,
   Link,
 } from '../../commonComponents';
-import startCase from 'lodash.startcase';
-import isEqual from 'lodash.isequal';
 import { DEFAULT_STORE } from '../../storage';
+import { startCase } from '../../utils/startCase';
+import { deepEqual } from '../../utils/deepEqual';
 
 const SELECT_FWD_TO_SIGNED_OUT_CTA_COPY =
   'To select a new Forward-To address, you first need to sign-in by following the instructions on the extension pop-up.';
@@ -49,7 +49,7 @@ const SelectFwdToForm = () => {
         const pms = new PremiumMailSettings(client);
         const result = await pms.listHme();
         setFwdToEmails((prevState) =>
-          isEqual(prevState, result.forwardToEmails)
+          deepEqual(prevState, result.forwardToEmails)
             ? prevState
             : result.forwardToEmails
         );

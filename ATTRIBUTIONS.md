@@ -66,9 +66,6 @@
 | [@types/http-proxy@1.17.16](https://github.com/DefinitelyTyped/DefinitelyTyped)                                        | MIT                           |
 | [@types/json-schema@7.0.15](https://github.com/DefinitelyTyped/DefinitelyTyped)                                        | MIT                           |
 | [@types/json5@0.0.29](https://github.com/DefinitelyTyped/DefinitelyTyped)                                              | MIT                           |
-| [@types/lodash.isequal@4.5.8](https://github.com/DefinitelyTyped/DefinitelyTyped)                                      | MIT                           |
-| [@types/lodash.startcase@4.4.9](https://github.com/DefinitelyTyped/DefinitelyTyped)                                    | MIT                           |
-| [@types/lodash@4.17.20](https://github.com/DefinitelyTyped/DefinitelyTyped)                                            | MIT                           |
 | [@types/mime@1.3.5](https://github.com/DefinitelyTyped/DefinitelyTyped)                                                | MIT                           |
 | [@types/minimatch@5.1.2](https://github.com/DefinitelyTyped/DefinitelyTyped)                                           | MIT                           |
 | [@types/node-forge@1.3.14](https://github.com/DefinitelyTyped/DefinitelyTyped)                                         | MIT                           |
@@ -423,9 +420,7 @@
 | [locate-path@5.0.0](https://github.com/sindresorhus/locate-path)                                                       | MIT                           |
 | [locate-path@6.0.0](https://github.com/sindresorhus/locate-path)                                                       | MIT                           |
 | [lodash.clonedeep@4.5.0](https://github.com/lodash/lodash)                                                             | MIT                           |
-| [lodash.isequal@4.5.0](https://github.com/lodash/lodash)                                                               | MIT                           |
 | [lodash.merge@4.6.2](https://github.com/lodash/lodash)                                                                 | MIT                           |
-| [lodash.startcase@4.4.0](https://github.com/lodash/lodash)                                                             | MIT                           |
 | [lodash@4.17.21](https://github.com/lodash/lodash)                                                                     | MIT                           |
 | [loose-envify@1.4.0](https://github.com/zertosh/loose-envify)                                                          | MIT                           |
 | [lower-case@2.0.2](https://github.com/blakeembrey/change-case)                                                         | MIT                           |
@@ -543,7 +538,6 @@
 | [readable-stream@3.6.2](https://github.com/nodejs/readable-stream)                                                     | MIT                           |
 | [rechoir@0.8.0](https://github.com/gulpjs/rechoir)                                                                     | MIT                           |
 | [reflect.getprototypeof@1.0.10](https://github.com/es-shims/Reflect.getPrototypeOf)                                    | MIT                           |
-| [regenerator-runtime@0.14.1](https://github.com/facebook/regenerator.git#main)                                         | MIT                           |
 | [regexp.prototype.flags@1.5.4](https://github.com/es-shims/RegExp.prototype.flags)                                     | MIT                           |
 | [relateurl@0.2.7](https://github.com/stevenvachon/relateurl)                                                           | MIT                           |
 | [renderkid@3.0.0](https://github.com/AriaMinaei/RenderKid)                                                             | MIT                           |

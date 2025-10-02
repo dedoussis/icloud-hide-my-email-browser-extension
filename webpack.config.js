@@ -36,10 +36,19 @@ const applyFirefoxManifestTransformations = (manifest) => {
     ...{
       browser_specific_settings: {
         gecko: {
-          id: '{5f2806a5-f66d-40c6-8fb2-6018753b5626}',
+          id: '{b3b720a0-8bf9-4e1f-b0e2-1e97f6ff708b}',
           // Minimum version of Firefox that supports declarativeNetRequest:
           // https://blog.mozilla.org/addons/2023/05/17/declarativenetrequest-available-in-firefox/
-          strict_min_version: '113.0',
+          strict_min_version: '126.0',
+          data_collection_permissions: {
+            required: ['none'],
+          },
+        },
+        gecko_android: {
+          strict_min_version: '126.0',
+          data_collection_permissions: {
+            required: ['none'],
+          },
         },
       },
     },
@@ -67,6 +76,7 @@ const htmlPages = [
 const htmlEntryNames = htmlPages.map(({ chunk }) => chunk);
 
 const options = {
+  node: false,
   mode: isDev ? 'development' : 'production',
   entry: {
     popup: path.join(__dirname, 'src', 'pages', 'Popup', 'index.tsx'),
