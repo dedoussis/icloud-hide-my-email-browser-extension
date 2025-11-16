@@ -24,10 +24,11 @@ export function useBrowserStorageState<K extends keyof Store>(
       setIsLoading(true);
       const value = await getBrowserStorageValue(key);
 
-      value !== undefined &&
+      if (value !== undefined) {
         setState((prevState) =>
           isEqual(prevState, value) ? prevState : value
         );
+      }
     }
 
     getBrowserStorageState()

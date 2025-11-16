@@ -1,4 +1,3 @@
-import 'regenerator-runtime/runtime.js';
 import {
   getBrowserStorageValue,
   setBrowserStorageValue,
@@ -70,7 +69,7 @@ const performAuthSideEffects = (
     })
     .catch(console.debug);
 
-  notification &&
+  if (notification) {
     browser.notifications
       .create({
         type: 'basic',
@@ -79,6 +78,7 @@ const performAuthSideEffects = (
         iconUrl: 'icon-128.png',
       })
       .catch(console.debug);
+  }
 };
 
 // ===== Message handling =====
@@ -359,4 +359,6 @@ browser.runtime.onInstalled.addListener(
 // On Firefox the context menu state is not persisted across browser restarts, meaning that the menu item
 // will disappear once the user quits their browser. Hence on Firefox, we create the context
 // menu item each time the background script is loaded.
-isFirefox && setupContextMenu();
+if (isFirefox) {
+  setupContextMenu();
+}

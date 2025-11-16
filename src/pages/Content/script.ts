@@ -184,7 +184,9 @@ export default async function main(): Promise<void> {
             const [{ inputElement, buttonSupport }] =
               autofillableInputElements.splice(foundIndex, 1);
 
-            buttonSupport && removeButtonSupport(inputElement, buttonSupport);
+            if (buttonSupport) {
+              removeButtonSupport(inputElement, buttonSupport);
+            }
           }
         });
       });
@@ -203,11 +205,15 @@ export default async function main(): Promise<void> {
 
     switch (message.type) {
       case MessageType.Autofill:
-        autofillableInputElements.forEach(({ inputElement, buttonSupport }) => {
-          inputElement.value = message.data as string;
-          inputElement.dispatchEvent(new Event('input', { bubbles: true }));
-          buttonSupport && removeButtonSupport(inputElement, buttonSupport);
-        });
+        autofillableInputElements.forEach(
+          ({ inputElement, buttonSupport }) => {
+            inputElement.value = message.data as string;
+            inputElement.dispatchEvent(new Event('input', { bubbles: true }));
+            if (buttonSupport) {
+              removeButtonSupport(inputElement, buttonSupport);
+            }
+          }
+        );
         break;
       case MessageType.GenerateResponse:
         {
@@ -264,7 +270,9 @@ export default async function main(): Promise<void> {
           inputElement.dispatchEvent(new Event('input', { bubbles: true }));
           inputElement.dispatchEvent(new Event('change', { bubbles: true }));
 
-          buttonSupport && removeButtonSupport(inputElement, buttonSupport);
+          if (buttonSupport) {
+            removeButtonSupport(inputElement, buttonSupport);
+          }
         }
         break;
       case MessageType.ActiveInputElementWrite:
@@ -280,15 +288,19 @@ export default async function main(): Promise<void> {
           activeElement.value = text;
           activeElement.dispatchEvent(new Event('input', { bubbles: true }));
           activeElement.dispatchEvent(new Event('change', { bubbles: true }));
-          copyToClipboard && navigator.clipboard.writeText(text);
+          if (copyToClipboard) {
+            navigator.clipboard.writeText(text);
+          }
 
           // Remove button if it exists. This should rarely happen as context menu
           // users are expected to have turned off button support.
           const found = autofillableInputElements.find((ael) =>
             ael.inputElement.isEqualNode(activeElement)
           );
-          found?.buttonSupport &&
-            removeButtonSupport(activeElement, found.buttonSupport);
+          const buttonSupport = found?.buttonSupport;
+          if (buttonSupport) {
+            removeButtonSupport(activeElement, buttonSupport);
+          }
         }
         break;
       default:
