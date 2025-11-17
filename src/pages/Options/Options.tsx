@@ -61,7 +61,9 @@ const SelectFwdToForm = () => {
       }
     };
 
-    !isClientStateLoading && fetchHmeList();
+    if (!isClientStateLoading) {
+      fetchHmeList();
+    }
   }, [setClientState, clientState?.setupUrl, isClientStateLoading]);
 
   const onSelectedFwdToSubmit = async (
