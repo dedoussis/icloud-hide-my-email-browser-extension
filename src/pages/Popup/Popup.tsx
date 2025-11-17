@@ -118,7 +118,7 @@ const SignInInstructions = () => {
             href={userguideUrl}
             target="_blank"
             rel="noreferrer"
-            className="w-full justify-center text-white bg-sky-400 hover:bg-sky-500 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg px-5 py-2.5 text-center mr-2 inline-flex items-center"
+            className="w-full justify-center text-white bg-sky-400 hover:bg-sky-500 focus:ring-4 focus:outline-hidden focus:ring-blue-300 font-medium rounded-lg px-5 py-2.5 text-center mr-2 inline-flex items-center"
             aria-label="Help"
           >
             <FontAwesomeIcon icon={faQuestionCircle} className="mr-1" />
@@ -128,7 +128,7 @@ const SignInInstructions = () => {
             href="https://icloud.com"
             target="_blank"
             rel="noreferrer"
-            className="w-full justify-center text-white bg-sky-400 hover:bg-sky-500 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg px-5 py-2.5 text-center mr-2 inline-flex items-center"
+            className="w-full justify-center text-white bg-sky-400 hover:bg-sky-500 focus:ring-4 focus:outline-hidden focus:ring-blue-300 font-medium rounded-lg px-5 py-2.5 text-center mr-2 inline-flex items-center"
             aria-label="Go to iCloud.com"
           >
             <FontAwesomeIcon icon={faExternalLink} className="mr-1" /> Go to
@@ -150,7 +150,7 @@ const ReservationResult = (props: { hme: HmeEmail }) => {
   };
 
   const btnClassName =
-    'focus:outline-none text-white bg-green-700 hover:bg-green-800 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 block w-full';
+    'focus:outline-hidden text-white bg-green-700 hover:bg-green-800 focus:ring-4 focus:ring-green-300 font-medium rounded-lg text-sm px-5 py-2.5 block w-full';
 
   return (
     <div
@@ -335,7 +335,7 @@ const HmeGenerator = (props: {
     isEmailRefreshSubmitting || hmeEmail == reservedHme?.hme;
 
   const reservationFormInputClassName =
-    'appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-400 text-gray-900 focus:outline-none focus:border-sky-400 focus:z-10 sm:text-sm';
+    'appearance-none rounded-md relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-400 text-gray-900 focus:outline-hidden focus:border-sky-400 focus:z-10 sm:text-sm';
 
   return (
     <TitledComponent
@@ -480,7 +480,7 @@ const HmeDetails = (props: {
   };
 
   const btnClassName =
-    'w-full justify-center text-white focus:ring-4 focus:outline-none font-medium rounded-lg px-2 py-3 text-center inline-flex items-center';
+    'w-full justify-center text-white focus:ring-4 focus:outline-hidden font-medium rounded-lg px-2 py-3 text-center inline-flex items-center';
   const labelClassName = 'font-bold';
   const valueClassName = 'text-gray-500 truncate';
 
@@ -646,7 +646,7 @@ const HmeManager = (props: {
         </div>
         <input
           type="search"
-          className="pl-9 p-2 w-full rounded placeholder-gray-400 border border-gray-200 focus:outline-none focus:border-sky-400"
+          className="bg-[Canvas] pl-9 p-2 w-full rounded-sm placeholder-gray-400 border border-gray-200 focus:outline-hidden focus:border-sky-400"
           placeholder="Search"
           aria-label="Search through your HideMyEmail addresses"
           onChange={(e) => {
@@ -682,7 +682,7 @@ const HmeManager = (props: {
     ));
 
     const noSearchResult = (
-      <div className="p-3 break-words text-center text-gray-400">
+      <div className="p-3 wrap-break-word text-center text-gray-400">
         No results for &quot;{searchPrompt}&quot;
       </div>
     );
