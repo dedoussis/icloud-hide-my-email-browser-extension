@@ -205,15 +205,13 @@ export default async function main(): Promise<void> {
 
     switch (message.type) {
       case MessageType.Autofill:
-        autofillableInputElements.forEach(
-          ({ inputElement, buttonSupport }) => {
-            inputElement.value = message.data as string;
-            inputElement.dispatchEvent(new Event('input', { bubbles: true }));
-            if (buttonSupport) {
-              removeButtonSupport(inputElement, buttonSupport);
-            }
+        autofillableInputElements.forEach(({ inputElement, buttonSupport }) => {
+          inputElement.value = message.data as string;
+          inputElement.dispatchEvent(new Event('input', { bubbles: true }));
+          if (buttonSupport) {
+            removeButtonSupport(inputElement, buttonSupport);
           }
-        );
+        });
         break;
       case MessageType.GenerateResponse:
         {
