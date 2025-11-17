@@ -51,36 +51,12 @@ You can enable/disable any of the autofilling mechanisms through the Options pag
 
 This extension is entirely written in TypeScript. The UI pages of the extension (e.g. Pop-Up and Options) are implemented as React apps and styled with TailwindCSS.
 
-### Environment
+### Dev Environment
 
-Development was carried out in the following environment:
-
-```console
-$ sw_vers
-ProductName:	macOS
-ProductVersion:	12.5
-BuildVersion:	21G72
-
-$ sysctl kern.version
-kern.version: Darwin Kernel Version 21.6.0: Sat Jun 18 17:07:25 PDT 2022; root:xnu-8020.140.41~1/RELEASE_X86_64
-
-$ node --version
-v18.11.0
-
-$ npm --version
-8.19.2
-
-$ pkgutil --pkg-info=com.apple.pkg.CLTools_Executables | grep version  # CommandLineTools needed for node-gyp
-version: 13.4.0.0.1.1651278267
-
-$ python3 --version  # needed for node-gyp
-Python 3.10.5
-```
-
-The above versions should not be regarded as hard version pins. This is just a combination of versions that happened to successfully build the extension on my machine. The following Dockerfile has been used to successfully build the extension and provides a much cleaner runtime contract:
+Development was carried out in an environment that matches the following Docker contract:
 
 ```Dockerfile
-FROM node:18.12.1-alpine3.17
+FROM node:25.1.0-alpine3.22
 
 RUN apk add --update --no-cache g++ make python3
 
