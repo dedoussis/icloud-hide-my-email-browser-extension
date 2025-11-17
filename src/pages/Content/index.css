@@ -5,11 +5,10 @@
 */
 @layer base {
   button:not(:disabled),
-  [role="button"]:not(:disabled) {
+  [role='button']:not(:disabled) {
     cursor: pointer;
   }
 }
-
 
 .d1691f0f-b8f0-495e-9ffb-fe4e6f84b518-button {
   @apply bg-sky-400 text-white w-full rounded p-2 my-1 font-sans font-medium;
