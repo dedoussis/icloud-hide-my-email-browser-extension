@@ -76,13 +76,14 @@ Note: the following console commands are to be executed from the root directory 
 <!-- prettier-ignore-start -->
 | # | Description | Chromium | Firefox |
 | - | - | - | - |
-| 0 | Install deps | `npm ci` | `npm ci && npm i -g web-ext` |
-| 1 | Spin up the DevServer. The server generates the `build` dir. | `npm run start` | `npm run start:firefox` |
-| 2 | Load the unpacked extension on the browser |  The `build` dir can be loaded as an unpacked extension through the browser's UI. See the relevant [Google Chrome guide](https://developer.chrome.com/docs/extensions/mv3/getstarted/development-basics/#load-unpacked). | `web-ext -s build run` |
-| 3 | Develop against the local browser instance on which the `build` dir is loaded | N/A | N/A |
-| 4 | Build productionised artefact | `npm run build` | `npm run build:firefox` |
-| 5 | Compress productionised artefact | `zip build.zip ./build/*` | `web-ext -s build build` |
-| 6 | Publish | [Chrome webstore dev console](https://chrome.google.com/webstore/devconsole/) | [Mozilla Add-on developer hub](https://addons.mozilla.org/en-US/developers/addon/icloud-hide-my-email/versions/submit/) |
+| 0 | Configure node environment (not required when building with Docker) | `nvm use` | `nvm use` |
+| 1 | Install deps | `npm ci` | `npm ci && npm i -g web-ext` |
+| 2 | Spin up the DevServer. The server generates the `build` dir. | `npm run start` | `npm run start:firefox` |
+| 3 | Load the unpacked extension on the browser |  The `build` dir can be loaded as an unpacked extension through the browser's UI. See the relevant [Google Chrome guide](https://developer.chrome.com/docs/extensions/mv3/getstarted/development-basics/#load-unpacked). | `web-ext -s build run` |
+| 4 | Develop against the local browser instance on which the `build` dir is loaded | N/A | N/A |
+| 5 | Build productionised artefact | `npm run build` | `npm run build:firefox` |
+| 6 | Compress productionised artefact | `zip build.zip ./build/*` | `web-ext -s build build` |
+| 7 | Publish | [Chrome webstore dev console](https://chrome.google.com/webstore/devconsole/) | [Mozilla Add-on developer hub](https://addons.mozilla.org/en-US/developers/addon/icloud-hide-my-email/versions/submit/) |
 <!-- prettier-ignore-end -->
 
 ### TODOs
