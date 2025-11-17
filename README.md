@@ -51,9 +51,9 @@ You can enable/disable any of the autofilling mechanisms through the Options pag
 
 This extension is entirely written in TypeScript. The UI pages of the extension (e.g. Pop-Up and Options) are implemented as React apps and styled with TailwindCSS.
 
-### Dev Environment
+### Dev environment
 
-Development was carried out in an environment that matches the following Docker contract:
+Development was carried out in an environment that matches the following Docker image:
 
 ```Dockerfile
 FROM node:25.1.0-alpine3.22
