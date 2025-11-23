@@ -122,7 +122,7 @@ const AutofillableDemoInput = (props: {
         )}
       </label>
       <input
-        className="block w-full rounded-md relative px-3 py-2 border border-gray-300 placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-sky-400 focus:border-sky-400 focus:z-10 sm:text-sm"
+        className="bg-[Canvas] block w-full rounded-md relative px-3 py-2 border border-gray-300 placeholder-gray-400 text-gray-900 focus:outline-hidden focus:ring-sky-400 focus:border-sky-400 focus:z-10 sm:text-sm"
         defaultValue={autofillableInputValue}
         onInput={(e) =>
           setAutoFillableInputValue((e.target as HTMLInputElement).value)

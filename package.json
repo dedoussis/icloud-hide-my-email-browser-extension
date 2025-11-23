@@ -1,6 +1,6 @@
 {
   "name": "icloud-hide-my-email-browser-extension",
-  "version": "1.2.10",
+  "version": "1.2.11",
   "description": "Cross-browser extension enabling the usage of iCloud's Hide My Email service.",
   "license": "MIT",
   "author": "dedoussis",
@@ -34,6 +34,7 @@
     "webextension-polyfill": "^0.12.0"
   },
   "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.17",
     "@types/chrome": "^0.0.243",
     "@types/lodash.isequal": "^4.5.6",
     "@types/lodash.startcase": "^4.4.7",
@@ -43,7 +44,6 @@
     "@types/webextension-polyfill": "^0.12.1",
     "@typescript-eslint/eslint-plugin": "^8.46.4",
     "@typescript-eslint/parser": "^8.46.4",
-    "autoprefixer": "^10.4.8",
     "clean-webpack-plugin": "^4.0.0",
     "copy-webpack-plugin": "^7.0.0",
     "css-loader": "^6.6.0",
@@ -61,7 +61,7 @@
     "sass": "^1.94.0",
     "sass-loader": "^16.0.6",
     "style-loader": "^3.3.1",
-    "tailwindcss": "^3.1.8",
+    "tailwindcss": "^4.1.17",
     "terser-webpack-plugin": "^5.3.1",
     "ts-loader": "^9.2.6",
     "typescript": "^5.9.3",
