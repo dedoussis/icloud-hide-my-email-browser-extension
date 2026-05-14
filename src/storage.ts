@@ -1,6 +1,7 @@
-import browser from 'webextension-polyfill';
+import { browser } from 'wxt/browser';
 import ICloudClient from './iCloudClient';
-import { PopupState } from './pages/Popup/stateMachine';
+import { PopupState } from './popupState';
+import { HmeCache } from './hmeCache';
 
 export type Autofill = {
   button: boolean;
@@ -13,11 +14,12 @@ export type Options = {
 
 export type Store = {
   popupState: PopupState;
-  iCloudHmeOptions: Options; // TODO: rename key to options
+  iCloudHmeOptions: Options;
   clientState?: {
     setupUrl: ConstructorParameters<typeof ICloudClient>[0];
     webservices: ConstructorParameters<typeof ICloudClient>[1];
   };
+  hmeCache?: HmeCache;
 };
 
 export const DEFAULT_STORE = {

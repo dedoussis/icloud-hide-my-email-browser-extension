@@ -1,4 +1,4 @@
-import browser from 'webextension-polyfill';
+import { browser, type Browser } from 'wxt/browser';
 
 export enum MessageType {
   Autofill,
@@ -36,7 +36,7 @@ export type ReservationResponseData = GenerationResponseData;
 export const sendMessageToTab = async (
   type: MessageType,
   data: unknown,
-  tab?: browser.Tabs.Tab
+  tab?: Browser.tabs.Tab
 ): Promise<void> => {
   if (tab === undefined) {
     [tab] = await browser.tabs.query({

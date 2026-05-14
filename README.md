@@ -1,93 +1,86 @@
 # iCloud Hide My Email Browser Extension
 
-[![Tests Status](https://github.com/dedoussis/icloud-hide-my-email-browser-extension/workflows/tests/badge.svg)](https://github.com/dedoussis/icloud-hide-my-email-browser-extension/actions/workflows/tests.yml)
+> Fork of [dedoussis/icloud-hide-my-email-browser-extension](https://github.com/dedoussis/icloud-hide-my-email-browser-extension) with enhanced management features for users with 300+ addresses.
 
-[Hide My Email](https://support.apple.com/en-us/HT210425) is a premium privacy service of iCloud. Safari offers a native integration with Hide My Email, whereby users are prompted to generate a Hide My Email address upon registration to any website. This extension aims to bring a similar UX into a wider variety of browsers. In particular, it has been explicitly tested to work on:
+[Hide My Email](https://support.apple.com/en-us/HT210425) is a premium privacy service of iCloud. Safari offers a native integration with Hide My Email, but this extension brings similar UX to other browsers:
 
-- [Chrome](https://chrome.google.com/webstore/detail/icloud-hide-my-email/omiaekblhgfopjkjnenhahfgcgnbohlk)
+- [Chrome](https://chrome.google.com/webstore/detail/icloud-hide-my-email/omiaekblhgfopjkjnenhahfgcgnbohlk) / Brave / Edge (any Chromium-based)
 - [Firefox](https://addons.mozilla.org/en-US/firefox/addon/icloud-hide-my-email/)
-- [Brave](https://chrome.google.com/webstore/detail/icloud-hide-my-email/omiaekblhgfopjkjnenhahfgcgnbohlk)
-- Microsoft Edge
 
-Note that the extension _should_ work on any browser that implements the [extension API](https://developer.chrome.com/docs/extensions/reference/) supported by Chromium-based browsers.
-
-_Disclaimer: This extension is not endorsed by, directly affiliated with, maintained, authorized, or sponsored by Apple._
-
-<p align="center">
-<img src="./src/assets/img/demo-popup.gif" alt="Extension popup demo" width="400" height="auto"/>
-</p>
-
-<p align="center">
-<img src="./src/assets/img/demo-content.gif" alt="Extension content demo" width="600" height="auto"/>
-</p>
+*Disclaimer: Not endorsed by, affiliated with, or sponsored by Apple.*
 
 ## Features
 
-- Simple pop-up UI for generating and reserving new Hide My Email addresses
-- Ability to manage existing Hide My Email addresses (including deactivation, reactivation, and deletion)
-- Autofilling on any HTML input element that is relevant to email
-- Quick configuration of Hide My Email settings, such as the Forward-To address, through the Options page of the extension
+**Core (upstream)**
+- Pop-up UI for generating and reserving new Hide My Email addresses
+- Autofill on email input fields (button overlay or right-click context menu)
+- Forward-To address configuration via Options page
 
-## Options
-
-### Address autofilling
-
-The extension can be configured to
-
-1. show an autofill button on input field focus
-2. show a context menu item when right-clicking on input fields
-
-<p align="center">
-<img src="./src/assets/img/readme-button-autofilling.png" alt="Autofilling button on input field focus" width="400" height="auto"/>
-</p>
-
-<p align="center">
-<img src="./src/assets/img/readme-context-menu-autofilling.png" alt="Context menu item when right-clicking on input fields" width="400" height="auto"/>
-</p>
-
-You can enable/disable any of the autofilling mechanisms through the Options page of the extension.
+**Enhanced manager (this fork)**
+- Instant load via client-side cache with background refresh
+- Search across labels, email addresses, and notes
+- Filter by status (active/inactive), origin (Extension/Safari), and tags
+- Sort by date, label, or status
+- Inline editing of labels, notes, and tags
+- Tag system using `#tag` convention in the note field
+- CSV/JSON export of filtered results
+- Batch select and bulk deactivate
+- Full-tab manager mode for heavy management
+- Cache age indicator
 
 ## Develop
 
-This extension is entirely written in TypeScript. The UI pages of the extension (e.g. Pop-Up and Options) are implemented as React apps and styled with TailwindCSS.
+Built with TypeScript, React 19, TailwindCSS 4, and [WXT](https://wxt.dev/) (browser extension framework).
 
-### Dev environment
+### Prerequisites
 
-Development was carried out in an environment that matches the following Docker image:
+- Node.js 25+ (see `.nvmrc`)
 
-```Dockerfile
-FROM node:25.1.0-alpine3.22
+### Setup
 
-RUN apk add --update --no-cache g++ make python3
-
-ADD . /opt/extension
-
-WORKDIR /opt/extension
-
-ENTRYPOINT ["sh"]
+```sh
+nvm use
+npm install
 ```
 
-### Development workflow
+### Commands
 
-The table below outlines the sequence of steps that need to be followed in order to ship a change in the extension. The execution of some of these steps varies per browser engine.
+| Command | Description |
+| --- | --- |
+| `npm run dev` | Start dev server (Chrome, with HMR) |
+| `npm run dev:firefox` | Start dev server (Firefox) |
+| `npm run build` | Production build for Chrome (`dist/chrome-mv3/`) |
+| `npm run build:firefox` | Production build for Firefox (`dist/firefox-mv3/`) |
+| `npm run zip` | Build + zip for Chrome Web Store |
+| `npm run zip:firefox` | Build + zip for Firefox Add-ons |
+| `npm run check` | TypeScript type check |
+| `npm run lint` | ESLint |
 
-Note: the following console commands are to be executed from the root directory of this repo
+### Loading the extension
 
-<!-- prettier-ignore-start -->
-| # | Description | Chromium | Firefox |
-| - | - | - | - |
-| 0 | Configure node environment (not required when building with Docker) | `nvm use` | `nvm use` |
-| 1 | Install deps | `npm ci` | `npm ci && npm i -g web-ext` |
-| 2 | Spin up the DevServer. The server generates the `build` dir. | `npm run start` | `npm run start:firefox` |
-| 3 | Load the unpacked extension on the browser |  The `build` dir can be loaded as an unpacked extension through the browser's UI. See the relevant [Google Chrome guide](https://developer.chrome.com/docs/extensions/mv3/getstarted/development-basics/#load-unpacked). | `web-ext -s build run` |
-| 4 | Develop against the local browser instance on which the `build` dir is loaded | N/A | N/A |
-| 5 | Build productionised artefact | `npm run build` | `npm run build:firefox` |
-| 6 | Compress productionised artefact | `zip build.zip ./build/*` | `web-ext -s build build` |
-| 7 | Publish | [Chrome webstore dev console](https://chrome.google.com/webstore/devconsole/) | [Mozilla Add-on developer hub](https://addons.mozilla.org/en-US/developers/addon/icloud-hide-my-email/versions/submit/) |
-<!-- prettier-ignore-end -->
+1. `npm run build`
+2. Chrome: go to `chrome://extensions`, enable Developer mode, click "Load unpacked", select `dist/chrome-mv3/`
+3. Firefox: `npm run dev:firefox` (auto-launches) or use `web-ext -s dist/firefox-mv3 run`
 
-### TODOs
+### Project structure
 
-- [ ] Ability to modify the label and note of existing HME addresses
-- [ ] CI and maybe CD
-- [ ] Dependabot
+```
+entrypoints/          # WXT entry points (auto-discovered)
+  background.ts       # Service worker: auth sync, message routing, context menu
+  content/            # Content script: DOM overlay, autofill buttons
+  popup/              # Popup UI: generator + manager
+  options/            # Options page: forward-to, autofill settings
+  manager/            # Full-tab manager page
+  userguide/          # Getting started guide
+src/                  # Shared modules
+  iCloudClient.ts     # Apple API wrapper (generate, reserve, list, update, etc.)
+  storage.ts          # Browser storage schema + helpers
+  hmeCache.ts         # Client-side cache for HME list
+  tags.ts             # Tag parsing/serialization (#tag convention)
+  export.ts           # CSV/JSON export
+  messages.ts         # Background <-> content script IPC
+  hooks.ts            # React hooks (useBrowserStorageState)
+  commonComponents.tsx # Shared UI components
+public/               # Static assets (icons, rules.json)
+wxt.config.ts         # WXT configuration + manifest
+```

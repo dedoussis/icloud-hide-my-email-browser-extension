@@ -1,6 +1,6 @@
 {
   "root": true,
-  "ignorePatterns": ["build/**"],
+  "ignorePatterns": ["dist/**", ".wxt/**"],
   "extends": ["eslint:recommended"],
   "env": {
     "node": true
