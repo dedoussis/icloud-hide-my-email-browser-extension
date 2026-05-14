@@ -1,15 +1,7 @@
-# See https://help.github.com/ignore-files/ for more about ignoring files.
-
-# dependencies
 /node_modules
-
-# testing
+/dist
+/.wxt
 /coverage
-
-# production
-/build
-
-# misc
 .DS_Store
 .env.local
 .env.development.local
@@ -17,9 +9,5 @@
 .env.production.local
 .history
 *.zip
-
-# secrets
 secrets.*.js
-
-# IDE
 .vscode

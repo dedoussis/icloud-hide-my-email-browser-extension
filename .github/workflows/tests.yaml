@@ -14,7 +14,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Use Node.js 25.x
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v4
         with:
           node-version: 25
       - uses: actions/cache@v4
@@ -24,10 +24,12 @@ jobs:
           key: ${{ runner.os }}-nodejs-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-nodejs-
-      - name: Install npm deps
+      - name: Install deps
         if: steps.npm-cache.outputs.cache-hit != 'true'
         run: npm ci
-      - name: Prettier formatting
-        run: npm run prettier:check
-      - name: Linting
-        run: npm run lint
+      - name: Type check
+        run: npm run check
+      - name: Build (Chrome)
+        run: npm run build
+      - name: Build (Firefox)
+        run: npm run build:firefox
