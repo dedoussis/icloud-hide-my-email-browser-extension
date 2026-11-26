@@ -137,11 +137,6 @@ const options = {
           },
         },
         {
-          from: 'src/rules.json',
-          to: path.join(__dirname, 'build'),
-          force: true,
-        },
-        {
           from: 'src/assets/img/icon-128.png',
           to: path.join(__dirname, 'build'),
           force: true,

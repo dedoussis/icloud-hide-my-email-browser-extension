@@ -47,6 +47,18 @@ The extension can be configured to
 
 You can enable/disable any of the autofilling mechanisms through the Options page of the extension.
 
+## Install locally in Chrome
+
+Use Node 24 (`nvm use`), then run `npm ci`, `npm test`, and `npm run build`.
+Open `chrome://extensions`, enable **Developer mode**, click **Load unpacked**,
+and select this repository's `build` directory. Keep that directory in place.
+After rebuilding, click the extension's reload button and refresh any open pages
+where you want to use autofill. Sign in through the official iCloud website.
+
+The extension limits iCloud header rewriting to requests initiated by the extension.
+Autofill reservations require a trusted left mouse press and use private alias
+state rather than page-editable button text.
+
 ## Develop
 
 This extension is entirely written in TypeScript. The UI pages of the extension (e.g. Pop-Up and Options) are implemented as React apps and styled with TailwindCSS.
@@ -56,7 +68,7 @@ This extension is entirely written in TypeScript. The UI pages of the extension 
 Development was carried out in an environment that matches the following Docker image:
 
 ```Dockerfile
-FROM node:25.1.0-alpine3.22
+FROM node:24-alpine
 
 RUN apk add --update --no-cache g++ make python3
 
