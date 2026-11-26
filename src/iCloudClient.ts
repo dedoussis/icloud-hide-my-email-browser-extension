@@ -1,3 +1,5 @@
+import { ensureHeaderRules } from './headerRules';
+
 export class UnsuccessfulRequestError extends Error {}
 
 type ServiceName = 'premiummailsettings';
@@ -20,6 +22,8 @@ class ICloudClient {
     } = {}
   ): Promise<unknown> {
     const { headers = {}, data = undefined } = options;
+
+    await ensureHeaderRules();
 
     const response = await fetch(url, {
       method,

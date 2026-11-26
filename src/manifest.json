@@ -2,7 +2,9 @@
   "name": "iCloud Hide My Email",
   "description": "Use iCloud's Hide My Email service on Chrome.",
   "manifest_version": 3,
-  "background": { "service_worker": "background.bundle.js" },
+  "background": {
+    "service_worker": "background.bundle.js"
+  },
   "action": {
     "default_popup": "popup.html",
     "default_icon": "icon-32.png"
@@ -15,15 +17,6 @@
     }
   ],
   "options_page": "options.html",
-  "declarative_net_request": {
-    "rule_resources": [
-      {
-        "id": "icloud_com_simulation_headers",
-        "enabled": true,
-        "path": "rules.json"
-      }
-    ]
-  },
   "permissions": [
     "declarativeNetRequest",
     "storage",

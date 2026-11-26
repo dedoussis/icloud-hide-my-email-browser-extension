@@ -13,10 +13,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Use Node.js 25.x
+      - name: Use Node.js 24.x
         uses: actions/setup-node@v6
         with:
-          node-version: 25
+          node-version: 24
       - uses: actions/cache@v4
         id: npm-cache
         with:
@@ -31,3 +31,7 @@ jobs:
         run: npm run prettier:check
       - name: Linting
         run: npm run lint
+      - name: Security regression tests
+        run: npm test
+      - name: Production build
+        run: npm run build

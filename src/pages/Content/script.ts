@@ -28,18 +28,23 @@ type AutofillableInputElement = {
   inputElement: HTMLInputElement;
   buttonSupport?: {
     btnElement: HTMLButtonElement;
+    elementId: string;
     inputOnFocusCallback: (ev: FocusEvent) => void;
     inputOnBlurCallback: (ev: FocusEvent) => void;
     btnOnMousedownCallback: (ev: MouseEvent) => void;
   };
 };
 
+// Private content-script state: the page can edit DOM text, but not this map.
+const generatedAliases = new WeakMap<HTMLButtonElement, string>();
+
 const disableButton = (
   btn: HTMLButtonElement,
   cursorClass: string,
   copy: string
 ): void => {
-  btn.innerHTML = copy;
+  generatedAliases.delete(btn);
+  btn.textContent = copy;
   btn.setAttribute('disabled', 'true');
   btn.classList.remove(className('hover-button'));
   btn.classList.forEach((name) => {
@@ -55,7 +60,8 @@ const enableButton = (
   cursorClass: string,
   copy: string
 ): void => {
-  btn.innerHTML = copy;
+  generatedAliases.set(btn, copy);
+  btn.textContent = copy;
   btn.removeAttribute('disabled');
   btn.classList.add(className('hover-button'));
   btn.classList.forEach((name) => {
@@ -97,12 +103,15 @@ const makeButtonSupport = (
   inputElement.addEventListener('blur', inputOnBlurCallback);
 
   const btnOnMousedownCallback = async (ev: MouseEvent) => {
+    const hme = generatedAliases.get(btnElement);
+    if (!ev.isTrusted || ev.button !== 0 || !hme || !btnElement.isConnected) {
+      return;
+    }
     ev.preventDefault();
-    const hme = btnElement.innerHTML;
     disableButton(btnElement, 'cursor-progress', LOADING_COPY);
     await browser.runtime.sendMessage({
       type: MessageType.ReservationRequest,
-      data: { hme, label: window.location.host, elementId: btnElement.id },
+      data: { hme, label: window.location.host, elementId: btnElementId },
     } as Message<ReservationRequestData>);
   };
 
@@ -110,6 +119,7 @@ const makeButtonSupport = (
 
   return {
     btnElement,
+    elementId: btnElementId,
     inputOnFocusCallback,
     inputOnBlurCallback,
     btnOnMousedownCallback,
@@ -120,8 +130,14 @@ const removeButtonSupport = (
   inputElement: HTMLInputElement,
   buttonSupport: NonNullable<AutofillableInputElement['buttonSupport']>
 ): void => {
-  const { btnElement, inputOnFocusCallback, inputOnBlurCallback } =
-    buttonSupport;
+  const {
+    btnElement,
+    inputOnFocusCallback,
+    inputOnBlurCallback,
+    btnOnMousedownCallback,
+  } = buttonSupport;
+  generatedAliases.delete(btnElement);
+  btnElement.removeEventListener('mousedown', btnOnMousedownCallback);
   inputElement.removeEventListener('focus', inputOnFocusCallback);
   inputElement.removeEventListener('blur', inputOnBlurCallback);
   btnElement.remove();
@@ -218,7 +234,9 @@ export default async function main(): Promise<void> {
           const { hme, elementId, error } =
             message.data as GenerationResponseData;
 
-          const element = document.getElementById(elementId);
+          const element = autofillableInputElements.find(
+            (item) => item.buttonSupport?.elementId === elementId
+          )?.buttonSupport?.btnElement;
 
           if (!element || !(element instanceof HTMLButtonElement)) {
             break;
@@ -241,7 +259,9 @@ export default async function main(): Promise<void> {
           const { hme, error, elementId } =
             message.data as ReservationResponseData;
 
-          const btnElement = document.getElementById(elementId);
+          const btnElement = autofillableInputElements.find(
+            (item) => item.buttonSupport?.elementId === elementId
+          )?.buttonSupport?.btnElement;
 
           if (!btnElement || !(btnElement instanceof HTMLButtonElement)) {
             break;
@@ -257,7 +277,7 @@ export default async function main(): Promise<void> {
           }
 
           const found = autofillableInputElements.find(
-            (ael) => ael.buttonSupport?.btnElement.id === btnElement.id
+            (ael) => ael.buttonSupport?.btnElement === btnElement
           );
           if (!found) {
             break;
